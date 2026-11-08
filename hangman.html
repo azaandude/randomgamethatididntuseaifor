@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Football Hangman</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="database.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.15);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;--bad:#ff4d6d;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(168,85,247,.1),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 85% 100%,rgba(255,107,53,.08),transparent 55%);}
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;color:var(--a4);white-space:nowrap;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;background:rgba(255,255,255,.08);color:var(--text);text-decoration:none;border:1px solid var(--border);}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+.wrap{max-width:820px;margin:0 auto;padding:18px 16px 60px;position:relative;z-index:1;}
+.hero-title{font-family:'Bangers',cursive;font-size:2.6rem;letter-spacing:3px;text-align:center;
+  background:linear-gradient(135deg,var(--a4),var(--a6));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{text-align:center;color:var(--muted);font-size:.85rem;margin:6px auto 14px;font-weight:700;max-width:600px;}
+.panel{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;}
+.top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;align-items:end;}
+.f{display:flex;flex-direction:column;gap:4px;}
+.f label{font-size:.65rem;letter-spacing:2px;color:var(--muted);font-weight:900;text-transform:uppercase;}
+select{background:rgba(255,255,255,.06);border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--text);font-family:'Nunito',sans-serif;font-weight:700;font-size:.85rem;}
+.main{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:center;}
+.gallows{width:100%;max-width:200px;height:auto;display:block;margin:0 auto;}
+.gallows .part{opacity:0;transition:opacity .3s;}
+.gallows .part.on{opacity:1;}
+.word{font-family:'Bangers',cursive;font-size:2.4rem;letter-spacing:6px;text-align:center;min-height:52px;word-break:break-word;line-height:1.2;}
+.word .blank{border-bottom:3px solid var(--a4);display:inline-block;min-width:24px;margin:0 3px;color:transparent;}
+.word .gap{display:inline-block;width:14px;}
+.hints{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.hint{font-size:.8rem;font-weight:700;padding:6px 10px;border-radius:9px;background:rgba(255,255,255,.04);border-left:3px solid var(--a2);}
+.hint.locked{border-left-color:var(--border);color:var(--muted);}
+.kb{display:grid;grid-template-columns:repeat(13,1fr);gap:5px;margin-top:14px;}
+.kb button{font-family:'Fredoka One',cursive;font-size:.9rem;padding:9px 0;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;}
+.kb button:hover:not(:disabled){background:rgba(168,85,247,.25);}
+.kb button.hit{background:rgba(6,255,165,.2);border-color:var(--a3);color:var(--a3);}
+.kb button.miss{background:rgba(255,77,109,.2);border-color:var(--bad);color:var(--bad);}
+.kb button:disabled{cursor:default;opacity:.85;}
+.hud{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
+.stat{background:rgba(255,255,255,.04);border-radius:10px;padding:8px;text-align:center;}
+.stat b{display:block;font-family:'Bangers',cursive;font-size:1.5rem;color:var(--a2);letter-spacing:1px;}
+.stat small{font-size:.58rem;color:var(--muted);font-weight:800;letter-spacing:1px;text-transform:uppercase;}
+.msg{text-align:center;font-family:'Fredoka One',cursive;font-size:1.05rem;min-height:26px;margin-top:10px;}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
+.btn{font-family:'Fredoka One',cursive;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;color:#07070f;background:var(--a3);font-size:.85rem;}
+.btn.alt{background:rgba(255,255,255,.1);color:var(--text);}
+.muted{color:var(--muted);font-size:.72rem;font-weight:700;text-align:center;margin-top:8px;}
+@media (max-width:640px){
+  html,body{overflow-x:hidden}
+  .top{grid-template-columns:1fr 1fr}
+  .main{grid-template-columns:1fr}
+  .hero-title{font-size:2rem}
+  .kb{grid-template-columns:repeat(9,1fr)}
+  .word{font-size:1.8rem;letter-spacing:3px}
+  nav{padding:0 10px}
+  .logo{font-size:1.05rem}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🔤 FOOTBALL HANGMAN</div>
+  <div style="display:flex;gap:7px">
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero-title">🔤 FOOTBALL HANGMAN</div>
+  <div class="hero-sub">Guess the real player or club from the database. Six misses and the round is lost. Hints unlock as you struggle. Works offline.</div>
+
+  <div class="panel">
+    <div class="top">
+      <div class="f"><label for="mode">Guess</label>
+        <select id="mode"><option value="players">Player names</option><option value="clubs">Club names</option></select></div>
+      <div class="f"><label for="diff">Difficulty</label>
+        <select id="diff"><option value="easy">Easy: stars</option><option value="medium" selected>Medium</option><option value="hard">Hard: anyone</option></select></div>
+      <div class="f"><label>&nbsp;</label><button class="btn" id="next">🔁 New word</button></div>
+    </div>
+
+    <div class="main">
+      <svg class="gallows" viewBox="0 0 200 220" aria-hidden="true">
+        <line x1="10" y1="210" x2="110" y2="210" stroke="#8888bb" stroke-width="4"/>
+        <line x1="40" y1="210" x2="40" y2="20" stroke="#8888bb" stroke-width="4"/>
+        <line x1="40" y1="20" x2="130" y2="20" stroke="#8888bb" stroke-width="4"/>
+        <line x1="130" y1="20" x2="130" y2="50" stroke="#ffd23f" stroke-width="3"/>
+        <g stroke="#eeeeff" stroke-width="5" fill="none" stroke-linecap="round">
+          <circle class="part" id="p0" cx="130" cy="70" r="20" stroke="#ff6b35"/>
+          <line class="part" id="p1" x1="130" y1="90" x2="130" y2="140"/>
+          <line class="part" id="p2" x1="130" y1="105" x2="105" y2="125"/>
+          <line class="part" id="p3" x1="130" y1="105" x2="155" y2="125"/>
+          <line class="part" id="p4" x1="130" y1="140" x2="110" y2="180"/>
+          <line class="part" id="p5" x1="130" y1="140" x2="150" y2="180"/>
+        </g>
+      </svg>
+      <div>
+        <div class="word" id="word"></div>
+        <div class="hints" id="hints"></div>
+      </div>
+    </div>
+
+    <div class="kb" id="kb"></div>
+    <div class="msg" id="msg"></div>
+
+    <div class="hud">
+      <div class="stat"><b id="sWrong">0</b><small>Misses</small></div>
+      <div class="stat"><b id="sScore">0</b><small>Round score</small></div>
+      <div class="stat"><b id="sStreak">0</b><small>Streak</small></div>
+      <div class="stat"><b id="sWon">0</b><small>Solved</small></div>
+    </div>
+    <div class="muted" id="rec"></div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// FOOTBALL HANGMAN  -  ES5, uses the offline database.
+// Words come from real players (by rating tier) or real club names.
+// =====================================================================
+var KEY = 'nom_hangman';
+var ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+var PLAYERS = [], CLUBS = [];
+var G = null;
+
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function keyOf(s) {
+  var t = String(s);
+  if (t.normalize) t = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return t.toUpperCase();
+}
+function isLetter(ch) { return ch >= 'A' && ch <= 'Z'; }
+
+function buildData() {
+  PLAYERS = []; CLUBS = [];
+  if (!window.NOMDB || !NOMDB.leagues) return;
+  NOMDB.leagues.forEach(function (lg) {
+    lg.clubs.forEach(function (c) {
+      CLUBS.push({ name: c.name, league: lg.name, country: lg.country, emoji: c.emoji || '' });
+      (c.players || []).forEach(function (p) {
+        PLAYERS.push({ name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, nat: p.nat || '', club: c.name, league: lg.name });
+      });
+    });
+  });
+}
+
+function loadStats() {
+  try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === 'object') return s; } catch (e) {}
+  return { played: 0, won: 0, bestStreak: 0, streak: 0 };
+}
+function saveStats(st) { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+
+// ---------------------------------------------------------------------
+// Round
+// ---------------------------------------------------------------------
+function newWord() {
+  var mode = $('mode').value, diff = $('diff').value;
+  var word, hints = [];
+  if (mode === 'clubs') {
+    var c = pick(CLUBS);
+    word = c.name;
+    G = { mode: mode, word: word, hints: [
+      { at: 2, text: 'League: ' + c.league },
+      { at: 4, text: 'Country: ' + c.country }
+    ]};
+  } else {
+    var min = diff === 'easy' ? 82 : (diff === 'medium' ? 74 : 0);
+    var pool = PLAYERS.filter(function (p) { return p.ovr >= min && p.name.length <= 22; });
+    if (!pool.length) pool = PLAYERS;
+    var p = pick(pool);
+    word = p.name;
+    G = { mode: mode, word: word, hints: [
+      { at: 2, text: 'Position: ' + p.pos + ' · age ' + p.age },
+      { at: 3, text: 'Nationality: ' + (p.nat || 'unknown') },
+      { at: 4, text: 'Club: ' + p.club },
+      { at: 5, text: 'League: ' + p.league }
+    ]};
+  }
+  G.key = keyOf(word);
+  G.guessed = {};
+  G.wrong = 0;
+  G.over = false;
+  G.won = false;
+  G.score = 0;
+  $('msg').textContent = '';
+  render();
+}
+
+function guess(letter) {
+  if (!G || G.over || G.guessed[letter]) return;
+  G.guessed[letter] = true;
+  if (G.key.indexOf(letter) >= 0) {
+    // correct, check solved
+    var solved = true;
+    for (var i = 0; i < G.key.length; i++) {
+      var ch = G.key.charAt(i);
+      if (isLetter(ch) && !G.guessed[ch]) { solved = false; break; }
+    }
+    if (solved) finish(true);
+  } else {
+    G.wrong++;
+    if (G.wrong >= 6) finish(false);
+  }
+  render();
+}
+
+function finish(won) {
+  G.over = true;
+  G.won = won;
+  var st = loadStats();
+  st.played++;
+  if (won) {
+    G.score = Math.max(10, 100 - 10 * G.wrong);
+    st.won = (st.won || 0) + 1;
+    st.streak = (st.streak || 0) + 1;
+    st.bestStreak = Math.max(st.bestStreak || 0, st.streak);
+  } else {
+    st.streak = 0;
+  }
+  saveStats(st);
+}
+
+// ---------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------
+function displayWord() {
+  var out = '';
+  var w = G.word;
+  for (var i = 0; i < w.length; i++) {
+    var ch = w.charAt(i);
+    var k = keyOf(ch);
+    if (ch === ' ') { out += '<span class="gap"></span>'; continue; }
+    if (!isLetter(k)) { out += esc(ch); continue; }
+    if (G.guessed[k] || G.over) out += esc(ch);
+    else out += '<span class="blank">_</span>';
+  }
+  return out;
+}
+
+function render() {
+  if (!G) return;
+  $('word').innerHTML = displayWord();
+  var parts = document.querySelectorAll('.gallows .part');
+  for (var i = 0; i < parts.length; i++) parts[i].classList.toggle('on', i < G.wrong);
+
+  var hintsHtml = '';
+  G.hints.forEach(function (h) {
+    var on = G.wrong >= h.at || G.over;
+    hintsHtml += '<div class="hint' + (on ? '' : ' locked') + '">' + (on ? esc(h.text) : '🔒 Hint unlocks after ' + h.at + ' misses') + '</div>';
+  });
+  $('hints').innerHTML = hintsHtml;
+
+  var kb = '';
+  for (var j = 0; j < ALPHA.length; j++) {
+    var L = ALPHA.charAt(j);
+    var cls = '';
+    if (G.guessed[L]) cls = G.key.indexOf(L) >= 0 ? ' hit' : ' miss';
+    kb += '<button data-l="' + L + '" class="' + cls.trim() + '"' + ((G.guessed[L] || G.over) ? ' disabled' : '') + '>' + L + '</button>';
+  }
+  $('kb').innerHTML = kb;
+
+  if (G.over) {
+    $('msg').textContent = G.won
+      ? '✅ ' + G.word + ' — solved for ' + G.score + ' points!'
+      : '💀 The answer was ' + G.word;
+    $('msg').style.color = G.won ? 'var(--a3)' : 'var(--bad)';
+  } else {
+    $('msg').textContent = 'Guess a letter (you can also type)';
+    $('msg').style.color = 'var(--muted)';
+  }
+
+  var st = loadStats();
+  $('sWrong').textContent = G.wrong + ' / 6';
+  $('sScore').textContent = G.won ? G.score : 0;
+  $('sStreak').textContent = st.streak || 0;
+  $('sWon').textContent = st.won || 0;
+  $('rec').textContent = 'Played ' + (st.played || 0) + ' · best streak ' + (st.bestStreak || 0);
+}
+
+// ---------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------
+$('kb').addEventListener('click', function (e) {
+  var b = e.target;
+  if (b && b.getAttribute && b.getAttribute('data-l')) guess(b.getAttribute('data-l'));
+  if (b && b.blur) b.blur();
+});
+window.addEventListener('keydown', function (e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  var k = (e.key || '').toUpperCase();
+  if (k.length === 1 && isLetter(k)) guess(k);
+});
+$('next').addEventListener('click', newWord);
+$('mode').addEventListener('change', newWord);
+$('diff').addEventListener('change', newWord);
+
+buildData();
+newWord();
+</script>
+</body>
+</html>

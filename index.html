@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC 9000</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
+<script src="firebase-config.js" defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0612;--card:#110d1e;--border:rgba(255,255,255,.08);
+  --text:#fff;--muted:#8878aa;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;
+}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+/* ─── ANIMATED BACKGROUND ─── */
+.bg-layer{position:fixed;inset:0;z-index:0;overflow:hidden;}
+.bg-grad{position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(168,85,247,.25),transparent 55%),
+             radial-gradient(ellipse 60% 50% at 80% 100%,rgba(59,130,246,.2),transparent 55%),
+             radial-gradient(ellipse 50% 40% at 50% 50%,rgba(255,107,53,.08),transparent 60%),
+             linear-gradient(180deg,#0a0612 0%,#0d0a1a 50%,#0a0612 100%);}
+.bg-stars{position:absolute;inset:0;}
+.star{position:absolute;border-radius:50%;animation:twinkle linear infinite;}
+@keyframes twinkle{0%,100%{opacity:.2;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+.bg-beam{position:absolute;top:0;width:2px;background:linear-gradient(180deg,transparent,rgba(168,85,247,.4),transparent);animation:beam linear infinite;}
+@keyframes beam{0%{transform:translateY(-100%);opacity:0;}50%{opacity:1;}100%{transform:translateY(100vh);opacity:0;}}
+
+/* ─── NAVBAR ─── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:58px;display:flex;align-items:center;padding:0 20px;gap:12px;
+    background:linear-gradient(180deg,rgba(10,6,18,.98),rgba(10,6,18,.7));
+    backdrop-filter:blur(24px);border-bottom:1px solid rgba(168,85,247,.15);}
+.nav-logo{font-family:'Bangers',cursive;font-size:1.65rem;letter-spacing:5px;
+  background:linear-gradient(135deg,var(--a1),var(--a2),var(--a3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  cursor:pointer;flex-shrink:0;text-shadow:none;filter:drop-shadow(0 0 10px rgba(255,107,53,.4));}
+.nav-links{display:flex;gap:2px;}
+.nav-link{font-family:'Fredoka One',cursive;font-size:.78rem;padding:6px 13px;border-radius:8px;cursor:pointer;
+  color:rgba(255,255,255,.75);transition:all .2s;text-decoration:none;border:1.5px solid rgba(255,255,255,.12);}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,.06);}
+.nav-link.active{color:var(--a2);background:rgba(255,210,63,.15);border-color:rgba(255,210,63,.4);font-weight:800;box-shadow:0 0 10px rgba(255,210,63,.12);}
+.ml{margin-left:auto;}
+.nav-vbucks{display:flex;align-items:center;gap:6px;background:rgba(255,210,63,.1);border:1px solid rgba(255,210,63,.25);border-radius:20px;padding:5px 12px;font-family:'Bangers',cursive;font-size:.95rem;letter-spacing:1px;color:var(--a2);}
+.nav-av{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--a4),var(--a5));display:flex;align-items:center;justify-content:center;font-family:'Bangers',cursive;font-size:.95rem;cursor:pointer;border:1px solid rgba(168,85,247,.4);transition:all .2s;}
+.nav-av:hover{transform:scale(1.08);}
+.nav-sign{font-family:'Fredoka One',cursive;font-size:.8rem;padding:7px 18px;border-radius:20px;
+  background:linear-gradient(135deg,var(--a4),var(--a5));color:#fff;border:none;cursor:pointer;transition:all .2s;letter-spacing:.5px;}
+.nav-sign:hover{transform:scale(1.04);filter:brightness(1.1);}
+
+/* ─── HERO ─── */
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:80px 20px 40px;overflow:hidden;}
+.hero-content{text-align:center;max-width:780px;}
+.hero-eyebrow{font-family:'Fredoka One',cursive;font-size:.72rem;letter-spacing:5px;text-transform:uppercase;
+  color:var(--a3);margin-bottom:16px;opacity:.9;
+  text-shadow:0 0 20px rgba(6,255,165,.5);}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(4rem,14vw,9rem);letter-spacing:8px;line-height:.9;
+  background:linear-gradient(180deg,#fff 0%,var(--a2) 40%,var(--a1) 70%,var(--a4) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 60px rgba(168,85,247,.4));
+  margin-bottom:8px;animation:titleFloat 4s ease-in-out infinite;}
+@keyframes titleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.hero-num{font-family:'Bangers',cursive;font-size:clamp(2rem,6vw,4.5rem);letter-spacing:10px;
+  color:rgba(255,255,255,.2);display:block;margin-bottom:24px;
+  -webkit-text-stroke:1px rgba(168,85,247,.4);}
+.hero-sub{font-size:1rem;font-weight:700;color:rgba(255,255,255,.55);max-width:500px;margin:0 auto 32px;line-height:1.75;}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:40px;}
+.hero-btn{font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:4px;padding:14px 36px;border-radius:6px;border:none;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.hero-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.15),transparent);pointer-events:none;}
+.hero-btn:hover{transform:translateY(-3px) scale(1.03);}
+.hero-btn:active{transform:scale(.98);}
+.btn-play{background:linear-gradient(180deg,#7cff44,#3ec400);color:#1a3a00;box-shadow:0 6px 0 #256100,0 10px 24px rgba(100,255,0,.4);}
+.btn-play:hover{box-shadow:0 8px 0 #256100,0 14px 32px rgba(100,255,0,.5);}
+.btn-comm{background:linear-gradient(180deg,var(--a4),#7c22cc);color:#fff;box-shadow:0 6px 0 #5c0aaa,0 10px 24px rgba(168,85,247,.4);}
+.btn-comm:hover{box-shadow:0 8px 0 #5c0aaa,0 14px 32px rgba(168,85,247,.5);}
+.btn-lab{background:linear-gradient(180deg,#4fc3f7,#0277bd);color:#fff;box-shadow:0 6px 0 #01579b,0 10px 24px rgba(79,195,247,.4);}
+
+/* Fortnite style stat badges */
+.hero-stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.stat-badge{background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:11px 20px;text-align:center;backdrop-filter:blur(10px);transition:all .2s;}
+.stat-badge-val{font-family:'Bangers',cursive;font-size:1.7rem;letter-spacing:2px;display:block;}
+.stat-badge-lbl{font-size:.58rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:1px;display:block;}
+
+/* ─── SECTION ─── */
+.wrap{position:relative;z-index:1;max-width:1220px;margin:0 auto;padding:0 20px 60px;}
+.section-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.section-title{font-family:'Bangers',cursive;font-size:1.5rem;letter-spacing:4px;color:#fff;
+  text-shadow:0 0 20px rgba(255,210,63,.3);}
+.section-line{flex:1;height:1px;background:linear-gradient(to right,rgba(168,85,247,.4),transparent);}
+.section-count{font-family:'Bangers',cursive;font-size:.85rem;color:var(--muted);letter-spacing:2px;}
+
+/* ─── ITEM SHOP CARDS (Fortnite style) ─── */
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;}
+.shop-card{border-radius:10px;overflow:hidden;cursor:pointer;transition:all .22s ease;position:relative;text-decoration:none;color:inherit;display:block;border:1.5px solid rgba(255,255,255,.12);}
+.shop-card:hover{transform:translateY(-6px) scale(1.02);z-index:2;}
+.shop-card:hover .shop-inner{border-color:rgba(255,255,255,.3);}
+.shop-inner{height:100%;border-radius:9px;overflow:hidden;border:1.5px solid rgba(255,255,255,.15);transition:border-color .2s;}
+.shop-img{height:140px;display:flex;align-items:center;justify-content:center;font-size:4.5rem;position:relative;overflow:hidden;}
+.shop-img::after{content:'';position:absolute;bottom:0;left:0;right:0;height:50%;background:linear-gradient(transparent,rgba(0,0,0,.6));}
+.shop-rarity{position:absolute;bottom:0;left:0;right:0;height:4px;}
+.shop-body{padding:10px 11px 12px;}
+.shop-name{font-family:'Fredoka One',cursive;font-size:.88rem;color:#fff;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.shop-desc{font-size:.64rem;font-weight:700;color:rgba(255,255,255,.45);line-height:1.45;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.shop-price{display:flex;align-items:center;gap:5px;font-family:'Bangers',cursive;font-size:.9rem;letter-spacing:1px;color:var(--a2);}
+.shop-price-icon{font-size:.75rem;}
+.shop-new{position:absolute;top:8px;right:8px;font-size:.5rem;font-weight:900;padding:2px 8px;border-radius:4px;letter-spacing:1.5px;text-transform:uppercase;z-index:1;}
+
+/* Rarity gradients (Fortnite-inspired) */
+.r-legendary{background:linear-gradient(160deg,#2d1b00,#5a3000,#2d1b00);}
+.r-legendary .shop-rarity{background:linear-gradient(90deg,#ff8c00,#ffd23f,#ff8c00);}
+.r-legendary .shop-price{color:#ffd23f;}
+.r-epic{background:linear-gradient(160deg,#1a0030,#360060,#1a0030);}
+.r-epic .shop-rarity{background:linear-gradient(90deg,#7c00ff,#a855f7,#7c00ff);}
+.r-epic .shop-price{color:#c084fc;}
+.r-rare{background:linear-gradient(160deg,#001430,#002860,#001430);}
+.r-rare .shop-rarity{background:linear-gradient(90deg,#0050ff,#3b82f6,#0050ff);}
+.r-rare .shop-price{color:#60a5fa;}
+.r-uncommon{background:linear-gradient(160deg,#001a10,#003020,#001a10);}
+.r-uncommon .shop-rarity{background:linear-gradient(90deg,#00b020,#06ffa5,#00b020);}
+.r-uncommon .shop-price{color:#34d399;}
+.r-common{background:linear-gradient(160deg,#111,#222,#111);}
+.r-common .shop-rarity{background:linear-gradient(90deg,#555,#888,#555);}
+
+/* ─── FEATURED BIG CARD ─── */
+.featured-row{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;}
+.featured-big{border-radius:12px;overflow:hidden;cursor:pointer;transition:all .22s;text-decoration:none;color:inherit;display:block;position:relative;border:1.5px solid rgba(168,85,247,.4);}
+.featured-big:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.featured-bg{height:280px;display:flex;align-items:flex-end;padding:20px;background:linear-gradient(160deg,#1a0030,#2d0060,#0a0020);position:relative;overflow:hidden;}
+.featured-bg::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 30%,rgba(168,85,247,.2),transparent);}
+.featured-icon-big{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:7rem;filter:drop-shadow(0 0 30px rgba(168,85,247,.7));animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translate(-50%,-60%);}50%{transform:translate(-50%,-65%);}}
+.featured-content{position:relative;z-index:1;}
+.featured-tag{font-size:.55rem;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:var(--a4);background:rgba(168,85,247,.2);border:1px solid rgba(168,85,247,.3);border-radius:4px;padding:2px 10px;display:inline-block;margin-bottom:7px;}
+.featured-name{font-family:'Bangers',cursive;font-size:2rem;letter-spacing:4px;line-height:1;margin-bottom:5px;}
+.featured-sub{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:12px;}
+.featured-cta{font-family:'Bangers',cursive;font-size:1rem;letter-spacing:3px;padding:8px 22px;border-radius:5px;background:linear-gradient(180deg,#7cff44,#3ec400);color:#1a3a00;border:none;cursor:pointer;box-shadow:0 4px 0 #256100;transition:all .2s;}
+.featured-cta:hover{transform:translateY(-2px);box-shadow:0 6px 0 #256100;}
+
+/* ─── BATTLE PASS STYLE PROGRESS ─── */
+.pass-card{background:linear-gradient(135deg,rgba(255,210,63,.12),rgba(255,107,53,.09));border:1.5px solid rgba(255,210,63,.35);border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;}
+.pass-icon{font-size:2.5rem;flex-shrink:0;filter:drop-shadow(0 0 12px rgba(255,210,63,.5));}
+.pass-content{flex:1;}
+.pass-title{font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;color:var(--a2);margin-bottom:3px;}
+.pass-sub{font-size:.7rem;font-weight:700;color:rgba(255,255,255,.45);margin-bottom:10px;}
+.pass-bar-wrap{background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;margin-bottom:6px;}
+.pass-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--a1),var(--a2));transition:width 1s ease;}
+.pass-tiers{display:flex;gap:5px;}
+.pass-tier{width:28px;height:28px;border-radius:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.75rem;cursor:pointer;transition:all .15s;}
+.pass-tier:hover{background:rgba(255,255,255,.14);}
+.pass-tier.unlocked{background:rgba(255,210,63,.22);border-color:rgba(255,210,63,.5);box-shadow:0 0 8px rgba(255,210,63,.15);}
+
+/* ─── SIDEBAR ─── */
+.main-layout{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start;}
+
+/* User card Fortnite style */
+.user-card{background:linear-gradient(160deg,#1a0030,#110a1e);border:1.5px solid rgba(168,85,247,.35);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.user-card-header{height:80px;background:linear-gradient(135deg,#2d0060,#1a0030);display:flex;align-items:center;justify-content:center;font-size:2.5rem;position:relative;border-bottom:1px solid rgba(168,85,247,.15);}
+.user-card-body{padding:14px;}
+.user-card-name{font-family:'Bangers',cursive;font-size:1.2rem;letter-spacing:2px;text-align:center;margin-bottom:3px;}
+.user-card-sub{font-size:.62rem;font-weight:700;color:var(--muted);text-align:center;margin-bottom:12px;}
+.user-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;}
+.user-stat{background:rgba(255,255,255,.04);border-radius:7px;padding:7px 4px;text-align:center;}
+.us-val{font-family:'Bangers',cursive;font-size:1.1rem;color:var(--a2);}
+.us-lbl{font-size:.52rem;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:1px;}
+.uc-btn{display:block;width:100%;padding:9px;font-family:'Bangens',cursive;font-family:'Fredoka One',cursive;font-size:.82rem;border-radius:7px;border:none;cursor:pointer;margin-bottom:5px;transition:all .2s;text-decoration:none;text-align:center;}
+.uc-btn.primary{background:linear-gradient(180deg,#7cff44,#3ec400);color:#1a3a00;box-shadow:0 3px 0 #256100;}
+.uc-btn.primary:hover{transform:translateY(-2px);}
+.uc-btn.secondary{background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1);}
+.uc-btn.secondary:hover{background:rgba(255,255,255,.12);}
+
+/* Quick links */
+.quick-links{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;}
+.ql-title{font-family:'Bangers',cursive;font-size:.85rem;letter-spacing:2px;color:var(--muted);margin-bottom:9px;}
+.ql-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:all .15s;text-decoration:none;color:rgba(255,255,255,.85);font-size:.8rem;font-weight:800;border-left:2px solid transparent;background:rgba(255,255,255,.04);margin-bottom:3px;}
+.ql-item:hover{background:rgba(255,255,255,.12);color:#fff;border-left-color:var(--a4);transform:translateX(3px);}
+.ql-icon{font-size:.95rem;width:22px;text-align:center;flex-shrink:0;}
+
+/* News ticker */
+.ticker{background:rgba(255,210,63,.06);border-top:1px solid rgba(255,210,63,.15);border-bottom:1px solid rgba(255,210,63,.15);padding:9px 20px;display:flex;align-items:center;gap:12px;overflow:hidden;position:relative;z-index:1;}
+.ticker-label{font-family:'Bangers',cursive;font-size:.85rem;letter-spacing:2px;color:var(--a2);flex-shrink:0;border-right:1px solid rgba(255,210,63,.2);padding-right:12px;}
+.ticker-content{display:flex;gap:30px;animation:tickerScroll 30s linear infinite;white-space:nowrap;}
+@keyframes tickerScroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.ticker-item{font-size:.72rem;font-weight:800;color:rgba(255,255,255,.6);}
+.ticker-item b{color:var(--a2);}
+
+/* ─── FREE KEY WIZARD ─── */
+.key-wizard{background:linear-gradient(135deg,rgba(6,255,165,.07),rgba(59,130,246,.05));border:1px solid rgba(6,255,165,.2);border-radius:12px;padding:16px 18px;margin-bottom:10px;}
+.kw-title{font-family:'Bangers',cursive;font-size:1rem;letter-spacing:2px;color:var(--a3);margin-bottom:10px;}
+.kw-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:9px;margin-bottom:6px;cursor:pointer;transition:all .2s;text-decoration:none;}
+.kw-item:hover{background:rgba(255,255,255,.09);transform:translateX(3px);}
+.kw-icon{font-size:1.1rem;flex-shrink:0;}
+.kw-name{font-weight:800;font-size:.76rem;flex:1;color:#fff;}
+.kw-badge{font-size:.52rem;font-weight:900;padding:2px 8px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;}
+.kw-free{background:rgba(6,255,165,.2);color:var(--a3);}
+.kw-arrow{font-size:.75rem;color:var(--muted);}
+
+/* ─── FOOTER ─── */
+footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.06);padding:24px 20px;text-align:center;font-size:.68rem;font-weight:700;color:var(--muted);background:rgba(0,0,0,.3);}
+footer a{color:var(--a4);text-decoration:none;margin:0 10px;}
+footer a:hover{color:#fff;}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:900px){
+  .main-layout{grid-template-columns:1fr;}
+  .featured-row{grid-template-columns:1fr;}
+  .nav-links{display:none;}
+  .shop-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+}
+@media(max-width:480px){
+  .shop-grid{grid-template-columns:1fr 1fr;}
+  .hero-title{font-size:4rem;}
+  .hero-btns{flex-direction:column;align-items:center;}
+  .hero-btn{width:100%;max-width:280px;}
+}
+
+@keyframes fadein{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .5s ease both;}
+
+/* ── GLOBAL POLISH ── */
+*{-webkit-tap-highlight-color:rgba(168,85,247,.2);}
+a{-webkit-tap-highlight-color:rgba(168,85,247,.15);}
+
+/* Bigger, more visible nav buttons */
+.nbtn,.hbtn,.tbtn{
+  font-family:'Fredoka One',cursive;font-size:.8rem;
+  padding:8px 16px;border-radius:9px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.09);
+  color:#eeeeff;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:all .18s ease;font-weight:700;
+  letter-spacing:.3px;white-space:nowrap;
+}
+.nbtn:hover,.hbtn:hover,.tbtn:hover{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.4);
+  color:#fff;transform:translateY(-1px);
+}
+
+/* Bigger action tabs */
+.dtab{
+  font-family:'Fredoka One',cursive;font-size:.82rem;
+  padding:9px 18px;border-radius:10px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);color:#aaaacc;
+  transition:all .18s ease;font-weight:700;
+}
+.dtab:hover{background:rgba(255,255,255,.15);color:#fff;transform:translateY(-1px);}
+.dtab.active{
+  background:rgba(255,210,63,.18);
+  border-color:rgba(255,210,63,.5);
+  color:#ffd23f;font-weight:900;
+  box-shadow:0 0 12px rgba(255,210,63,.15);
+}
+
+/* smBtn used in multiplayer/community/etc */
+.smBtn{
+  background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.22);
+  border-radius:8px;padding:8px 16px;font-size:.78rem;font-weight:800;
+  color:#aaaacc;cursor:pointer;transition:all .18s ease;
+  font-family:'Nunito',sans-serif;white-space:nowrap;
+}
+.smBtn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);color:#fff;transform:translateY(-1px);}
+.smBtn.active{background:rgba(6,255,165,.18);border-color:rgba(6,255,165,.45);color:#06ffa5;box-shadow:0 0 10px rgba(6,255,165,.15);}
+.smBtn.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+.smBtn.danger:hover{background:rgba(239,68,68,.2);}
+
+/* bigbtn polish */
+.bigbtn{transition:all .18s ease;}
+.bigbtn:hover{transform:translateY(-3px);filter:brightness(1.1);}
+.bigbtn:active{transform:scale(.97);}
+
+/* Card hover glow */
+.card{transition:border-color .2s ease;}
+.card:hover{border-color:rgba(255,255,255,.13);}
+
+/* Input polish */
+input,select,textarea{
+  color:#eeeeff!important;
+  border:1.5px solid rgba(255,255,255,.18)!important;
+  transition:all .18s ease!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#a855f7!important;
+  box-shadow:0 0 0 3px rgba(168,85,247,.15)!important;
+}
+input::placeholder,textarea::placeholder{color:#55558a!important;}
+
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<!-- BG -->
+<div class="bg-layer">
+  <div class="bg-grad"></div>
+  <div class="bg-stars" id="bgStars"></div>
+</div>
+
+<!-- TICKER -->
+<div class="ticker" style="position:relative;z-index:2;margin-top:0">
+  <div class="ticker-label">🔥 LIVE</div>
+  <div class="ticker-content" id="tickerContent">
+    <span class="ticker-item">⚽ <b>Physics Lab</b> now live — FC26-style drills</span>
+    <span class="ticker-item">🏆 <b>World Cup Sim</b> — 32 teams, full bracket</span>
+    <span class="ticker-item">💬 <b>Community Chat</b> — join the conversation</span>
+    <span class="ticker-item">🎯 <b>Gemini API</b> — 1500 free requests/day at aistudio.google.com</span>
+    <span class="ticker-item">🃏 <b>Player Cards</b> — FIFA Ultimate Team style</span>
+    <span class="ticker-item">🏟️ <b>Stadium Builder</b> — 6 themes, Hawk-Eye, crowd wave</span>
+    <span class="ticker-item">⚽ <b>Physics Lab</b> now live — FC26-style drills</span>
+    <span class="ticker-item">🏆 <b>World Cup Sim</b> — 32 teams, full bracket</span>
+    <span class="ticker-item">💬 <b>Community Chat</b> — join the conversation</span>
+    <span class="ticker-item">🎯 <b>Gemini API</b> — 1500 free requests/day at aistudio.google.com</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">NOM·9000</div>
+  <div class="nav-links">
+    <a class="nav-link active" href="index.html">🏠 Home</a>
+    <a class="nav-link" href="app.html">⚡ App</a>
+    <a class="nav-link" href="multiplayer.html">⚔️ Multiplayer</a>
+    <a class="nav-link" href="database.html">⚽ Database</a>
+    <a class="nav-link" href="community.html">💬 Community</a>
+    <a class="nav-link" href="physics.html">🏃 Lab</a>
+  </div>
+  <div class="ml" style="display:flex;align-items:center;gap:8px;">
+    <div class="nav-vbucks" id="vbucks" style="display:none">⚡ <span id="vbucksVal">0</span></div>
+    <div class="nav-av" id="navAv" style="display:none" onclick="toggleDrop()">?</div>
+    <button class="nav-sign" id="navSign" onclick="window.location.href='login.html'">SIGN IN</button>
+  </div>
+</nav>
+
+<!-- USER DROPDOWN -->
+<div id="drop" style="display:none;position:fixed;top:66px;right:16px;z-index:200;background:#1a0d2e;border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:6px;min-width:185px;box-shadow:0 12px 40px rgba(0,0,0,.6);">
+  <div style="padding:9px 12px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07);">
+    <div style="font-family:'Bangers',cursive;font-size:.95rem;letter-spacing:1px;" id="dropName">User</div>
+    <div style="font-size:.62rem;color:var(--muted);font-weight:700;" id="dropEmail"></div>
+  </div>
+  <a href="app.html" class="ql-item">⚡ Open App</a>
+  <a href="community.html" class="ql-item">💬 Community</a>
+  <a href="physics.html" class="ql-item">⚽ Practice Lab</a>
+  <div class="ql-item" onclick="doSignOut()" style="color:#fca5a5;margin-top:4px;border-top:1px solid rgba(255,255,255,.06);padding-top:8px;">🚪 Sign Out</div>
+</div>
+
+<!-- HERO -->
+<div class="hero fadein">
+  <div class="hero-content">
+    <div class="hero-eyebrow">⚽ The Ultimate Football AI Platform</div>
+    <div class="hero-title">NAME-O-MATIC</div>
+    <span class="hero-num">9 0 0 0</span>
+    <div class="hero-sub">AI Names · Stadium Builder · World Cup · Practice Lab · Community Chat · 20+ Features</div>
+    <div class="hero-btns">
+      <button class="hero-btn btn-play" onclick="window.location.href='app.html'">▶ PLAY NOW</button>
+      <button class="hero-btn btn-comm" onclick="window.location.href='multiplayer.html'">⚔️ MULTIPLAYER</button>
+      <button class="hero-btn btn-lab" onclick="window.location.href='physics.html'">⚽ PRACTICE LAB</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-badge"><span class="stat-badge-val" style="color:#7cff44">20+</span><span class="stat-badge-lbl">Features</span></div>
+      <div class="stat-badge"><span class="stat-badge-val" style="color:var(--a4)">6</span><span class="stat-badge-lbl">AI Models</span></div>
+      <div class="stat-badge"><span class="stat-badge-val" style="color:var(--a2)">32</span><span class="stat-badge-lbl">WC Teams</span></div>
+      <div class="stat-badge"><span class="stat-badge-val" style="color:var(--a3)">FREE</span><span class="stat-badge-lbl">To Use</span></div>
+      <div class="stat-badge"><span class="stat-badge-val" style="color:var(--a6)">∞</span><span class="stat-badge-lbl">Fun</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="wrap">
+
+  <!-- Battle Pass style strip -->
+  <div class="pass-card fadein">
+    <div class="pass-icon">🏆</div>
+    <div class="pass-content">
+      <div class="pass-title">SEASON PASS — ALL FEATURES UNLOCKED</div>
+      <div class="pass-sub">Complete free — sign in to track your progress and sync keys across devices</div>
+      <div class="pass-bar-wrap"><div class="pass-bar-fill" style="width:72%" id="passBar"></div></div>
+      <div class="pass-tiers" id="passTiers"></div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+
+    <!-- LEFT -->
+    <div>
+
+      <!-- FEATURED -->
+      <div class="section-hdr fadein">
+        <div class="section-title">⚡ FEATURED</div>
+        <div class="section-line"></div>
+      </div>
+      <div class="featured-row fadein">
+        <a href="physics.html" class="featured-big">
+          <div class="featured-bg">
+            <div class="featured-icon-big">⚽</div>
+            <div class="featured-content">
+              <div class="featured-tag">NEW — PRACTICE LAB</div>
+              <div class="featured-name">FC26-STYLE<br>PHYSICS</div>
+              <div class="featured-sub">Real ball physics · 6 drill modes · Power bar · Curve · Penalties</div>
+              <button class="featured-cta">▶ PLAY NOW</button>
+            </div>
+          </div>
+        </a>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="community.html" style="flex:1;border-radius:10px;overflow:hidden;cursor:pointer;display:block;text-decoration:none;transition:all .2s;border:1px solid rgba(6,255,165,.2);" class="shop-card">
+            <div style="background:linear-gradient(160deg,#001a10,#003020);height:100%;padding:16px;">
+              <div style="font-size:2.5rem;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(6,255,165,.5))">💬</div>
+              <div style="font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;color:var(--a3);margin-bottom:4px;">COMMUNITY</div>
+              <div style="font-size:.68rem;font-weight:700;color:rgba(255,255,255,.45);">Chat · Recommendations · Football debates</div>
+            </div>
+          </a>
+          <a href="app.html" style="flex:1;border-radius:10px;overflow:hidden;cursor:pointer;display:block;text-decoration:none;transition:all .2s;border:1px solid rgba(255,210,63,.2);" class="shop-card">
+            <div style="background:linear-gradient(160deg,#2d1b00,#3a2200);height:100%;padding:16px;">
+              <div style="font-size:2.5rem;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(255,210,63,.5))">🏟️</div>
+              <div style="font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;color:var(--a2);margin-bottom:4px;">STADIUM BUILDER</div>
+              <div style="font-size:.68rem;font-weight:700;color:rgba(255,255,255,.45);">3D · 6 themes · Crowd · Physics</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- ITEM SHOP -->
+      <div class="section-hdr fadein" style="margin-top:28px">
+        <div class="section-title">🛒 FEATURE SHOP</div>
+        <div class="section-line"></div>
+        <div class="section-count" id="shopCount"></div>
+      </div>
+      <div class="shop-grid fadein" id="shopGrid"></div>
+
+      <!-- UPDATED -->
+      <div class="section-hdr fadein" style="margin-top:28px">
+        <div class="section-title">🔄 RECENTLY UPDATED</div>
+        <div class="section-line"></div>
+      </div>
+      <div class="shop-grid fadein" id="updatedGrid"></div>
+
+    </div><!-- end left -->
+
+    <!-- SIDEBAR -->
+    <div>
+
+      <!-- User card -->
+      <div class="user-card fadein">
+        <div class="user-card-header">
+          <span style="filter:drop-shadow(0 0 20px rgba(168,85,247,.7));font-size:3rem" id="ucIcon">👤</span>
+        </div>
+        <div class="user-card-body">
+          <div class="user-card-name" id="ucName">GUEST PLAYER</div>
+          <div class="user-card-sub" id="ucSub">Sign in to save your progress</div>
+          <div class="user-stats">
+            <div class="user-stat"><div class="us-val" id="us-goals">0</div><div class="us-lbl">Goals</div></div>
+            <div class="user-stat"><div class="us-val" id="us-names">0</div><div class="us-lbl">Names</div></div>
+            <div class="user-stat"><div class="us-val" id="us-wins">0</div><div class="us-lbl">WC Wins</div></div>
+          </div>
+          <a href="app.html" class="uc-btn primary">⚡ PLAY NOW</a>
+          <a href="login.html" class="uc-btn secondary" id="ucSignInBtn">🔑 Sign In / Register</a>
+          <a href="community.html" class="uc-btn secondary">💬 Community</a>
+        </div>
+      </div>
+
+      <!-- Free key wizard -->
+      <div class="key-wizard fadein">
+        <div class="kw-title">🔑 GET FREE AI ACCESS</div>
+        <a href="https://aistudio.google.com" target="_blank" class="kw-item">
+          <span class="kw-icon">🔷</span>
+          <span class="kw-name">Gemini 1.5 Flash</span>
+          <span class="kw-badge kw-free">FREE 1500/day</span>
+          <span class="kw-arrow">→</span>
+        </a>
+        <a href="https://groq.com" target="_blank" class="kw-item">
+          <span class="kw-icon">⚡</span>
+          <span class="kw-name">Groq (Llama 3)</span>
+          <span class="kw-badge kw-free">FREE</span>
+          <span class="kw-arrow">→</span>
+        </a>
+        <a href="https://console.mistral.ai" target="_blank" class="kw-item">
+          <span class="kw-icon">🟣</span>
+          <span class="kw-name">Mistral AI</span>
+          <span class="kw-badge kw-free">FREE TIER</span>
+          <span class="kw-arrow">→</span>
+        </a>
+        <a href="app.html" class="kw-item" style="margin-top:6px;border-top:1px solid rgba(255,255,255,.06);padding-top:11px;">
+          <span class="kw-icon">⚙️</span>
+          <span class="kw-name">Add keys in API Manager</span>
+          <span class="kw-arrow">→</span>
+        </a>
+      </div>
+
+      <!-- Quick links -->
+      <div class="quick-links fadein">
+        <div class="ql-title">QUICK LAUNCH</div>
+        <a href="app.html" class="ql-item"><span class="ql-icon">⚡</span>Name Generator</a>
+        <a href="app.html" class="ql-item"><span class="ql-icon">🏆</span>World Cup Sim</a>
+        <a href="app.html" class="ql-item"><span class="ql-icon">🎙️</span>Voice Commentary</a>
+        <a href="app.html" class="ql-item"><span class="ql-icon">🃏</span>Player Cards</a>
+        <a href="app.html" class="ql-item"><span class="ql-icon">📋</span>Career Mode</a>
+        <a href="app.html" class="ql-item"><span class="ql-icon">🔮</span>Match Predictor</a>
+        <a href="app.html" class="ql-item"><span class="ql-icon">📺</span>Broadcaster Hub</a>
+        <a href="physics.html" class="ql-item"><span class="ql-icon">⚽</span>Practice Lab</a>
+        <a href="community.html" class="ql-item"><span class="ql-icon">💬</span>Community Chat</a>
+        <a href="tactics.html" class="ql-item"><span class="ql-icon">🗂️</span>Tactics Board</a>
+        <a href="quiz.html" class="ql-item"><span class="ql-icon">🧠</span>Football Quiz</a>
+        <a href="fantasy.html" class="ql-item"><span class="ql-icon">⚽</span>Fantasy Football</a>
+        <a href="referee.html" class="ql-item"><span class="ql-icon">🟨</span>Referee Career</a>
+        <a href="career.html" class="ql-item"><span class="ql-icon">🏆</span>Career Mode</a>
+        <a href="packs.html" class="ql-item"><span class="ql-icon">🎴</span>Pack Opening</a>
+        <a href="radio.html" class="ql-item"><span class="ql-icon">📻</span>Live Match Radio</a>
+        <a href="guessr.html" class="ql-item"><span class="ql-icon">🔮</span>Daily Baller</a>
+        <a href="compare.html" class="ql-item"><span class="ql-icon">⚔️</span>Player Comparison</a>
+        <a href="mgrquiz.html" class="ql-item"><span class="ql-icon">🧠</span>Manager Style Quiz</a>
+        <a href="trophy.html" class="ql-item"><span class="ql-icon">🏆</span>Trophy Cabinet</a>
+        <a href="worldcup.html" class="ql-item"><span class="ql-icon">🌍</span>International Tournament</a>
+        <a href="manager.html" class="ql-item"><span class="ql-icon">📋</span>Manager Mode</a>
+        <a href="transfer.html" class="ql-item"><span class="ql-icon">💰</span>Transfer Market</a>
+        <a href="penalties.html" class="ql-item"><span class="ql-icon">🥅</span>Penalty Shootout</a>
+        <a href="arcade.html" class="ql-item"><span class="ql-icon">🕹️</span>Arcade Cup</a>
+        <a href="kit.html" class="ql-item"><span class="ql-icon">👕</span>Kit Lab</a>
+        <a href="bingo.html" class="ql-item"><span class="ql-icon">📋</span>Matchday Bingo</a>
+        <a href="hangman.html" class="ql-item"><span class="ql-icon">🔤</span>Football Hangman</a>
+        <a href="lucky.html" class="ql-item"><span class="ql-icon">🎲</span>Feeling Lucky</a>
+        <a href="stadium-explorer.html" class="ql-item"><span class="ql-icon">🏟️</span>Stadium Explorer</a>
+        <a href="connect.html" class="ql-item"><span class="ql-icon">🔌</span>Connect AI</a>
+      </div>
+
+    </div><!-- end sidebar -->
+  </div>
+</div>
+
+<footer>
+  <div style="font-family:'Bangers',cursive;font-size:1.2rem;letter-spacing:4px;color:var(--a2);margin-bottom:8px;">NAME-O-MATIC 9000</div>
+  <div>
+    <a href="index.html">🏠 Home</a>
+    <a href="app.html">⚡ App</a>
+    <a href="community.html">💬 Community</a>
+    <a href="physics.html">⚽ Practice</a>
+    <a href="login.html">🔑 Sign In</a>
+  </div>
+  <div style="margin-top:8px;font-size:.6rem;opacity:.5;">Built with ⚡ · Powered by Claude AI & Firebase · 100% Free</div>
+</footer>
+
+<script>
+// ── BACKGROUND STARS ─────────────────────────
+(function(){
+  var starsEl=document.getElementById('bgStars');
+  for(var i=0;i<120;i++){
+    var s=document.createElement('div');
+    s.className='star';
+    var sz=Math.random()*2.5+.5;
+    s.style.cssText='width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:#fff;'
+      +'left:'+Math.random()*100+'vw;top:'+Math.random()*100+'vh;'
+      +'animation-duration:'+(Math.random()*4+2)+'s;animation-delay:-'+(Math.random()*4)+'s;';
+    starsEl.appendChild(s);
+  }
+  // Light beams
+  for(var b=0;b<4;b++){
+    var beam=document.createElement('div');
+    beam.className='bg-beam';
+    beam.style.cssText='left:'+(15+b*22)+'vw;animation-duration:'+(8+b*3)+'s;animation-delay:-'+(b*2)+'s;height:'+(200+b*50)+'px;opacity:.4;';
+    starsEl.appendChild(beam);
+  }
+})();
+
+// ── PASS TIERS ───────────────────────────────
+(function(){
+  var tiers=document.getElementById('passTiers');
+  var icons=['⚡','🏟️','⚽','🃏','💬','🔮','📺','🎓','🌍','🔥'];
+  for(var i=0;i<10;i++){
+    var t=document.createElement('div');
+    t.className='pass-tier'+(i<7?' unlocked':'');
+    t.textContent=icons[i];t.title='Feature '+(i+1);
+    tiers.appendChild(t);
+  }
+})();
+
+// ── SHOP DATA ────────────────────────────────
+var SHOP=[
+  {name:'World Cup Sim',desc:'32 real teams, full bracket, 8 sliders',icon:'🏆',rarity:'legendary',badge:'HOT',badge_cls:'badge-hot',price:'FREE',url:'app.html'},
+  {name:'AI Name Gen',desc:'40+ regions, funny meter, auto-speak',icon:'⚡',rarity:'epic',badge:'',price:'FREE',url:'app.html'},
+  {name:'3D Stadium',desc:'6 themes, Hawk-Eye, crowd wave, roof',icon:'🏟️',rarity:'epic',badge:'UPDATED',badge_cls:'badge-updated',price:'FREE',url:'app.html'},
+  {name:'Voice Commentary',desc:'Sky Sports, BBC, ESPN, Shakespearean...',icon:'🎙️',rarity:'rare',badge:'',price:'FREE',url:'app.html'},
+  {name:'Match Predictor',desc:'Win %, predicted XI, bold picks',icon:'🔮',rarity:'rare',badge:'',price:'FREE',url:'app.html'},
+  {name:'Player Cards',desc:'FIFA UT style — download as PNG',icon:'🃏',rarity:'uncommon',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'app.html'},
+  {name:'Ballon dOr',desc:'Full ceremony with drama and speeches',icon:'🥇',rarity:'legendary',badge:'',price:'FREE',url:'app.html'},
+  {name:'Broadcaster Hub',desc:'11 TV themes — Sky, BBC, ESPN and more',icon:'📺',rarity:'rare',badge:'',price:'FREE',url:'app.html'},
+  {name:'Fantasy Football',desc:'Build your XI, £100m budget, simulate gameweeks',icon:'⚽',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'fantasy.html'},
+  {name:'Referee Career',desc:'First-person 3D — judge every call yourself',icon:'🟨',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'referee.html'},
+  {name:'Tactics Board',desc:'Drag players, draw arrows, save formations',icon:'🗂️',rarity:'rare',badge:'',price:'FREE',url:'tactics.html'},
+  {name:'Football Quiz',desc:'Test your knowledge — clubs, players, nations',icon:'🧠',rarity:'uncommon',badge:'',price:'FREE',url:'quiz.html'},
+  {name:'Career Mode',desc:'Manage a season, play the big chances yourself in 3D',icon:'🏆',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'career.html'},
+  {name:'Pack Opening',desc:'Open FUT-style packs pulled from 1000+ real players',icon:'🎴',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'packs.html'},
+  {name:'Live Match Radio',desc:'Pick 2 real clubs, listen to the match unfold live',icon:'📻',rarity:'rare',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'radio.html'},
+  {name:'Daily Baller',desc:'Wordle-style daily player guessing game',icon:'🔮',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'guessr.html'},
+  {name:'Player Comparison',desc:'Radar chart stat battles between any 2 real players',icon:'⚔️',rarity:'rare',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'compare.html'},
+  {name:'Manager Style Quiz',desc:'8 questions — discover your tactical identity',icon:'🧠',rarity:'uncommon',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'mgrquiz.html'},
+  {name:'Trophy Cabinet',desc:'All your stats from every game, in one dashboard',icon:'🏆',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'trophy.html'},
+  {name:'International Tournament',desc:'Knockout bracket sim with 71 real national teams',icon:'🌍',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'worldcup.html'},
+  {name:'Manager Mode',desc:'Multi-season careers, board confidence, press conferences, youth academy',icon:'📋',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'manager.html'},
+  {name:'Transfer Market',desc:'20-day window: negotiate, sell, beat deadline day, get graded',icon:'💰',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'transfer.html'},
+  {name:'Penalty Shootout',desc:'Real keepers, real takers. Five each, then sudden death',icon:'🥅',rarity:'rare',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'penalties.html'},
+  {name:'Arcade Cup',desc:'Top-down five-a-side with real squads: quick match, 2-player, knockout cup with penalties',icon:'🕹️',rarity:'legendary',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'arcade.html'},
+  {name:'Kit Lab',desc:'Design a fictional shirt: colours, pattern, crest, name and number. Save and download',icon:'👕',rarity:'uncommon',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'kit.html'},
+  {name:'Matchday Bingo',desc:'Tap your card as the match unfolds. Right calls score, wrong calls cost you',icon:'📋',rarity:'uncommon',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'bingo.html'},
+  {name:'Football Hangman',desc:'Guess the real player or club. Hints unlock as you miss',icon:'🔤',rarity:'uncommon',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'hangman.html'},
+  {name:'Feeling Lucky',desc:'Spin the wheel and let it pick a game and a challenge',icon:'🎲',rarity:'common',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'lucky.html'},
+  {name:'Stadium Explorer',desc:'First-person 3D stadium walkthrough',icon:'🏟️',rarity:'rare',badge:'',price:'FREE',url:'stadium-explorer.html'},
+  {name:'Connect AI',desc:'Manage your AI provider keys for AI Saver Mode',icon:'🔌',rarity:'uncommon',badge:'',price:'FREE',url:'connect.html'},
+];
+
+var UPDATED=[
+  {name:'Career Mode',desc:'Full FM-style football manager simulation',icon:'📋',rarity:'rare',badge:'UPDATED',badge_cls:'badge-updated',price:'FREE',url:'app.html'},
+  {name:'Learn Code',desc:'JS, Python, HTML, Lua, C++, C# tutorials',icon:'🎓',rarity:'uncommon',badge:'UPDATED',badge_cls:'badge-updated',price:'FREE',url:'app.html'},
+  {name:'My League',desc:'Create your own league with friends',icon:'🏅',rarity:'uncommon',badge:'NEW',badge_cls:'badge-new',price:'FREE',url:'app.html'},
+  {name:'Place Generator',desc:'19 place types, dark secrets, weird laws',icon:'🗺️',rarity:'common',badge:'',price:'FREE',url:'app.html'},
+];
+
+function renderShop(data, gridId) {
+  var grid=document.getElementById(gridId);if(!grid)return;
+  var cnt=document.getElementById('shopCount');if(cnt)cnt.textContent=data.length+' items';
+  grid.innerHTML=data.map(function(g){
+    var badgeHtml=g.badge?'<div class="shop-new" style="background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);color:#fff">'+g.badge+'</div>':'';
+    return '<a href="'+g.url+'" class="shop-card"><div class="shop-inner '+g.rarity+'">'
+      +badgeHtml
+      +'<div class="shop-img"><span style="position:relative;z-index:1;filter:drop-shadow(0 0 16px rgba(255,255,255,.3))">'+g.icon+'</span><div class="shop-rarity"></div></div>'
+      +'<div class="shop-body"><div class="shop-name">'+g.name+'</div><div class="shop-desc">'+g.desc+'</div>'
+      +'<div class="shop-price"><span class="shop-price-icon">⚡</span>'+g.price+'</div>'
+      +'</div></div></a>';
+  }).join('');
+}
+
+renderShop(SHOP,'shopGrid');
+renderShop(UPDATED,'updatedGrid');
+
+// ── USER MENU ─────────────────────────────────
+function toggleDrop(){
+  var d=document.getElementById('drop');
+  d.style.display=d.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('#navAv')&&!e.target.closest('#drop'))document.getElementById('drop').style.display='none';
+});
+
+function doSignOut(){
+  if(typeof firebase!=='undefined')firebase.auth().signOut().then(function(){window.location.reload();});
+}
+
+// ── FIREBASE ──────────────────────────────────
+function initHome(n){
+  if(typeof firebase==='undefined'||typeof FIREBASE_CONFIG==='undefined'){
+    if(n>0)setTimeout(function(){initHome(n-1);},200);return;
+  }
+  try{firebase.initializeApp(FIREBASE_CONFIG);}catch(e){}
+  firebase.auth().onAuthStateChanged(function(user){
+    if(user){
+      var name=user.displayName||'Player';
+      document.getElementById('navAv').style.display='flex';
+      document.getElementById('navAv').textContent=name[0].toUpperCase();
+      document.getElementById('navSign').style.display='none';
+      document.getElementById('vbucks').style.display='flex';
+      document.getElementById('dropName').textContent=name;
+      document.getElementById('dropEmail').textContent=user.email||'';
+      document.getElementById('ucName').textContent=name.toUpperCase();
+      document.getElementById('ucSub').textContent=user.email||'';
+      document.getElementById('ucIcon').textContent=name[0].toUpperCase();
+      document.getElementById('ucSignInBtn').textContent='⚙️ Account Settings';
+      document.getElementById('ucSignInBtn').href='login.html';
+      // Update pass bar
+      var bar=document.getElementById('passBar');
+      if(bar)bar.style.width='72%';
+    }
+  });
+}
+window.addEventListener('load',function(){initHome(25);});
+</script>
+</body>
+</html>

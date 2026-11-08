@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Pack Opening</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="database.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.18);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+.hidden{display:none!important;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(168,85,247,.1),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(255,210,63,.06),transparent 55%);}
+
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.35rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a2),var(--a1),var(--a4));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(255,255,255,.09);
+  color:var(--text);text-decoration:none;transition:all .18s;font-weight:700;}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+.coin-badge{display:flex;align-items:center;gap:6px;background:rgba(255,210,63,.12);border:1.5px solid rgba(255,210,63,.35);
+  border-radius:20px;padding:6px 14px;font-family:'Bangers',cursive;font-size:1rem;letter-spacing:1px;color:var(--a2);}
+
+.wrap{max-width:1020px;margin:0 auto;padding:18px 14px 50px;position:relative;z-index:1;}
+.hero{text-align:center;padding:14px 0 20px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(2.1rem,6vw,3.6rem);letter-spacing:4px;
+  background:linear-gradient(135deg,var(--a2),var(--a1),var(--a4));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.hero-sub{font-size:.82rem;font-weight:700;color:var(--muted);}
+
+.tab-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;justify-content:center;}
+.dtab{font-family:'Fredoka One',cursive;font-size:.82rem;padding:10px 20px;border-radius:11px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(255,255,255,.08);color:var(--muted);
+  transition:all .18s;font-weight:700;}
+.dtab.active{background:rgba(255,210,63,.18);border-color:rgba(255,210,63,.5);color:var(--a2);box-shadow:0 0 12px rgba(255,210,63,.15);}
+
+/* PACK STORE */
+.pack-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;}
+.pack-card{border-radius:18px;padding:22px 18px;text-align:center;cursor:pointer;transition:all .25s;
+  position:relative;overflow:hidden;border:2px solid transparent;}
+.pack-card:hover{transform:translateY(-8px) scale(1.02);}
+.pack-card.bronze{background:linear-gradient(160deg,#3a2410,#1f1408);border-color:rgba(180,120,60,.4);}
+.pack-card.silver{background:linear-gradient(160deg,#3a3f45,#1a1d20);border-color:rgba(190,200,210,.4);}
+.pack-card.gold{background:linear-gradient(160deg,#4a3a05,#2a1f02);border-color:rgba(255,210,63,.5);}
+.pack-card.icon{background:linear-gradient(160deg,#1a0a2e,#2d0a4a);border-color:rgba(168,85,247,.6);
+  box-shadow:0 0 30px rgba(168,85,247,.2);}
+.pack-icon{font-size:3.5rem;margin-bottom:10px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.5));}
+.pack-name{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:2px;margin-bottom:4px;}
+.pack-range{font-size:.68rem;font-weight:800;color:var(--muted);margin-bottom:12px;}
+.pack-price{font-family:'Bangers',cursive;font-size:1.4rem;color:var(--a2);margin-bottom:12px;}
+.pack-buy-btn{width:100%;padding:10px;font-family:'Fredoka One',cursive;font-size:.85rem;
+  border:none;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,var(--a1),var(--a2));
+  color:#1a0800;font-weight:800;transition:all .2s;}
+.pack-buy-btn:hover{filter:brightness(1.1);}
+.pack-buy-btn:disabled{opacity:.4;cursor:not-allowed;}
+.free-badge{position:absolute;top:10px;right:10px;background:rgba(6,255,165,.2);color:var(--a3);
+  font-size:.58rem;font-weight:900;padding:3px 9px;border-radius:8px;letter-spacing:1px;}
+
+/* PACK OPENING SCREEN */
+#openingScreen{display:none;position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at center,#1a0a2e 0%,#050208 100%);
+  align-items:center;justify-content:center;flex-direction:column;}
+.pack-stage{text-align:center;}
+#packVisual{font-size:8rem;cursor:pointer;filter:drop-shadow(0 0 40px rgba(255,210,63,.5));
+  animation:packFloat 2s ease-in-out infinite;transition:transform .3s;}
+@keyframes packFloat{0%,100%{transform:translateY(0) rotate(-3deg);}50%{transform:translateY(-14px) rotate(3deg);}}
+#packVisual.shaking{animation:packShake .4s ease infinite;}
+@keyframes packShake{0%,100%{transform:translate(0,0) rotate(0);}25%{transform:translate(-6px,0) rotate(-4deg);}75%{transform:translate(6px,0) rotate(4deg);}}
+.tap-hint{font-family:'Fredoka One',cursive;font-size:1rem;color:var(--a2);letter-spacing:2px;margin-top:20px;
+  animation:pulseHint 1.5s ease-in-out infinite;}
+@keyframes pulseHint{0%,100%{opacity:.5;}50%{opacity:1;}}
+
+.card-reveal-area{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:900px;padding:20px;}
+.reveal-card{width:130px;height:180px;perspective:1000px;cursor:pointer;}
+.reveal-card-inner{position:relative;width:100%;height:100%;transition:transform .6s cubic-bezier(.34,1.56,.64,1);
+  transform-style:preserve-3d;}
+.reveal-card-inner.flipped{transform:rotateY(180deg);}
+.reveal-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.reveal-back{background:linear-gradient(160deg,#2d1a4a,#1a0a2e);border:2px solid rgba(168,85,247,.4);
+  font-size:2.2rem;}
+.reveal-front{transform:rotateY(180deg);border:2px solid rgba(255,255,255,.3);padding:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.reveal-front.rare-glow{box-shadow:0 0 30px rgba(255,210,63,.6),0 8px 24px rgba(0,0,0,.5);animation:rareGlow 1.2s ease-in-out infinite;}
+@keyframes rareGlow{0%,100%{box-shadow:0 0 20px rgba(255,210,63,.5);}50%{box-shadow:0 0 40px rgba(255,210,63,.9);}}
+.rf-ovr{font-family:'Bangers',cursive;font-size:1.6rem;color:#fff;}
+.rf-pos{font-size:.6rem;font-weight:900;color:rgba(255,255,255,.7);letter-spacing:1px;margin-bottom:6px;}
+.rf-avatar{font-size:2rem;margin:6px 0;}
+.rf-name{font-family:'Fredoka One',cursive;font-size:.68rem;color:#fff;text-align:center;padding:0 4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
+.rf-club{font-size:.55rem;color:rgba(255,255,255,.6);font-weight:700;margin-top:2px;}
+
+.continue-btn{margin-top:24px;font-family:'Bangers',cursive;font-size:1.2rem;letter-spacing:2px;
+  padding:12px 32px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--a4),var(--a5));
+  color:#fff;cursor:pointer;box-shadow:0 6px 20px rgba(168,85,247,.35);display:none;}
+
+/* COLLECTION */
+.collection-toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.collection-search{flex:1;min-width:160px;background:rgba(255,255,255,.08);border:1.5px solid var(--border);
+  border-radius:10px;padding:9px 13px;color:var(--text);font-weight:700;outline:none;}
+.sort-btn{font-size:.7rem;font-weight:800;padding:8px 14px;border-radius:9px;border:1.5px solid var(--border);
+  background:rgba(255,255,255,.07);color:var(--muted);cursor:pointer;}
+.sort-btn.active{background:rgba(168,85,247,.18);border-color:rgba(168,85,247,.5);color:var(--a4);}
+.collection-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+.coll-card{border-radius:12px;padding:10px 8px;text-align:center;border:1.5px solid rgba(255,255,255,.2);
+  position:relative;transition:all .2s;}
+.coll-card:hover{transform:translateY(-3px);}
+.coll-ovr{font-family:'Bangers',cursive;font-size:1.2rem;color:#fff;}
+.coll-pos{font-size:.55rem;font-weight:900;color:rgba(255,255,255,.6);}
+.coll-name{font-family:'Fredoka One',cursive;font-size:.66rem;color:#fff;margin:5px 0 2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.coll-club{font-size:.55rem;color:rgba(255,255,255,.55);font-weight:700;margin-bottom:6px;}
+.sell-btn{width:100%;font-size:.58rem;font-weight:800;padding:4px;border-radius:6px;
+  border:1px solid rgba(255,107,53,.4);background:rgba(255,107,53,.12);color:var(--a1);cursor:pointer;}
+.empty-collection{text-align:center;padding:40px 20px;color:var(--muted);font-weight:700;font-size:.85rem;}
+
+.gcard{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .3s ease both;}
+.cfp{position:fixed;pointer-events:none;border-radius:2px;top:-20px;z-index:999;}
+@keyframes cff{0%{transform:translateY(0) rotate(0);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+
+/* nom-upgrade: mobile */
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  img,canvas,video,svg{max-width:100%;height:auto}
+  nav{flex-wrap:wrap;height:auto;min-height:54px;padding:8px 10px;gap:6px}
+  nav .nbtn{font-size:.7rem;padding:5px 8px}
+  .nom-hub{bottom:8px}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🎴 PACK OPENING</div>
+  <div class="ml" style="display:flex;gap:10px;align-items:center">
+    <div class="coin-badge">🪙 <span id="coinDisplay">5000</span></div>
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero fadein">
+    <div class="hero-title">🎴 PACK OPENING</div>
+    <div class="hero-sub">Open packs pulled from real players across every league in the database. Build your dream collection.</div>
+  </div>
+
+  <div class="tab-row fadein">
+    <div class="dtab active" onclick="showTab('store',this)">🛒 Pack Store</div>
+    <div class="dtab" onclick="showTab('collection',this)">📁 My Collection</div>
+  </div>
+
+  <!-- PACK STORE -->
+  <div id="pane-store">
+    <div class="gcard fadein" style="text-align:center">
+      <button class="pack-buy-btn" id="dailyFreeBtn" onclick="claimDailyPack()" style="max-width:280px;margin:0 auto;">🎁 Claim Free Daily Pack</button>
+    </div>
+    <div class="pack-grid fadein" id="packGrid"></div>
+  </div>
+
+  <!-- COLLECTION -->
+  <div id="pane-collection" class="hidden">
+    <div class="gcard fadein">
+      <div class="collection-toolbar">
+        <input class="collection-search" id="collSearch" placeholder="Search your collection..." oninput="renderCollection()">
+        <button class="sort-btn active" onclick="setSort('ovr',this)">Sort: OVR</button>
+        <button class="sort-btn" onclick="setSort('recent',this)">Sort: Recent</button>
+        <button class="sort-btn" onclick="setSort('name',this)">Sort: Name</button>
+      </div>
+      <div style="font-size:.75rem;font-weight:800;color:var(--muted);margin-bottom:12px" id="collCount">0 players owned</div>
+      <div class="collection-grid" id="collectionGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PACK OPENING SCREEN -->
+<div id="openingScreen">
+  <div class="pack-stage" id="packStage">
+    <div id="packVisual">📦</div>
+    <div class="tap-hint">TAP THE PACK TO OPEN</div>
+  </div>
+  <div class="card-reveal-area hidden" id="revealArea"></div>
+  <button class="continue-btn" id="continueBtn" onclick="closeOpeningScreen()">CONTINUE →</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+var COINS = loadCoins();
+var COLLECTION = loadCollection();
+var SORT_MODE = 'ovr';
+
+function loadCoins() {
+  try { var c = JSON.parse(localStorage.getItem('nom_pack_coins')); if (typeof c === 'number') return c; } catch(e){}
+  return 5000;
+}
+function saveCoins() { localStorage.setItem('nom_pack_coins', JSON.stringify(COINS)); }
+function loadCollection() {
+  try { var c = JSON.parse(localStorage.getItem('nom_pack_collection')); if (Array.isArray(c)) return c; } catch(e){}
+  return [];
+}
+function saveCollection() { localStorage.setItem('nom_pack_collection', JSON.stringify(COLLECTION)); }
+
+var PACK_DEFS = {
+  bronze: { name:'Bronze Pack', icon:'🥉', min:60, max:74, count:5, price:400, cls:'bronze', rareChance:0.03 },
+  silver: { name:'Silver Pack', icon:'🥈', min:70, max:82, count:5, price:800, cls:'silver', rareChance:0.08 },
+  gold:   { name:'Gold Pack',   icon:'🥇', min:78, max:88, count:5, price:1500, cls:'gold', rareChance:0.18 },
+  icon:   { name:'Icon Pack',   icon:'👑', min:85, max:99, count:3, price:5000, cls:'icon', rareChance:0.45 }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// BUILD PLAYER POOL FROM DATABASE
+// ═══════════════════════════════════════════════════════════════
+var ALL_PLAYERS_POOL = [];
+function buildPlayerPool() {
+  if (!window.NOMDB) return;
+  window.NOMDB.leagues.forEach(function(lg) {
+    lg.clubs.forEach(function(club) {
+      club.players.forEach(function(p) {
+        ALL_PLAYERS_POOL.push(Object.assign({}, p, { club: club.name, clubEmoji: club.emoji, league: lg.name }));
+      });
+    });
+  });
+}
+buildPlayerPool();
+
+function pickPlayerInRange(min, max) {
+  var pool = ALL_PLAYERS_POOL.filter(function(p){ return p.ovr >= min && p.ovr <= max; });
+  if (!pool.length) pool = ALL_PLAYERS_POOL;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function rarityForOvr(ovr) {
+  if (ovr >= 90) return 'icon';
+  if (ovr >= 85) return 'toty';
+  if (ovr >= 78) return 'gold';
+  return 'silver';
+}
+var RARITY_BG = {
+  icon: 'linear-gradient(160deg,#0a0a2a,#1a1a4a)',
+  toty: 'linear-gradient(160deg,#b05000,#7a3000)',
+  gold: 'linear-gradient(160deg,#c8a84b,#7a5c1e)',
+  silver: 'linear-gradient(160deg,#888,#555)'
+};
+
+// ═══════════════════════════════════════════════════════════════
+// UI: TABS
+// ═══════════════════════════════════════════════════════════════
+function showTab(tab, btn) {
+  document.getElementById('pane-store').classList.toggle('hidden', tab!=='store');
+  document.getElementById('pane-collection').classList.toggle('hidden', tab!=='collection');
+  document.querySelectorAll('.tab-row .dtab').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  if (tab === 'collection') renderCollection();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PACK STORE RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderStore() {
+  document.getElementById('coinDisplay').textContent = COINS.toLocaleString();
+  var grid = document.getElementById('packGrid');
+  grid.innerHTML = Object.keys(PACK_DEFS).map(function(key) {
+    var p = PACK_DEFS[key];
+    var canAfford = COINS >= p.price;
+    return '<div class="pack-card ' + p.cls + '" onclick="' + (canAfford?'openPackFlow(\''+key+'\')':'') + '">'
+      + '<div class="pack-icon">' + p.icon + '</div>'
+      + '<div class="pack-name">' + p.name + '</div>'
+      + '<div class="pack-range">' + p.count + ' players · OVR ' + p.min + '-' + p.max + '</div>'
+      + '<div class="pack-price">🪙 ' + p.price.toLocaleString() + '</div>'
+      + '<button class="pack-buy-btn" ' + (canAfford?'':'disabled') + '>' + (canAfford?'Open Pack':'Not Enough Coins') + '</button>'
+      + '</div>';
+  }).join('');
+
+  var lastClaim = parseInt(localStorage.getItem('nom_pack_daily_claim') || '0');
+  var canClaim = (Date.now() - lastClaim) > (20 * 60 * 60 * 1000); // 20hr cooldown
+  var dailyBtn = document.getElementById('dailyFreeBtn');
+  dailyBtn.disabled = !canClaim;
+  dailyBtn.textContent = canClaim ? '🎁 Claim Free Daily Pack' : '⏳ Come back tomorrow for your free pack';
+}
+
+function claimDailyPack() {
+  var lastClaim = parseInt(localStorage.getItem('nom_pack_daily_claim') || '0');
+  if ((Date.now() - lastClaim) < (20 * 60 * 60 * 1000)) return;
+  localStorage.setItem('nom_pack_daily_claim', String(Date.now()));
+  renderStore();
+  openPackFlow('silver', true);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PACK OPENING FLOW
+// ═══════════════════════════════════════════════════════════════
+var CURRENT_PACK_KEY = null;
+var CURRENT_PULLS = [];
+
+function openPackFlow(key, isFree) {
+  var p = PACK_DEFS[key];
+  if (!isFree) {
+    if (COINS < p.price) return;
+    COINS -= p.price; saveCoins();
+  }
+  CURRENT_PACK_KEY = key;
+
+  // Generate pulls
+  CURRENT_PULLS = [];
+  for (var i = 0; i < p.count; i++) {
+    var isRare = Math.random() < p.rareChance;
+    var picked;
+    if (isRare) picked = pickPlayerInRange(Math.max(p.min+8, 85), 99);
+    else picked = pickPlayerInRange(p.min, p.max);
+    CURRENT_PULLS.push(picked);
+  }
+  // Sort so best card is revealed last (classic pack-opening suspense)
+  CURRENT_PULLS.sort(function(a,b){ return a.ovr - b.ovr; });
+
+  document.getElementById('openingScreen').style.display = 'flex';
+  document.getElementById('packStage').style.display = 'block';
+  document.getElementById('revealArea').classList.add('hidden');
+  document.getElementById('revealArea').innerHTML = '';
+  document.getElementById('continueBtn').style.display = 'none';
+  var visual = document.getElementById('packVisual');
+  visual.textContent = p.icon;
+  visual.classList.remove('shaking');
+  visual.onclick = beginPackOpenAnimation;
+}
+
+function beginPackOpenAnimation() {
+  var visual = document.getElementById('packVisual');
+  visual.onclick = null;
+  visual.classList.add('shaking');
+  document.querySelector('.tap-hint').style.display = 'none';
+  setTimeout(function() {
+    document.getElementById('packStage').style.display = 'none';
+    renderRevealCards();
+  }, 700);
+}
+
+function renderRevealCards() {
+  var area = document.getElementById('revealArea');
+  area.classList.remove('hidden');
+  area.innerHTML = CURRENT_PULLS.map(function(p, i) {
+    return '<div class="reveal-card" onclick="flipCard(' + i + ')" id="revealCard' + i + '">'
+      + '<div class="reveal-card-inner" id="revealInner' + i + '">'
+      + '<div class="reveal-face reveal-back">📦</div>'
+      + '<div class="reveal-face reveal-front" id="revealFront' + i + '"></div>'
+      + '</div></div>';
+  }).join('');
+
+  // Auto-flip each card in sequence with a delay, building suspense
+  CURRENT_PULLS.forEach(function(p, i) {
+    setTimeout(function() { flipCard(i); }, 500 + i * 900);
+  });
+  var totalTime = 500 + CURRENT_PULLS.length * 900 + 400;
+  setTimeout(function() { document.getElementById('continueBtn').style.display = 'inline-block'; }, totalTime);
+}
+
+var FLIPPED = {};
+function flipCard(i) {
+  if (FLIPPED[i]) return;
+  FLIPPED[i] = true;
+  var p = CURRENT_PULLS[i];
+  var rarity = rarityForOvr(p.ovr);
+  var front = document.getElementById('revealFront' + i);
+  front.style.background = RARITY_BG[rarity];
+  var isRare = p.ovr >= 85;
+  front.className = 'reveal-face reveal-front' + (isRare ? ' rare-glow' : '');
+  front.innerHTML = '<div class="rf-ovr">' + p.ovr + '</div>'
+    + '<div class="rf-pos">' + p.pos + '</div>'
+    + '<div class="rf-avatar">' + (p.nat||'👤') + '</div>'
+    + '<div class="rf-name">' + escH(p.name) + '</div>'
+    + '<div class="rf-club">' + escH(p.club||'') + '</div>';
+  document.getElementById('revealInner' + i).classList.add('flipped');
+
+  // Add to collection
+  COLLECTION.unshift(Object.assign({}, p, { pulledAt: Date.now(), id: 'c'+Date.now()+Math.random().toString(36).slice(2,7) }));
+  saveCollection();
+
+  if (isRare) miniConfetti();
+}
+
+function closeOpeningScreen() {
+  document.getElementById('openingScreen').style.display = 'none';
+  FLIPPED = {};
+  renderStore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COLLECTION
+// ═══════════════════════════════════════════════════════════════
+function setSort(mode, btn) {
+  SORT_MODE = mode;
+  document.querySelectorAll('.collection-toolbar .sort-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderCollection();
+}
+
+function renderCollection() {
+  var q = (document.getElementById('collSearch').value || '').toLowerCase();
+  var filtered = COLLECTION.filter(function(p) {
+    return !q || p.name.toLowerCase().indexOf(q) !== -1 || (p.club||'').toLowerCase().indexOf(q) !== -1;
+  });
+  if (SORT_MODE === 'ovr') filtered.sort(function(a,b){ return b.ovr - a.ovr; });
+  else if (SORT_MODE === 'recent') filtered.sort(function(a,b){ return b.pulledAt - a.pulledAt; });
+  else filtered.sort(function(a,b){ return a.name.localeCompare(b.name); });
+
+  document.getElementById('collCount').textContent = COLLECTION.length + ' player' + (COLLECTION.length===1?'':'s') + ' owned';
+
+  var grid = document.getElementById('collectionGrid');
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-collection" style="grid-column:1/-1">📁 No players yet — open a pack to start your collection!</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(function(p) {
+    var rarity = rarityForOvr(p.ovr);
+    var sellValue = Math.max(50, Math.round(p.ovr * 8));
+    return '<div class="coll-card" style="background:' + RARITY_BG[rarity] + '">'
+      + '<div class="coll-ovr">' + p.ovr + '</div>'
+      + '<div class="coll-pos">' + p.pos + '</div>'
+      + '<div class="coll-name">' + escH(p.name) + '</div>'
+      + '<div class="coll-club">' + escH(p.club||'') + '</div>'
+      + '<button class="sell-btn" onclick="sellCard(\'' + p.id + '\',' + sellValue + ')">💰 Sell for ' + sellValue + '</button>'
+      + '</div>';
+  }).join('');
+}
+
+function sellCard(id, value) {
+  var idx = COLLECTION.findIndex(function(p){ return p.id === id; });
+  if (idx === -1) return;
+  COLLECTION.splice(idx, 1);
+  COINS += value;
+  saveCoins(); saveCollection();
+  renderCollection();
+  renderStore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function miniConfetti() {
+  var cols = ['#ffd23f','#ff6b35','#a855f7','#06ffa5'];
+  for (var i=0;i<30;i++){
+    var p=document.createElement('div'); p.className='cfp';
+    var sz=Math.random()*8+4;
+    p.style.cssText='left:'+Math.random()*100+'vw;background:'+cols[Math.floor(Math.random()*cols.length)]+';width:'+sz+'px;height:'+sz+'px;border-radius:'+(Math.random()>.5?'50%':'2px')+';animation:cff '+(Math.random()*1.6+.8)+'s linear forwards;';
+    document.body.appendChild(p);
+    p.addEventListener('animationend',function(){ if(p.parentNode) p.parentNode.removeChild(p); });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+renderStore();
+</script>
+</body>
+</html>

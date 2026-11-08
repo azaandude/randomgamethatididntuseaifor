@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC 9000 — Sign In</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
+<script src="firebase-config.js" defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#07070f;color:#eeeeff;font-family:'Nunito',sans-serif;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;overflow:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 60% at 15% 10%,rgba(168,85,247,.12),transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 90%,rgba(6,255,165,.08),transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%,rgba(255,107,53,.05),transparent 60%);
+}
+/* Floating background particles */
+.bg-ball{
+  position:fixed;border-radius:50%;pointer-events:none;
+  animation:bgFloat linear infinite;opacity:.06;
+}
+@keyframes bgFloat{
+  0%{transform:translateY(110vh) rotate(0deg);}
+  100%{transform:translateY(-20vh) rotate(720deg);}
+}
+
+.card{
+  background:rgba(14,14,30,.95);border:1.5px solid rgba(255,255,255,.2);
+  border-radius:20px;padding:36px 32px;width:100%;max-width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04);
+  position:relative;z-index:1;backdrop-filter:blur(20px);
+  animation:cardIn .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(30px) scale(.95);}to{opacity:1;transform:none;}}
+
+.logo{
+  font-family:'Bangers',cursive;font-size:2.8rem;letter-spacing:5px;text-align:center;
+  background:linear-gradient(135deg,#ff6b35,#ffd23f,#06ffa5,#a855f7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px rgba(255,107,53,.3));margin-bottom:4px;
+}
+.tagline{
+  font-family:'Fredoka One',cursive;font-size:.72rem;color:#ffd23f;
+  letter-spacing:3px;text-transform:uppercase;text-align:center;opacity:.7;margin-bottom:28px;
+}
+
+/* Mode tabs */
+.mode-tabs{display:flex;background:rgba(255,255,255,.04);border-radius:10px;padding:4px;margin-bottom:24px;gap:4px;}
+.mode-tab{
+  flex:1;padding:8px;font-family:'Fredoka One',cursive;font-size:.82rem;
+  letter-spacing:1px;border:none;border-radius:7px;cursor:pointer;
+  background:transparent;color:#55558a;transition:all .2s ease;
+}
+.mode-tab.active{background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff;box-shadow:0 2px 8px rgba(168,85,247,.3);}
+
+.field-label{font-size:.58rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#55558a;margin-bottom:5px;}
+.field{position:relative;margin-bottom:14px;}
+input{
+  width:100%;background:rgba(255,255,255,.05);color:#eeeeff;
+  border:1px solid rgba(255,255,255,.1);border-radius:9px;
+  padding:12px 14px;font-family:'Nunito',sans-serif;font-size:.88rem;
+  font-weight:700;outline:none;transition:all .2s ease;
+}
+input:focus{border-color:#a855f7;background:rgba(168,85,247,.07);box-shadow:0 0 0 3px rgba(168,85,247,.12);}
+input::placeholder{color:#55558a;font-weight:600;}
+.eye-btn{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:#55558a;font-size:1rem;
+  transition:color .2s;
+}
+.eye-btn:hover{color:#ffd23f;}
+
+.bigbtn{
+  width:100%;padding:13px;font-family:'Bangers',cursive;font-size:1.45rem;
+  letter-spacing:4px;border:none;border-radius:11px;cursor:pointer;
+  transition:all .2s ease;margin-top:4px;
+  background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff;
+  box-shadow:0 6px 20px rgba(168,85,247,.35);
+}
+.bigbtn:hover{transform:translateY(-2px);filter:brightness(1.1);}
+.bigbtn:active{transform:scale(.98);}
+.bigbtn:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none;}
+
+.err-box{
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
+  border-radius:9px;padding:9px 13px;font-size:.78rem;font-weight:700;
+  color:#fca5a5;margin-bottom:12px;display:none;
+}
+.err-box.show{display:block;}
+.ok-box{
+  background:rgba(6,255,165,.1);border:1px solid rgba(6,255,165,.3);
+  border-radius:9px;padding:9px 13px;font-size:.78rem;font-weight:700;
+  color:#06ffa5;margin-bottom:12px;display:none;
+}
+.ok-box.show{display:block;}
+
+.divider{display:flex;align-items:center;gap:10px;margin:16px 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08);}
+.divider-txt{font-size:.65rem;color:#55558a;font-weight:800;letter-spacing:2px;}
+
+.google-btn{
+  width:100%;padding:11px;font-family:'Fredoka One',cursive;font-size:.88rem;
+  letter-spacing:1px;border:1px solid rgba(255,255,255,.12);border-radius:11px;
+  cursor:pointer;background:rgba(255,255,255,.04);color:#eeeeff;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  transition:all .2s ease;
+}
+.google-btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2);}
+.google-btn:active{transform:scale(.98);}
+
+.footer-links{text-align:center;margin-top:18px;}
+.link{
+  font-size:.74rem;font-weight:700;color:#55558a;cursor:pointer;
+  transition:color .2s;text-decoration:none;display:inline-block;padding:2px 4px;
+}
+.link:hover{color:#a855f7;}
+
+.spinner{
+  width:20px;height:20px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin 1s linear infinite;display:inline-block;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Password strength */
+.pw-strength{height:3px;border-radius:2px;margin-top:5px;transition:all .3s ease;background:rgba(255,255,255,.1);}
+
+/* Terms */
+.terms{font-size:.65rem;color:#55558a;text-align:center;margin-top:14px;line-height:1.6;}
+.terms a{color:#a855f7;text-decoration:none;}
+
+@media(max-width:480px){.card{padding:24px 18px;}.logo{font-size:2.2rem;}}
+
+/* ── GLOBAL POLISH ── */
+*{-webkit-tap-highlight-color:rgba(168,85,247,.2);}
+a{-webkit-tap-highlight-color:rgba(168,85,247,.15);}
+
+/* Bigger, more visible nav buttons */
+.nbtn,.hbtn,.tbtn{
+  font-family:'Fredoka One',cursive;font-size:.8rem;
+  padding:8px 16px;border-radius:9px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.09);
+  color:#eeeeff;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:all .18s ease;font-weight:700;
+  letter-spacing:.3px;white-space:nowrap;
+}
+.nbtn:hover,.hbtn:hover,.tbtn:hover{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.4);
+  color:#fff;transform:translateY(-1px);
+}
+
+/* Bigger action tabs */
+.dtab{
+  font-family:'Fredoka One',cursive;font-size:.82rem;
+  padding:9px 18px;border-radius:10px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);color:#aaaacc;
+  transition:all .18s ease;font-weight:700;
+}
+.dtab:hover{background:rgba(255,255,255,.15);color:#fff;transform:translateY(-1px);}
+.dtab.active{
+  background:rgba(255,210,63,.18);
+  border-color:rgba(255,210,63,.5);
+  color:#ffd23f;font-weight:900;
+  box-shadow:0 0 12px rgba(255,210,63,.15);
+}
+
+/* smBtn used in multiplayer/community/etc */
+.smBtn{
+  background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.22);
+  border-radius:8px;padding:8px 16px;font-size:.78rem;font-weight:800;
+  color:#aaaacc;cursor:pointer;transition:all .18s ease;
+  font-family:'Nunito',sans-serif;white-space:nowrap;
+}
+.smBtn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);color:#fff;transform:translateY(-1px);}
+.smBtn.active{background:rgba(6,255,165,.18);border-color:rgba(6,255,165,.45);color:#06ffa5;box-shadow:0 0 10px rgba(6,255,165,.15);}
+.smBtn.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+.smBtn.danger:hover{background:rgba(239,68,68,.2);}
+
+/* bigbtn polish */
+.bigbtn{transition:all .18s ease;}
+.bigbtn:hover{transform:translateY(-3px);filter:brightness(1.1);}
+.bigbtn:active{transform:scale(.97);}
+
+/* Card hover glow */
+.card{transition:border-color .2s ease;}
+.card:hover{border-color:rgba(255,255,255,.13);}
+
+/* Input polish */
+input,select,textarea{
+  color:#eeeeff!important;
+  border:1.5px solid rgba(255,255,255,.18)!important;
+  transition:all .18s ease!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#a855f7!important;
+  box-shadow:0 0 0 3px rgba(168,85,247,.15)!important;
+}
+input::placeholder,textarea::placeholder{color:#55558a!important;}
+
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body data-online-only>
+<a href="index.html" class="nom-hub" style="position:fixed;left:10px;bottom:10px;z-index:9999;background:rgba(7,7,15,.85);color:#eeeeff;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 12px;font:700 12px sans-serif;text-decoration:none">🏠 Hub</a>
+
+<!-- Floating background balls -->
+<script>
+for(var i=0;i<8;i++){
+  var b=document.createElement('div');b.className='bg-ball';
+  var sz=Math.random()*60+20;
+  var cols=['#a855f7','#3b82f6','#06ffa5','#ff6b35','#ffd23f','#ec4899'];
+  b.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+Math.random()*100+'vw;background:'+cols[Math.floor(Math.random()*cols.length)]+';animation-duration:'+(Math.random()*20+15)+'s;animation-delay:-'+(Math.random()*20)+'s;';
+  document.body.appendChild(b);
+}
+</script>
+
+<div class="card">
+  <div class="logo">NAME-O-MATIC</div>
+  <div class="tagline">⚡ The Ultimate Football AI App ⚡</div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tab-signin" onclick="setMode('signin')">Sign In</button>
+    <button class="mode-tab" id="tab-signup" onclick="setMode('signup')">Create Account</button>
+    <button class="mode-tab" id="tab-reset" onclick="setMode('reset')">Reset PW</button>
+  </div>
+
+  <div class="err-box" id="errBox"></div>
+  <div class="ok-box" id="okBox"></div>
+
+  <!-- SIGN IN FORM -->
+  <div id="form-signin">
+    <div class="field-label">Email</div>
+    <div class="field">
+      <input id="si-email" type="email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="field-label">Password</div>
+    <div class="field">
+      <input id="si-password" type="password" placeholder="Your password" autocomplete="current-password">
+      <button class="eye-btn" onclick="togglePw('si-password',this)">👁️</button>
+    </div>
+    <button class="bigbtn" id="si-btn" onclick="doSignIn()">⚡ SIGN IN ⚡</button>
+    <div class="divider"><span class="divider-txt">OR</span></div>
+    <button class="google-btn" onclick="doGoogleSignIn()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.2 0 5.9 1.1 8.1 2.9l6-6A23.8 23.8 0 0024 0C14.8 0 6.9 5.3 2.9 13.1l7 5.4C11.7 12.8 17.4 9.5 24 9.5z"/><path fill="#34A853" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v8.7h12.4a10.5 10.5 0 01-4.6 6.9l7.2 5.6c4.2-3.9 6.6-9.6 7.1-16.6z"/><path fill="#FBBC05" d="M10 28.6a14.5 14.5 0 010-9.3l-7-5.4A24 24 0 000 24c0 3.9.9 7.5 2.9 10.7l7-5.4-.1.3z"/><path fill="#4285F4" d="M24 48c6.5 0 12-2.1 16-5.8l-7.2-5.6a14.8 14.8 0 01-8.8 2.9c-6.6 0-12.3-3.3-14.9-8.9l-7 5.4C6.9 42.7 14.8 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+  </div>
+
+  <!-- SIGN UP FORM -->
+  <div id="form-signup" style="display:none">
+    <div class="field-label">Display Name</div>
+    <div class="field">
+      <input id="su-name" type="text" placeholder="e.g. Azaan" autocomplete="name" oninput="checkFormReady()">
+    </div>
+    <div class="field-label">Email</div>
+    <div class="field">
+      <input id="su-email" type="email" placeholder="your@email.com" autocomplete="email" oninput="checkFormReady()">
+    </div>
+    <div class="field-label">Password</div>
+    <div class="field">
+      <input id="su-password" type="password" placeholder="Min 8 characters" autocomplete="new-password" oninput="checkPwStrength(this.value);checkFormReady()">
+      <button class="eye-btn" onclick="togglePw('su-password',this)">👁️</button>
+    </div>
+    <div class="pw-strength" id="pwStrength"></div>
+    <div style="font-size:.6rem;color:#55558a;font-weight:700;margin-top:4px;margin-bottom:10px" id="pwHint">Enter a password</div>
+    <div class="field-label">Confirm Password</div>
+    <div class="field" style="margin-bottom:16px">
+      <input id="su-confirm" type="password" placeholder="Repeat password" autocomplete="new-password" oninput="checkFormReady()">
+      <button class="eye-btn" onclick="togglePw('su-confirm',this)">👁️</button>
+    </div>
+    <button class="bigbtn" id="su-btn" onclick="doSignUp()">🎉 CREATE ACCOUNT 🎉</button>
+    <div class="terms">By creating an account you agree to use this app responsibly.<br>Your keys are stored locally in your browser only.</div>
+    <div class="divider"><span class="divider-txt">OR</span></div>
+    <button class="google-btn" onclick="doGoogleSignIn()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.2 0 5.9 1.1 8.1 2.9l6-6A23.8 23.8 0 0024 0C14.8 0 6.9 5.3 2.9 13.1l7 5.4C11.7 12.8 17.4 9.5 24 9.5z"/><path fill="#34A853" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v8.7h12.4a10.5 10.5 0 01-4.6 6.9l7.2 5.6c4.2-3.9 6.6-9.6 7.1-16.6z"/><path fill="#FBBC05" d="M10 28.6a14.5 14.5 0 010-9.3l-7-5.4A24 24 0 000 24c0 3.9.9 7.5 2.9 10.7l7-5.4-.1.3z"/><path fill="#4285F4" d="M24 48c6.5 0 12-2.1 16-5.8l-7.2-5.6a14.8 14.8 0 01-8.8 2.9c-6.6 0-12.3-3.3-14.9-8.9l-7 5.4C6.9 42.7 14.8 48 24 48z"/></svg>
+      Sign up with Google
+    </button>
+  </div>
+
+  <!-- RESET FORM -->
+  <div id="form-reset" style="display:none">
+    <div style="font-size:.82rem;color:#aaaacc;font-weight:700;margin-bottom:14px;line-height:1.6">Enter your email and we will send you a password reset link.</div>
+    <div class="field-label">Email</div>
+    <div class="field">
+      <input id="r-email" type="email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <button class="bigbtn" id="r-btn" onclick="doReset()">📧 SEND RESET LINK 📧</button>
+  </div>
+
+  <div class="footer-links">
+    <span class="link" onclick="setMode('reset')" id="link-forgot" style="display:inline">Forgot password?</span>
+    <span style="color:rgba(255,255,255,.1);margin:0 8px">|</span>
+    <span class="link" onclick="setMode('signup')" id="link-create">Create account</span>
+  </div>
+</div>
+
+<script>
+// ── INIT FIREBASE ───────────────────────────────────────────────
+var app, auth, db;
+function initFirebaseIndex(attempts) {
+  if (typeof firebase !== 'undefined' && typeof FIREBASE_CONFIG !== 'undefined') {
+    try {
+      app  = firebase.initializeApp(FIREBASE_CONFIG);
+      auth = firebase.auth();
+      db   = firebase.firestore();
+      // Check if already signed in
+      auth.onAuthStateChanged(function(user) {
+        if (user) goToApp(user);
+      });
+    } catch(e) {
+      console.warn('Firebase init error:', e.message);
+    }
+  } else if (attempts > 0) {
+    setTimeout(function(){ initFirebaseIndex(attempts-1); }, 200);
+  } else {
+    console.warn('Firebase not available after waiting');
+  }
+}
+// Remove the old onAuthStateChanged call since it's now inside initFirebaseIndex
+
+// auth check handled in initFirebaseIndex
+
+// ── UI HELPERS ──────────────────────────────────────────────────
+function setMode(mode) {
+  ['signin','signup','reset'].forEach(function(m) {
+    document.getElementById('form-'+m).style.display = m===mode?'':'none';
+    document.getElementById('tab-'+m).classList.toggle('active', m===mode);
+  });
+  clearMessages();
+  var lf = document.getElementById('link-forgot');
+  var lc = document.getElementById('link-create');
+  if(lf) lf.style.display = mode==='reset'?'none':'inline';
+  if(lc) lc.style.display = mode==='signup'?'none':'inline';
+}
+
+function showErr(msg) {
+  var e=document.getElementById('errBox'); e.textContent=msg; e.classList.add('show');
+  document.getElementById('okBox').classList.remove('show');
+}
+function showOk(msg) {
+  var o=document.getElementById('okBox'); o.textContent=msg; o.classList.add('show');
+  document.getElementById('errBox').classList.remove('show');
+}
+function clearMessages() {
+  document.getElementById('errBox').classList.remove('show');
+  document.getElementById('okBox').classList.remove('show');
+}
+function setLoading(btnId, loading) {
+  var btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn._text = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span>';
+  } else {
+    btn.innerHTML = btn._text || btn.innerHTML;
+  }
+}
+function togglePw(id, btn) {
+  var inp = document.getElementById(id);
+  if (!inp) return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  btn.textContent = inp.type==='password' ? '👁️' : '🙈';
+}
+
+// ── PASSWORD STRENGTH ───────────────────────────────────────────
+function checkPwStrength(pw) {
+  var bar = document.getElementById('pwStrength');
+  var hint = document.getElementById('pwHint');
+  if (!bar || !hint) return;
+  var score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  var cols  = ['','#ef4444','#f59e0b','#3b82f6','#06ffa5'];
+  var hints = ['','Too short','Weak — add numbers','Good — add symbols','Strong password!'];
+  bar.style.background = cols[score] || '#ef4444';
+  bar.style.width = (score * 25) + '%';
+  hint.textContent = hints[score] || '';
+  hint.style.color = cols[score] || '#55558a';
+}
+
+function checkFormReady() {
+  var name = (document.getElementById('su-name').value||'').trim();
+  var email = (document.getElementById('su-email').value||'').trim();
+  var pw = document.getElementById('su-password').value||'';
+  var conf = document.getElementById('su-confirm').value||'';
+  var btn = document.getElementById('su-btn');
+  if (btn) btn.disabled = !(name && email && pw.length>=8 && pw===conf);
+}
+
+// ── FIREBASE ERROR MESSAGES ─────────────────────────────────────
+function friendlyError(code) {
+  var messages = {
+    'auth/user-not-found':       'No account found with that email.',
+    'auth/wrong-password':       'Wrong password. Try again or reset it.',
+    'auth/email-already-in-use': 'That email is already registered. Sign in instead.',
+    'auth/weak-password':        'Password must be at least 6 characters.',
+    'auth/invalid-email':        'Please enter a valid email address.',
+    'auth/too-many-requests':    'Too many attempts. Wait a moment and try again.',
+    'auth/network-request-failed':'Network error. Check your connection.',
+    'auth/popup-closed-by-user': 'Sign-in window closed. Try again.',
+    'auth/cancelled-popup-request':'Sign-in cancelled.',
+    'auth/invalid-api-key':      'Firebase not configured yet. Fill in firebase-config.js first!',
+    'auth/invalid-credential':   'Email or password is incorrect.'
+  };
+  return messages[code] || 'Something went wrong. Try again.';
+}
+
+// ── SIGN IN ─────────────────────────────────────────────────────
+function doSignIn() {
+  var email = (document.getElementById('si-email').value||'').trim();
+  var pw    = document.getElementById('si-password').value||'';
+  clearMessages();
+  if (!email || !pw) { showErr('Please fill in both fields.'); return; }
+  setLoading('si-btn', true);
+  auth.signInWithEmailAndPassword(email, pw)
+    .then(function(cred) { goToApp(cred.user); })
+    .catch(function(e)  { showErr(friendlyError(e.code)); setLoading('si-btn', false); });
+}
+
+// ── SIGN UP ─────────────────────────────────────────────────────
+function doSignUp() {
+  var name  = (document.getElementById('su-name').value||'').trim();
+  var email = (document.getElementById('su-email').value||'').trim();
+  var pw    = document.getElementById('su-password').value||'';
+  var conf  = document.getElementById('su-confirm').value||'';
+  clearMessages();
+  if (!name || !email || !pw) { showErr('Please fill in all fields.'); return; }
+  if (pw !== conf)            { showErr('Passwords do not match.'); return; }
+  if (pw.length < 8)          { showErr('Password must be at least 8 characters.'); return; }
+  setLoading('su-btn', true);
+  auth.createUserWithEmailAndPassword(email, pw)
+    .then(function(cred) {
+      return cred.user.updateProfile({ displayName: name })
+        .then(function() {
+          return db.collection('users').doc(cred.user.uid).set({
+            name: name, email: email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            plan: 'free'
+          });
+        })
+        .then(function() { goToApp(cred.user); });
+    })
+    .catch(function(e) { showErr(friendlyError(e.code)); setLoading('su-btn', false); });
+}
+
+// ── GOOGLE SIGN IN ──────────────────────────────────────────────
+function doGoogleSignIn() {
+  clearMessages();
+  var provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then(function(cred) {
+      var user = cred.user;
+      return db.collection('users').doc(user.uid).set({
+        name: user.displayName || 'User',
+        email: user.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        plan: 'free'
+      }, { merge: true })
+      .then(function() { goToApp(user); });
+    })
+    .catch(function(e) { showErr(friendlyError(e.code)); });
+}
+
+// ── PASSWORD RESET ──────────────────────────────────────────────
+function doReset() {
+  var email = (document.getElementById('r-email').value||'').trim();
+  clearMessages();
+  if (!email) { showErr('Please enter your email.'); return; }
+  setLoading('r-btn', true);
+  auth.sendPasswordResetEmail(email)
+    .then(function() {
+      showOk('Reset email sent! Check your inbox (and spam folder).');
+      setLoading('r-btn', false);
+    })
+    .catch(function(e) { showErr(friendlyError(e.code)); setLoading('r-btn', false); });
+}
+
+// ── GO TO APP ───────────────────────────────────────────────────
+function goToApp(user) {
+  sessionStorage.setItem('nm_user', JSON.stringify({
+    uid:   user.uid,
+    name:  user.displayName || 'User',
+    email: user.email,
+    photo: user.photoURL || ''
+  }));
+  window.location.href = 'index.html';
+}
+
+// ── ENTER KEY SUPPORT ───────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  var mode = document.getElementById('tab-signin').classList.contains('active') ? 'signin'
+           : document.getElementById('tab-signup').classList.contains('active') ? 'signup' : 'reset';
+  if (mode === 'signin') doSignIn();
+  else if (mode === 'signup') doSignUp();
+  else doReset();
+});
+</script>
+<script>initFirebaseIndex(20);</script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Trophy Cabinet</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.15);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(255,210,63,.09),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(168,85,247,.07),transparent 55%);}
+
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a2),var(--a1));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(255,255,255,.09);
+  color:var(--text);text-decoration:none;transition:all .18s;font-weight:700;}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+
+.wrap{max-width:820px;margin:0 auto;padding:18px 14px 50px;position:relative;z-index:1;}
+.hero{text-align:center;padding:12px 0 18px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(2rem,6vw,3.2rem);letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a2),var(--a1));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.hero-sub{font-size:.8rem;font-weight:700;color:var(--muted);}
+
+.overall-card{background:linear-gradient(160deg,#1a1a2e,#0e0e1e);border:2px solid rgba(255,210,63,.35);
+  border-radius:18px;padding:22px;margin-bottom:16px;text-align:center;}
+.overall-rank{font-family:'Bangers',cursive;font-size:2.8rem;letter-spacing:2px;color:var(--a2);
+  text-shadow:0 0 24px rgba(255,210,63,.4);}
+.overall-lbl{font-size:.68rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:4px;}
+.overall-stats{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.os-chip{background:rgba(255,255,255,.06);border-radius:10px;padding:8px 14px;font-size:.7rem;font-weight:800;}
+.os-chip b{color:var(--a3);}
+
+.section-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;}
+.gcard{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:18px;}
+.gcard-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.gc-icon{font-size:1.6rem;}
+.gc-title{font-family:'Bangers',cursive;font-size:1.05rem;letter-spacing:1px;}
+.gc-link{margin-left:auto;font-size:.66rem;font-weight:800;color:var(--muted);text-decoration:none;
+  padding:4px 10px;border-radius:7px;border:1px solid var(--border);}
+.gc-link:hover{background:rgba(255,255,255,.08);}
+
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.stat-box{background:rgba(255,255,255,.05);border-radius:10px;padding:10px;text-align:center;}
+.stat-box-val{font-family:'Bangers',cursive;font-size:1.25rem;}
+.stat-box-lbl{font-size:.55rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+.empty-state{text-align:center;padding:20px 10px;color:var(--muted);font-size:.78rem;font-weight:700;}
+.empty-state a{color:var(--a3);text-decoration:none;font-weight:800;}
+
+.mini-list{margin-top:10px;}
+.mini-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:.74rem;font-weight:700;
+  border-bottom:1px solid rgba(255,255,255,.05);}
+.mini-row:last-child{border:none;}
+.mini-badge{font-family:'Bangers',cursive;color:var(--a2);}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .3s ease both;}
+
+/* nom-upgrade: mobile */
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  img,canvas,video,svg{max-width:100%;height:auto}
+  nav{flex-wrap:wrap;height:auto;min-height:54px;padding:8px 10px;gap:6px}
+  nav .nbtn{font-size:.7rem;padding:5px 8px}
+  .nom-hub{bottom:8px}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🏆 TROPHY CABINET</div>
+  <div class="ml" style="display:flex;gap:7px">
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero fadein">
+    <div class="hero-title">🏆 TROPHY CABINET</div>
+    <div class="hero-sub">Everything you've built and won across NAME-O-MATIC 9000, in one place.</div>
+  </div>
+
+  <div class="overall-card fadein">
+    <div class="overall-rank" id="overallRank">—</div>
+    <div class="overall-lbl">Overall NAME-O-MATIC Rank</div>
+    <div class="overall-stats" id="overallStats"></div>
+  </div>
+
+  <div class="section-grid" id="sectionGrid"></div>
+</div>
+
+<script>
+function readLS(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch(e) { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PULL EACH FEATURE'S SAVED STATE
+// ═══════════════════════════════════════════════════════════════
+var career = readLS('nom_career_mode');
+var manager = readLS('nom_manager_mode');
+var transfer = readLS('nom_transfer_market');
+var referee = readLS('nom_ref_career');
+var fantasyTeams = readLS('nom_fantasy_teams') || [];
+var daily = readLS('nom_daily_baller');
+var packCoins = readLS('nom_pack_coins');
+var packCollection = readLS('nom_pack_collection') || [];
+var arcadeS = readLS('nom_arcade');
+var penS = readLS('nom_penalties');
+var quizS = readLS('nom_quiz_scores');
+var hangS = readLS('nom_hangman');
+var bingoS = readLS('nom_bingo');
+var kitS = readLS('nom_kits');
+if (!Array.isArray(quizS)) quizS = [];
+if (!Array.isArray(kitS)) kitS = [];
+var TRACKED_GAMES = 13;
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER EACH SECTION
+// ═══════════════════════════════════════════════════════════════
+function cardWrap(icon, title, link, linkLabel, inner) {
+  return '<div class="gcard fadein">'
+    + '<div class="gcard-header"><span class="gc-icon">'+icon+'</span><span class="gc-title">'+title+'</span>'
+    + '<a href="'+link+'" class="gc-link">'+linkLabel+' →</a></div>'
+    + inner + '</div>';
+}
+
+function renderCareer() {
+  if (!career) {
+    return cardWrap('🏆', 'Career Mode', 'career.html', 'Start', '<div class="empty-state">No club managed yet — <a href="career.html">pick a club and start your career</a>.</div>');
+  }
+  var pos = '—';
+  if (career.table) {
+    var sorted = career.table.slice().sort(function(a,b){ return b.pts-a.pts || (b.gf-b.ga)-(a.gf-a.ga); });
+    var idx = sorted.findIndex(function(r){ return r.isMe; });
+    if (idx !== -1) pos = '#' + (idx+1);
+  }
+  var inner = '<div class="stat-grid">'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a3)">'+career.clubEmoji+' '+esc(career.clubName)+'</div><div class="stat-box-lbl">Club</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a2)">'+pos+'</div><div class="stat-box-lbl">League Position</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a4)">'+career.wins+'-'+career.draws+'-'+career.losses+'</div><div class="stat-box-lbl">W-D-L</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a1)">£'+career.budget.toFixed(1)+'m</div><div class="stat-box-lbl">Budget</div></div>'
+    + '</div>';
+  return cardWrap('🏆', 'Career Mode', 'career.html', 'Continue', inner);
+}
+
+function renderManager() {
+  if (!manager) {
+    return cardWrap('📋', 'Manager Mode', 'manager.html', 'Start', '<div class="empty-state">No managerial post yet — <a href="manager.html">take your first job</a>.</div>');
+  }
+  var pos = '—';
+  if (manager.table) {
+    var sortedM = manager.table.slice().sort(function(a,b){ return b.pts-a.pts || (b.gf-b.ga)-(a.gf-a.ga); });
+    var idxM = sortedM.findIndex(function(r){ return r.isMe; });
+    if (idxM !== -1) pos = '#' + (idxM+1);
+  }
+  var pastJobs = manager.history ? manager.history.length : 0;
+  var inner = '<div class="stat-grid">'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a4)">'+manager.clubEmoji+' '+esc(manager.clubName)+'</div><div class="stat-box-lbl">Current Club</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a2)">'+manager.boardConfidence+'%</div><div class="stat-box-lbl">Board Confidence</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a3)">S'+manager.season+'</div><div class="stat-box-lbl">Season · Pos '+pos+'</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a1)">'+manager.trophies+'</div><div class="stat-box-lbl">Career Trophies</div></div>'
+    + '</div>';
+  if (pastJobs) {
+    inner += '<div style="text-align:center;margin-top:8px;font-size:.68rem;color:var(--muted);font-weight:800">'+pastJobs+' previous job'+(pastJobs===1?'':'s')+' on record</div>';
+  }
+  return cardWrap('📋', 'Manager Mode', 'manager.html', 'Continue', inner);
+}
+
+function renderReferee() {
+  if (!referee || !referee.matches) {
+    return cardWrap('🟨', 'Referee Career', 'referee.html', 'Start', '<div class="empty-state">No matches officiated yet — <a href="referee.html">take charge of your first game</a>.</div>');
+  }
+  var acc = referee.totalDecisions ? Math.round(referee.correctDecisions/referee.totalDecisions*100) : 0;
+  var inner = '<div class="stat-grid">'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a3)">'+esc(referee.refName)+'</div><div class="stat-box-lbl">Referee</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a2)">'+Math.round(referee.reputation)+'</div><div class="stat-box-lbl">Reputation</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a4)">'+referee.matches+'</div><div class="stat-box-lbl">Matches</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a1)">'+acc+'%</div><div class="stat-box-lbl">Accuracy</div></div>'
+    + '</div>';
+  return cardWrap('🟨', 'Referee Career', 'referee.html', 'Continue', inner);
+}
+
+function renderFantasy() {
+  if (!fantasyTeams.length) {
+    return cardWrap('⚽', 'Fantasy Football', 'fantasy.html', 'Start', '<div class="empty-state">No squads saved yet — <a href="fantasy.html">build your dream XI</a>.</div>');
+  }
+  var inner = '<div class="mini-list">' + fantasyTeams.slice(0,4).map(function(t) {
+    var spent = t.squad.reduce(function(s,p){ return s + (p?p.price:0); }, 0);
+    return '<div class="mini-row"><span>'+esc(t.name)+'</span><span class="mini-badge" style="margin-left:auto">£'+spent.toFixed(1)+'m</span></div>';
+  }).join('') + '</div>';
+  inner += '<div style="text-align:center;margin-top:8px;font-size:.68rem;color:var(--muted);font-weight:800">'+fantasyTeams.length+' saved squad'+(fantasyTeams.length===1?'':'s')+'</div>';
+  return cardWrap('⚽', 'Fantasy Football', 'fantasy.html', 'Manage', inner);
+}
+
+function renderDaily() {
+  if (!daily || !daily.played) {
+    return cardWrap('🔮', 'Daily Baller', 'guessr.html', 'Play', '<div class="empty-state">No puzzles solved yet — <a href="guessr.html">try the daily player guess</a>.</div>');
+  }
+  var winPct = daily.played ? Math.round(daily.wins/daily.played*100) : 0;
+  var inner = '<div class="stat-grid">'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a3)">'+daily.played+'</div><div class="stat-box-lbl">Played</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a2)">'+winPct+'%</div><div class="stat-box-lbl">Win Rate</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a4)">'+daily.streak+'</div><div class="stat-box-lbl">Current Streak</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a1)">'+daily.maxStreak+'</div><div class="stat-box-lbl">Best Streak</div></div>'
+    + '</div>';
+  return cardWrap('🔮', 'Daily Baller', 'guessr.html', 'Play Today', inner);
+}
+
+function renderTransfer() {
+  var cr = transfer && transfer.career;
+  if (!transfer || !cr || !(cr.windows || cr.signings || cr.sales || (transfer.signings || 0) || (transfer.sales || 0))) {
+    return cardWrap('💰', 'Transfer Market', 'transfer.html', 'Start', '<div class="empty-state">No windows played yet — <a href="transfer.html">open the market</a>.</div>');
+  }
+  var inner = '<div class="stat-grid">'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a3)">'+(cr.windows||0)+'</div><div class="stat-box-lbl">Windows Closed</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a2)">'+esc(cr.bestGrade||'-')+'</div><div class="stat-box-lbl">Best Grade</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a4)">'+(cr.signings||0)+'</div><div class="stat-box-lbl">Signings</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a1)">'+(cr.sales||0)+'</div><div class="stat-box-lbl">Sales</div></div>'
+    + '</div>';
+  if (cr.biggest) { inner += '<div class="mini-list"><div class="mini-row"><span>💎 Record Signing</span><span class="mini-badge" style="margin-left:auto">'+esc(cr.biggest.name)+' (£'+Math.round(cr.biggest.fee*10)/10+'M)</span></div></div>'; }
+  return cardWrap('💰', 'Transfer Market', 'transfer.html', 'Continue', inner);
+}
+
+function renderPenalties() {
+  var pk = readLS('nom_penalties');
+  if (!pk || !pk.played) {
+    return cardWrap('🥅', 'Penalty Shootout', 'penalties.html', 'Start', '<div class="empty-state">No shootouts yet — <a href="penalties.html">take your first kick</a>.</div>');
+  }
+  var inner = '<div class="stat-grid">'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a3)">'+(pk.wins||0)+'</div><div class="stat-box-lbl">Shootout Wins</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a2)">'+(pk.goals||0)+'</div><div class="stat-box-lbl">Goals Scored</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a4)">'+(pk.saves||0)+'</div><div class="stat-box-lbl">Saves</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a1)">'+(pk.bestStreak||0)+'</div><div class="stat-box-lbl">Best Streak</div></div>'
+    + '</div>';
+  return cardWrap('🥅', 'Penalty Shootout', 'penalties.html', 'Continue', inner);
+}
+
+function statBox(val, lbl, colour) {
+  return '<div class="stat-box"><div class="stat-box-val" style="color:var(--' + colour + ')">' + val + '</div><div class="stat-box-lbl">' + lbl + '</div></div>';
+}
+function miniRow(label, value) {
+  return '<div class="mini-row"><span>' + label + '</span><span class="mini-badge" style="margin-left:auto">' + value + '</span></div>';
+}
+function arcadeAchCount() { return arcadeS && arcadeS.ach && typeof arcadeS.ach === 'object' ? Object.keys(arcadeS.ach).length : 0; }
+
+function renderArcade() {
+  var a = arcadeS;
+  if (!a || !a.played) {
+    return cardWrap('🕹️', 'Arcade Cup', 'arcade.html', 'Start', '<div class="empty-state">No matches played yet — <a href="arcade.html">kick off a five-a-side</a>.</div>');
+  }
+  var inner = '<div class="stat-grid">'
+    + statBox((a.wins || 0) + '-' + (a.draws || 0) + '-' + (a.losses || 0), 'W-D-L', 'a3')
+    + statBox(a.gf || 0, 'Goals Scored', 'a2')
+    + statBox(a.cups || 0, 'Cups Won', 'a4')
+    + statBox(arcadeAchCount() + '/17', 'Achievements', 'a1')
+    + '</div>';
+  var rows = '';
+  if (a.biggestWin) rows += miniRow('💥 Biggest Win', (a.biggestWin.gf | 0) + '-' + (a.biggestWin.ga | 0) + ' v ' + esc(a.biggestWin.opp));
+  if (a.bestStreak) rows += miniRow('📈 Best Winning Run', (a.bestStreak | 0) + (a.bestStreak === 1 ? ' match' : ' matches'));
+  if (a.cleanSheets) rows += miniRow('🧤 Clean Sheets', a.cleanSheets | 0);
+  if (a.pensWon || a.pensLost) rows += miniRow('🥅 Shootouts (W-L)', (a.pensWon | 0) + '-' + (a.pensLost | 0));
+  if (rows) inner += '<div class="mini-list">' + rows + '</div>';
+  return cardWrap('🕹️', 'Arcade Cup', 'arcade.html', 'Play', inner);
+}
+
+function renderQuiz() {
+  if (!quizS.length) {
+    return cardWrap('🧠', 'Football Quiz', 'quiz.html', 'Start', '<div class="empty-state">No quizzes finished yet — <a href="quiz.html">test your football brain</a>.</div>');
+  }
+  var best = quizS[0], correct = 0, total = 0;
+  quizS.forEach(function (s) {
+    if ((s.score || 0) > (best.score || 0)) best = s;
+    correct += s.correct || 0; total += s.total || 0;
+  });
+  var acc = total ? Math.round(correct / total * 100) : 0;
+  var inner = '<div class="stat-grid">'
+    + statBox(best.score || 0, 'Best Score', 'a3')
+    + statBox(acc + '%', 'Accuracy', 'a2')
+    + statBox(correct, 'Correct Answers', 'a4')
+    + statBox(quizS.length, 'Top Runs Kept', 'a1')
+    + '</div>';
+  return cardWrap('🧠', 'Football Quiz', 'quiz.html', 'Play', inner);
+}
+
+function renderHangman() {
+  if (!hangS || !hangS.played) {
+    return cardWrap('🔤', 'Football Hangman', 'hangman.html', 'Start', '<div class="empty-state">No words guessed yet — <a href="hangman.html">play a round</a>.</div>');
+  }
+  var inner = '<div class="stat-grid">'
+    + statBox(hangS.played || 0, 'Played', 'a3')
+    + statBox(Math.round((hangS.won || 0) / hangS.played * 100) + '%', 'Solved', 'a2')
+    + statBox(hangS.streak || 0, 'Current Streak', 'a4')
+    + statBox(hangS.bestStreak || 0, 'Best Streak', 'a1')
+    + '</div>';
+  return cardWrap('🔤', 'Football Hangman', 'hangman.html', 'Play', inner);
+}
+
+function renderBingo() {
+  if (!bingoS || !bingoS.played) {
+    return cardWrap('📋', 'Matchday Bingo', 'bingo.html', 'Start', '<div class="empty-state">No matches marked yet — <a href="bingo.html">fill your first card</a>.</div>');
+  }
+  var calls = (bingoS.hits || 0) + (bingoS.misses || 0);
+  var inner = '<div class="stat-grid">'
+    + statBox(bingoS.played || 0, 'Matches', 'a3')
+    + statBox(bingoS.bestScore || 0, 'Best Score', 'a2')
+    + statBox(bingoS.bingos || 0, 'Lines Called', 'a4')
+    + statBox(calls ? Math.round((bingoS.hits || 0) / calls * 100) + '%' : '-', 'Call Accuracy', 'a1')
+    + '</div>';
+  return cardWrap('📋', 'Matchday Bingo', 'bingo.html', 'Play', inner);
+}
+
+function renderKits() {
+  if (!kitS.length) {
+    return cardWrap('👕', 'Kit Lab', 'kit.html', 'Start', '<div class="empty-state">No shirts saved yet — <a href="kit.html">design your first kit</a>.</div>');
+  }
+  var names = kitS.slice(0, 4).map(function (k) { return miniRow('👕 ' + esc(k && k.name ? k.name : 'Untitled kit'), ''); }).join('');
+  var inner = '<div class="stat-grid" style="grid-template-columns:1fr">' + statBox(kitS.length, kitS.length === 1 ? 'Saved Kit' : 'Saved Kits', 'a3') + '</div>'
+    + '<div class="mini-list">' + names + '</div>';
+  return cardWrap('👕', 'Kit Lab', 'kit.html', 'Design', inner);
+}
+
+function renderPacks() {
+  if (!packCollection.length && packCoins == null) {
+    return cardWrap('🎴', 'Pack Collection', 'packs.html', 'Start', '<div class="empty-state">No packs opened yet — <a href="packs.html">open your first pack</a>.</div>');
+  }
+  var bestPlayer = packCollection.slice().sort(function(a,b){ return b.ovr-a.ovr; })[0];
+  var inner = '<div class="stat-grid">'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a2)">🪙 '+(packCoins||0).toLocaleString()+'</div><div class="stat-box-lbl">Coins</div></div>'
+    + '<div class="stat-box"><div class="stat-box-val" style="color:var(--a3)">'+packCollection.length+'</div><div class="stat-box-lbl">Players Owned</div></div>'
+    + '</div>';
+  if (bestPlayer) {
+    inner += '<div class="mini-list"><div class="mini-row"><span>⭐ Best Pull</span><span class="mini-badge" style="margin-left:auto">'+esc(bestPlayer.name)+' ('+bestPlayer.ovr+')</span></div></div>';
+  }
+  return cardWrap('🎴', 'Pack Collection', 'packs.html', 'Open Packs', inner);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OVERALL RANK (fun aggregate score across everything played)
+// ═══════════════════════════════════════════════════════════════
+function computeOverallRank() {
+  var score = 0;
+  var thingsPlayed = 0;
+  if (career) { score += (career.wins*3 + career.draws); thingsPlayed++; }
+  if (manager) { score += (manager.wins||0)*3 + (manager.draws||0) + (manager.trophies||0)*20 + (manager.history ? manager.history.length*2 : 0); thingsPlayed++; }
+  if (transfer && transfer.career && (transfer.career.windows || transfer.career.signings)) { score += transfer.career.windows*8 + transfer.career.signings*2 + transfer.career.sales; thingsPlayed++; }
+  if (referee && referee.matches) { score += referee.matches * (referee.totalDecisions ? referee.correctDecisions/referee.totalDecisions*10 : 5); thingsPlayed++; }
+  if (fantasyTeams.length) { score += fantasyTeams.length * 5; thingsPlayed++; }
+  if (daily && daily.played) { score += daily.wins*4 + daily.maxStreak*2; thingsPlayed++; }
+  if (packCollection.length) { score += packCollection.reduce(function(t,p){ return t + Math.max(0,p.ovr-70); }, 0); thingsPlayed++; }
+  if (penS && penS.played) { score += (penS.wins||0)*5 + (penS.goals||0) + (penS.saves||0)*2; thingsPlayed++; }
+  if (arcadeS && arcadeS.played) { score += (arcadeS.wins||0)*3 + (arcadeS.draws||0) + (arcadeS.cups||0)*25 + arcadeAchCount()*4; thingsPlayed++; }
+  if (quizS.length) { score += quizS.reduce(function(t,s){ return t + (s.correct||0); }, 0); thingsPlayed++; }
+  if (hangS && hangS.played) { score += (hangS.won||0)*3 + (hangS.bestStreak||0)*2; thingsPlayed++; }
+  if (bingoS && bingoS.played) { score += (bingoS.bingos||0)*6 + Math.round((bingoS.bestScore||0)/10); thingsPlayed++; }
+  if (kitS.length) { score += kitS.length*2; thingsPlayed++; }
+
+  var rank;
+  if (thingsPlayed === 0) rank = 'UNRANKED';
+  else if (score < 20) rank = 'BRONZE';
+  else if (score < 60) rank = 'SILVER';
+  else if (score < 150) rank = 'GOLD';
+  else if (score < 300) rank = 'PLATINUM';
+  else rank = 'LEGENDARY';
+
+  document.getElementById('overallRank').textContent = rank;
+  document.getElementById('overallStats').innerHTML =
+    '<div class="os-chip"><b>'+thingsPlayed+'</b>/'+TRACKED_GAMES+' games played</div>'
+    + '<div class="os-chip">Score: <b>'+Math.round(score)+'</b></div>';
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('sectionGrid').innerHTML =
+  renderCareer() + renderManager() + renderArcade() + renderTransfer() + renderReferee() + renderFantasy() + renderDaily() + renderPacks()
+  + renderPenalties() + renderQuiz() + renderHangman() + renderBingo() + renderKits();
+computeOverallRank();
+</script>
+</body>
+</html>

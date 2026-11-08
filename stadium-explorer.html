@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>NAME-O-MATIC — Stadium Explorer</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="vendor/three.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#000;overflow:hidden;font-family:'Nunito',sans-serif;touch-action:none;}
+#c{display:block;width:100vw;height:100vh;cursor:none;}
+
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;}
+
+/* Crosshair */
+#cross{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;pointer-events:none;}
+#cross::before,#cross::after{content:'';position:absolute;background:rgba(255,255,255,.7);}
+#cross::before{width:20px;height:2px;top:9px;left:0;}
+#cross::after{width:2px;height:20px;left:9px;top:0;}
+
+/* Top bar */
+#topbar{position:fixed;top:0;left:0;right:0;height:50px;display:flex;align-items:center;
+  padding:0 16px;gap:12px;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent);
+  pointer-events:all;}
+.logo{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;
+  background:linear-gradient(135deg,#ff6b35,#ffd23f,#06ffa5);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.sep{width:1px;height:24px;background:rgba(255,255,255,.15);}
+#location{font-family:'Fredoka One',cursive;font-size:.82rem;color:rgba(255,255,255,.7);letter-spacing:1px;}
+.ml{margin-left:auto;}
+.hbtn{font-family:'Fredoka One',cursive;font-size:.75rem;padding:6px 13px;border-radius:8px;
+  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);color:#fff;cursor:pointer;
+  transition:all .2s;backdrop-filter:blur(8px);text-decoration:none;display:inline-block;}
+.hbtn:hover{background:rgba(255,255,255,.12);}
+
+/* Bottom controls */
+#controls{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.7);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;padding:10px 20px;display:flex;gap:16px;align-items:center;
+  pointer-events:all;font-size:.68rem;font-weight:700;color:rgba(255,255,255,.5);}
+.ctrl-hint{display:flex;align-items:center;gap:5px;}
+.key{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:4px;
+  padding:2px 7px;font-family:'Courier New',monospace;font-size:.65rem;color:rgba(255,255,255,.8);}
+
+/* Compass */
+#compass{position:fixed;top:60px;right:16px;width:70px;height:70px;pointer-events:none;
+  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:50%;
+  backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;}
+#compassNeedle{width:3px;height:28px;background:linear-gradient(to top,#3b82f6,#ef4444);
+  border-radius:2px;transform-origin:bottom center;transition:transform .1s;}
+#compassN{position:absolute;top:4px;font-size:.55rem;font-weight:900;color:#ef4444;}
+#compassS{position:absolute;bottom:4px;font-size:.55rem;font-weight:900;color:#3b82f6;}
+
+/* Location info popup */
+#infoPanel{position:fixed;right:16px;top:140px;width:200px;
+  background:rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.1);border-radius:12px;
+  padding:13px;pointer-events:none;backdrop-filter:blur(12px);
+  transition:opacity .3s;opacity:0;}
+#infoPanel.show{opacity:1;}
+.ip-title{font-family:'Bangers',cursive;font-size:.95rem;letter-spacing:2px;color:#ffd23f;margin-bottom:5px;}
+.ip-desc{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.55);line-height:1.6;}
+.ip-stat{display:flex;justify-content:space-between;font-size:.65rem;font-weight:800;
+  padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.ip-stat:last-child{border:none;}
+.ip-key{color:rgba(255,255,255,.4);}
+.ip-val{color:#ffd23f;}
+
+/* Speed indicator */
+#speed{position:fixed;bottom:80px;right:16px;text-align:center;
+  background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);border-radius:10px;
+  padding:8px 12px;pointer-events:none;backdrop-filter:blur(8px);}
+#speedVal{font-family:'Bangers',cursive;font-size:1.2rem;color:#06ffa5;display:block;}
+#speedLbl{font-size:.54rem;font-weight:900;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;}
+
+/* Mini-map */
+#minimap{position:fixed;bottom:80px;left:16px;width:110px;height:110px;
+  background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.1);border-radius:10px;
+  overflow:hidden;pointer-events:none;backdrop-filter:blur(8px);}
+#minimapCanvas{width:100%;height:100%;}
+#minimapLabel{position:absolute;bottom:3px;left:0;right:0;text-align:center;
+  font-size:.5rem;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.3);text-transform:uppercase;}
+
+/* Interaction prompt */
+#interactPrompt{position:fixed;top:55%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Fredoka One',cursive;font-size:.82rem;letter-spacing:1px;
+  background:rgba(0,0,0,.7);border:1px solid rgba(255,210,63,.3);border-radius:20px;
+  padding:7px 18px;color:#ffd23f;pointer-events:none;opacity:0;transition:opacity .2s;}
+#interactPrompt.show{opacity:1;}
+
+/* Loading screen */
+#loading{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:100;gap:16px;}
+.load-logo{font-family:'Bangers',cursive;font-size:3rem;letter-spacing:6px;
+  background:linear-gradient(135deg,#ff6b35,#ffd23f,#06ffa5);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.load-sub{font-family:'Fredoka One',cursive;font-size:.9rem;letter-spacing:2px;color:rgba(255,255,255,.4);}
+.load-bar{width:240px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;}
+.load-fill{height:100%;background:linear-gradient(90deg,#ff6b35,#06ffa5);border-radius:2px;
+  animation:loadAnim 2s ease-in-out infinite;}
+@keyframes loadAnim{0%{width:0%;}70%{width:90%;}100%{width:100%;}}
+
+/* Click to play overlay */
+#clickOverlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;z-index:90;gap:16px;
+  cursor:pointer;backdrop-filter:blur(4px);}
+#clickOverlay h2{font-family:'Bangers',cursive;font-size:2.5rem;letter-spacing:6px;
+  background:linear-gradient(135deg,#ff6b35,#ffd23f,#06ffa5);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#clickOverlay p{font-family:'Fredoka One',cursive;color:rgba(255,255,255,.6);font-size:.9rem;letter-spacing:2px;}
+.click-ring{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,210,63,.5);
+  display:flex;align-items:center;justify-content:center;font-size:2rem;
+  animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.7;}50%{transform:scale(1.1);opacity:1;}}
+
+@keyframes fadein{from{opacity:0;}to{opacity:1;}}
+
+/* nom-upgrade: mobile */
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  img,canvas,video,svg{max-width:100%;height:auto}
+  nav{flex-wrap:wrap;height:auto;min-height:54px;padding:8px 10px;gap:6px}
+  nav .nbtn{font-size:.7rem;padding:5px 8px}
+  .nom-hub{bottom:8px}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+<a href="index.html" class="nom-hub" style="position:fixed;left:10px;bottom:10px;z-index:9999;background:rgba(7,7,15,.85);color:#eeeeff;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 12px;font:700 12px sans-serif;text-decoration:none">🏠 Hub</a>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="load-logo">STADIUM EXPLORER</div>
+  <div class="load-sub">Loading your stadium...</div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+</div>
+
+<!-- CLICK TO PLAY -->
+<div id="clickOverlay" style="display:none" onclick="startExplorer()">
+  <div class="click-ring">🏟️</div>
+  <h2>STADIUM EXPLORER</h2>
+  <p>Click anywhere to enter · Mouse to look · WASD to move</p>
+</div>
+
+<canvas id="c"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="cross"></div>
+
+  <div id="topbar">
+    <div class="logo">🏟️ EXPLORER</div>
+    <div class="sep"></div>
+    <div id="location">Pitch Level</div>
+    <div class="ml" style="display:flex;gap:7px">
+      <button class="hbtn" onclick="teleport('pitch')">⚽ Pitch</button>
+      <button class="hbtn" onclick="teleport('stand')">🏟️ Stands</button>
+      <button class="hbtn" onclick="teleport('tunnel')">🔲 Tunnel</button>
+      <button class="hbtn" onclick="teleport('roof')">☁️ Roof</button>
+      <button class="hbtn" onclick="toggleNight()">🌙 Night</button>
+      <a href="app.html" class="hbtn">← Back</a>
+    </div>
+  </div>
+
+  <!-- Compass -->
+  <div id="compass">
+    <span id="compassN">N</span>
+    <div id="compassNeedle"></div>
+    <span id="compassS">S</span>
+  </div>
+
+  <!-- Info panel -->
+  <div id="infoPanel">
+    <div class="ip-title" id="ipTitle">Pitch</div>
+    <div class="ip-desc" id="ipDesc">The playing surface where the magic happens</div>
+    <div class="ip-stat"><span class="ip-key">Size</span><span class="ip-val" id="ipSize">100m x 68m</span></div>
+    <div class="ip-stat"><span class="ip-key">Surface</span><span class="ip-val">Hybrid Grass</span></div>
+    <div class="ip-stat"><span class="ip-key">Capacity</span><span class="ip-val">60,000</span></div>
+  </div>
+
+  <!-- Speed -->
+  <div id="speed">
+    <span id="speedVal">0</span>
+    <span id="speedLbl">km/h</span>
+  </div>
+
+  <!-- Minimap -->
+  <div id="minimap">
+    <canvas id="minimapCanvas" width="110" height="110"></canvas>
+    <div id="minimapLabel">Top View</div>
+  </div>
+
+  <!-- Interact prompt -->
+  <div id="interactPrompt">Press E to interact</div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <div class="ctrl-hint"><span class="key">W A S D</span><span>Move</span></div>
+    <div class="ctrl-hint"><span class="key">Mouse</span><span>Look</span></div>
+    <div class="ctrl-hint"><span class="key">E</span><span>Interact</span></div>
+    <div class="ctrl-hint"><span class="key">Shift</span><span>Sprint</span></div>
+    <div class="ctrl-hint"><span class="key">Space</span><span>Jump</span></div>
+    <div class="ctrl-hint"><span class="key">ESC</span><span>Unlock mouse</span></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// SCENE SETUP
+// ═══════════════════════════════════════════
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 600);
+var renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+
+var IS_NIGHT = false;
+
+function setSkyColor() {
+  var col = IS_NIGHT ? new THREE.Color(0x020308) : new THREE.Color(0x87ceeb);
+  scene.background = col;
+  scene.fog = IS_NIGHT ? new THREE.FogExp2(0x010205, 0.006) : new THREE.Fog(0xd0e8f8, 80, 400);
+}
+setSkyColor();
+
+// ═══════════════════════════════════════════
+// LIGHTS
+// ═══════════════════════════════════════════
+var ambLight = new THREE.AmbientLight(0x9ab0c8, IS_NIGHT?0.1:0.5);
+scene.add(ambLight);
+var sunLight = new THREE.DirectionalLight(0xfff8e0, IS_NIGHT?0:1.1);
+sunLight.position.set(80,200,60);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(4096,4096);
+sunLight.shadow.camera.left=-150; sunLight.shadow.camera.right=150;
+sunLight.shadow.camera.top=120;   sunLight.shadow.camera.bottom=-120;
+sunLight.shadow.camera.near=1;    sunLight.shadow.camera.far=500;
+sunLight.shadow.bias=-0.0003;
+scene.add(sunLight);
+
+var FLOODLIGHTS = [];
+function addFloodlights() {
+  [[-52,-50],[52,-50],[-52,50],[52,50]].forEach(function(p){
+    var fl = new THREE.PointLight(0xfff5cc, IS_NIGHT?3.5:0, 220);
+    fl.position.set(p[0],58,p[1]);
+    scene.add(fl);
+    FLOODLIGHTS.push(fl);
+  });
+  // Fill lights for night
+  [[-20,8,-20],[20,8,20],[-20,8,20],[20,8,-20]].forEach(function(p){
+    var fl = new THREE.PointLight(0x4466aa, IS_NIGHT?0.8:0, 80);
+    fl.position.set(p[0],p[1],p[2]);
+    scene.add(fl);
+    FLOODLIGHTS.push(fl);
+  });
+}
+addFloodlights();
+
+// ═══════════════════════════════════════════
+// PITCH
+// ═══════════════════════════════════════════
+(function(){
+  // Surround
+  var sg = new THREE.Mesh(
+    new THREE.PlaneGeometry(140,100),
+    new THREE.MeshLambertMaterial({color:0x2a1a08})
+  );
+  sg.rotation.x=-Math.PI/2; sg.position.y=-0.02; sg.receiveShadow=true; scene.add(sg);
+
+  // Grass stripes (10 alternating)
+  for(var i=0;i<10;i++){
+    var g = new THREE.Mesh(
+      new THREE.PlaneGeometry(9.8,68),
+      new THREE.MeshLambertMaterial({color:i%2===0?0x1e6b1e:0x165416})
+    );
+    g.rotation.x=-Math.PI/2;
+    g.position.set(-45+i*9.8+4.9,0.01,0);
+    g.receiveShadow=true; scene.add(g);
+  }
+
+  // Pitch markings
+  var lm = new THREE.LineBasicMaterial({color:0xffffff,opacity:.85,transparent:true});
+  function ln(x1,z1,x2,z2){
+    var g2=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x1,.07,z1),new THREE.Vector3(x2,.07,z2)]);
+    scene.add(new THREE.Line(g2,lm));
+  }
+  [[-50,-34,50,-34],[-50,34,50,34],[-50,-34,-50,34],[50,-34,50,34],[0,-34,0,34],
+   [-50,-20,-34,-20],[-50,20,-34,20],[-34,-20,-34,20],
+   [50,-20,34,-20],[50,20,34,20],[34,-20,34,20]
+  ].forEach(function(l){ln(l[0],l[1],l[2],l[3]);});
+
+  var cc = new THREE.Mesh(
+    new THREE.RingGeometry(9,9.4,48),
+    new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,opacity:.8,transparent:true})
+  );
+  cc.rotation.x=-Math.PI/2; cc.position.y=0.08; scene.add(cc);
+
+  // Penalty spots
+  [39,-39].forEach(function(x){
+    var ps = new THREE.Mesh(new THREE.CircleGeometry(.2,8),new THREE.MeshBasicMaterial({color:0xffffff}));
+    ps.rotation.x=-Math.PI/2; ps.position.set(x,.07,0); scene.add(ps);
+  });
+
+  // Centre spot
+  var cs = new THREE.Mesh(new THREE.CircleGeometry(.2,8),new THREE.MeshBasicMaterial({color:0xffffff}));
+  cs.rotation.x=-Math.PI/2; cs.position.set(0,.07,0); scene.add(cs);
+})();
+
+// ═══════════════════════════════════════════
+// GOALS
+// ═══════════════════════════════════════════
+function buildGoal(x, dir){
+  var g = new THREE.Group();
+  var pm = new THREE.MeshLambertMaterial({color:0xffffff,emissive:IS_NIGHT?new THREE.Color(0x222222):new THREE.Color(0)});
+  [[-3.66],[3.66]].forEach(function(z){
+    var p=new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,2.44,10),pm);
+    p.position.set(0,1.22,z[0]); p.castShadow=true; g.add(p);
+  });
+  var cross = new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,7.32,10),pm);
+  cross.rotation.z=Math.PI/2; cross.position.y=2.44; g.add(cross);
+  var netMat = new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,opacity:.18,transparent:true});
+  var net = new THREE.Mesh(new THREE.BoxGeometry(2,2.44,7.32),netMat);
+  net.position.set(dir*.9,.82,0); g.add(net);
+  // Depth nets (top, sides)
+  var topNet = new THREE.Mesh(new THREE.PlaneGeometry(7.32,1.8),new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,opacity:.1,transparent:true,side:THREE.DoubleSide}));
+  topNet.rotation.z=Math.PI/2; topNet.position.set(dir*.9,2.44,0); g.add(topNet);
+  g.position.x=x; scene.add(g);
+}
+buildGoal(50,1); buildGoal(-51,-1);
+
+// ═══════════════════════════════════════════
+// STANDS
+// ═══════════════════════════════════════════
+var STAND_OBJS = [];
+function buildStands(){
+  function stand(w,d,h,x,z,ry){
+    var g = new THREE.Group();
+    var sm = new THREE.MeshLambertMaterial({color:0x0d1520});
+    var base = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),sm);
+    base.position.y=h/2; base.castShadow=true; base.receiveShadow=true; g.add(base);
+
+    // Seat rows — 6 rows visible
+    for(var r=0;r<6;r++){
+      var rowMat = new THREE.MeshLambertMaterial({color:r%2===0?0xe8012c:0x0d1520});
+      var row = new THREE.Mesh(new THREE.BoxGeometry(w-1,.55,d*.18),rowMat);
+      row.position.set(0,h*.14+r*2.3,-d*.3+r*d*.06);
+      g.add(row);
+    }
+
+    // Concrete fascia steps
+    var fascMat = new THREE.MeshLambertMaterial({color:0x3a3a40});
+    var fasc = new THREE.Mesh(new THREE.BoxGeometry(w,h*.28,d*.12),fascMat);
+    fasc.position.set(0,h*.14,-d*.45); g.add(fasc);
+
+    // Roof
+    var roofMat = new THREE.MeshLambertMaterial({color:0x111825,opacity:.9,transparent:true});
+    var roof = new THREE.Mesh(new THREE.BoxGeometry(w+5,.9,d*.45),roofMat);
+    roof.position.set(0,h+.45,-d*.22); g.add(roof);
+
+    // Roof support struts
+    var strutMat = new THREE.MeshLambertMaterial({color:0x888899});
+    for(var si=0;si<4;si++){
+      var sx = -w/2+8+si*(w-16)/3;
+      var strut = new THREE.Mesh(new THREE.CylinderGeometry(.3,.4,h+14,6),strutMat);
+      strut.position.set(sx,h/2+7,-d*.48); g.add(strut);
+    }
+
+    // Floodlight masts
+    [-w/2+5, w/2-5].forEach(function(lx){
+      var mast = new THREE.Mesh(new THREE.CylinderGeometry(.3,.45,h+18,6),strutMat);
+      mast.position.set(lx,h/2+9,-d*.48); g.add(mast);
+      var lamp = new THREE.Mesh(new THREE.BoxGeometry(3.5,.8,2.5),new THREE.MeshBasicMaterial({color:IS_NIGHT?0xffffee:0x888888}));
+      lamp.position.set(lx,h+18,-d*.48); g.add(lamp);
+    });
+
+    // Advertising boards at pitch level
+    var adMat = new THREE.MeshBasicMaterial({color:0xff4400});
+    var ad = new THREE.Mesh(new THREE.BoxGeometry(w,.8,.3),adMat);
+    ad.position.set(0,.4,-d*.52); g.add(ad);
+
+    g.position.set(x,0,z); g.rotation.y=ry;
+    scene.add(g);
+    STAND_OBJS.push(g);
+  }
+  stand(112,18,26,0,-52,0);
+  stand(112,18,26,0,52,Math.PI);
+  stand(78,16,22,-57,0,Math.PI/2);
+  stand(78,16,22,57,0,-Math.PI/2);
+
+  // Corners
+  [[-54,-50],[54,-50],[-54,50],[54,50]].forEach(function(p){
+    var c = new THREE.Mesh(
+      new THREE.CylinderGeometry(7,7,20,8,1,false,0,Math.PI/2),
+      new THREE.MeshLambertMaterial({color:0x0d1520})
+    );
+    c.position.set(p[0],10,p[1]); scene.add(c);
+  });
+}
+buildStands();
+
+// ═══════════════════════════════════════════
+// TUNNEL & EXTRAS
+// ═══════════════════════════════════════════
+(function(){
+  // Player tunnel entrance
+  var tunnelMat = new THREE.MeshLambertMaterial({color:0x222233});
+  var tunnelArch = new THREE.Mesh(new THREE.BoxGeometry(6,4,3),tunnelMat);
+  tunnelArch.position.set(-57,2,0); scene.add(tunnelArch);
+  var tunnelDoor = new THREE.Mesh(new THREE.PlaneGeometry(4,3.5),new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide}));
+  tunnelDoor.position.set(-57.1,1.75,0); scene.add(tunnelDoor);
+  // Tunnel sign
+  var signMat = new THREE.MeshBasicMaterial({color:0xffd23f});
+  var sign = new THREE.Mesh(new THREE.BoxGeometry(5,.6,.1),signMat);
+  sign.position.set(-57,4.3,0); scene.add(sign);
+
+  // Corner flags
+  [[-50,-34],[-50,34],[50,-34],[50,34]].forEach(function(p){
+    var pole = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.8,6),new THREE.MeshBasicMaterial({color:0xffffff}));
+    pole.position.set(p[0],.9,p[1]); scene.add(pole);
+    var flag = new THREE.Mesh(new THREE.PlaneGeometry(.4,.3),new THREE.MeshBasicMaterial({color:0xff0000,side:THREE.DoubleSide}));
+    flag.position.set(p[0]+.2,1.7,p[1]); scene.add(flag);
+  });
+
+  // Dugouts
+  [-10,10].forEach(function(z){
+    var dug = new THREE.Mesh(new THREE.BoxGeometry(12,2.5,3),tunnelMat);
+    dug.position.set(-52,1.25,z); scene.add(dug);
+    var roof2 = new THREE.Mesh(new THREE.BoxGeometry(12,.3,3),new THREE.MeshLambertMaterial({color:0x06ffa5,opacity:.7,transparent:true}));
+    roof2.position.set(-52,2.65,z); scene.add(roof2);
+  });
+
+  // VAR Screen (video board)
+  var screen = new THREE.Mesh(new THREE.BoxGeometry(18,8,.5),new THREE.MeshBasicMaterial({color:0x111111}));
+  screen.position.set(0,30,-48); scene.add(screen);
+  var screenGlow = new THREE.Mesh(new THREE.PlaneGeometry(16,6.5),new THREE.MeshBasicMaterial({color:0x1a3a1a,transparent:true,opacity:.8}));
+  screenGlow.position.set(0,30,-47.8); scene.add(screenGlow);
+
+  // Ball on the pitch
+  var ball = new THREE.Mesh(new THREE.SphereGeometry(1.1,16,12),new THREE.MeshLambertMaterial({color:0xf5f5dc}));
+  ball.position.set(0,1.1,0); ball.castShadow=true; scene.add(ball);
+})();
+
+// ═══════════════════════════════════════════
+// CROWD (fast instanced)
+// ═══════════════════════════════════════════
+(function(){
+  var headGeo = new THREE.SphereGeometry(.45,4,4);
+  var cols = [0xe8012c,0xffffff,0xffd23f,0x3b82f6,0x06ffa5];
+  for(var i=0;i<800;i++){
+    var angle = Math.random()*Math.PI*2;
+    var r = 52+Math.random()*20;
+    var head = new THREE.Mesh(headGeo,new THREE.MeshLambertMaterial({color:cols[Math.floor(Math.random()*cols.length)]}));
+    head.position.set(
+      Math.cos(angle)*r*.88,
+      4+Math.random()*16,
+      Math.sin(angle)*r*.62
+    );
+    scene.add(head);
+  }
+})();
+
+// ═══════════════════════════════════════════
+// PLAYER CONTROLLER
+// ═══════════════════════════════════════════
+var PLR = {
+  pos: new THREE.Vector3(0, 1.7, -20),
+  vel: new THREE.Vector3(0, 0, 0),
+  yaw: 0,   // horizontal look (radians)
+  pitch: 0, // vertical look
+  onGround: true,
+  sprinting: false
+};
+
+var KEYS = {};
+var MOUSE_LOCKED = false;
+var GRAVITY = -22;
+var WALK_SPEED = 8;
+var SPRINT_SPEED = 18;
+var JUMP_VEL = 8;
+
+// Pointer lock
+document.addEventListener('pointerlockchange', function(){
+  MOUSE_LOCKED = document.pointerLockElement === document.getElementById('c');
+  document.getElementById('cross').style.display = MOUSE_LOCKED ? '' : 'none';
+});
+
+document.getElementById('c').addEventListener('click', function(){
+  if (!MOUSE_LOCKED) document.getElementById('c').requestPointerLock();
+});
+
+document.addEventListener('mousemove', function(e){
+  if (!MOUSE_LOCKED) return;
+  PLR.yaw   -= e.movementX * 0.002;
+  PLR.pitch -= e.movementY * 0.002;
+  PLR.pitch  = Math.max(-1.3, Math.min(1.3, PLR.pitch));
+});
+
+window.addEventListener('keydown', function(e){
+  KEYS[e.code] = true;
+  if (e.code==='Space' && PLR.onGround) { PLR.vel.y = JUMP_VEL; PLR.onGround=false; }
+  if (e.code==='KeyE') tryInteract();
+  if (e.code==='Escape') document.exitPointerLock();
+});
+window.addEventListener('keyup', function(e){ KEYS[e.code]=false; });
+
+// Touch joystick
+var TOUCH_LEFT=null, TOUCH_RIGHT=null, JOYSTICK_START=null, JOYSTICK_DELTA={x:0,y:0};
+document.addEventListener('touchstart', function(e){
+  for(var i=0;i<e.changedTouches.length;i++){
+    var t=e.changedTouches[i];
+    if(t.clientX < window.innerWidth/2) { TOUCH_LEFT=t.identifier; JOYSTICK_START={x:t.clientX,y:t.clientY}; }
+    else TOUCH_RIGHT=t.identifier;
+  }
+},{passive:true});
+document.addEventListener('touchmove', function(e){
+  for(var i=0;i<e.changedTouches.length;i++){
+    var t=e.changedTouches[i];
+    if(t.identifier===TOUCH_LEFT && JOYSTICK_START){
+      JOYSTICK_DELTA={x:t.clientX-JOYSTICK_START.x,y:t.clientY-JOYSTICK_START.y};
+    }
+    if(t.identifier===TOUCH_RIGHT){
+      PLR.yaw   -= (t.clientX - (e.changedTouches[i]._prevX||t.clientX))*.003;
+      PLR.pitch -= (t.clientY - (e.changedTouches[i]._prevY||t.clientY))*.003;
+      PLR.pitch=Math.max(-1.3,Math.min(1.3,PLR.pitch));
+      e.changedTouches[i]._prevX=t.clientX;
+      e.changedTouches[i]._prevY=t.clientY;
+    }
+  }
+},{passive:true});
+document.addEventListener('touchend',function(e){
+  for(var i=0;i<e.changedTouches.length;i++){
+    if(e.changedTouches[i].identifier===TOUCH_LEFT){TOUCH_LEFT=null;JOYSTICK_DELTA={x:0,y:0};}
+    if(e.changedTouches[i].identifier===TOUCH_RIGHT)TOUCH_RIGHT=null;
+  }
+},{passive:true});
+
+// ═══════════════════════════════════════════
+// LOCATIONS & INFO
+// ═══════════════════════════════════════════
+var LOCATIONS = [
+  { name:'Pitch Level',     desc:'The main playing surface — 100m x 68m of perfectly mown grass.',   minY:-1, maxY:3,  minX:-52, maxX:52,  minZ:-36, maxZ:36 },
+  { name:'North Stand',     desc:'The home end — where the loudest fans create the atmosphere.',       minY:0,  maxY:30, minX:-58, maxX:58,  minZ:-58, maxZ:-42 },
+  { name:'South Stand',     desc:'Away end — the visiting supporters go wild here on matchday.',       minY:0,  maxY:30, minX:-58, maxX:58,  minZ:42,  maxZ:58 },
+  { name:'East Stand',      desc:'Main stand with executive boxes and press area.',                    minY:0,  maxY:30, minX:-65, maxX:-52, minZ:-40, maxZ:40 },
+  { name:'West Stand',      desc:'Player tunnel and dugout side — watch the players warm up.',         minY:0,  maxY:30, minX:52,  maxX:65,  minZ:-40, maxZ:40 },
+  { name:'High Up',         desc:'Aerial view of the entire stadium from above.',                     minY:25, maxY:99, minX:-99, maxX:99,  minZ:-99, maxZ:99 },
+];
+
+var POINTS_OF_INTEREST = [
+  { name:'Players Tunnel',  pos:new THREE.Vector3(-57,1.7,0),  desc:'Where the players emerge onto the pitch on matchday', icon:'🔲' },
+  { name:'Centre Circle',   pos:new THREE.Vector3(0,1.7,0),    desc:'The heart of the pitch — where every match kicks off', icon:'⭕' },
+  { name:'Penalty Spot',    pos:new THREE.Vector3(39,1.7,0),   desc:'12 yards from goal — the most pressurised spot in football', icon:'🎯' },
+  { name:'VAR Screen',      pos:new THREE.Vector3(0,1.7,-45),  desc:'The giant screen shows replays and VAR decisions', icon:'📺' },
+  { name:'Home Dugout',     pos:new THREE.Vector3(-52,1.7,-10),desc:'Where the manager makes their tactical decisions', icon:'🪑' },
+];
+
+function getLocation() {
+  var p = PLR.pos;
+  for(var i=0;i<LOCATIONS.length;i++){
+    var l=LOCATIONS[i];
+    if(p.y>=l.minY&&p.y<=l.maxY&&p.x>=l.minX&&p.x<=l.maxX&&p.z>=l.minZ&&p.z<=l.maxZ) return l;
+  }
+  return {name:'Stadium',desc:'Exploring the grounds'};
+}
+
+function getNearestPOI() {
+  var p = PLR.pos;
+  var closest=null, minDist=12;
+  POINTS_OF_INTEREST.forEach(function(poi){
+    var d = p.distanceTo(poi.pos);
+    if(d<minDist){minDist=d;closest=poi;}
+  });
+  return closest;
+}
+
+function tryInteract() {
+  var poi = getNearestPOI();
+  if(!poi) return;
+  var ip = document.getElementById('infoPanel');
+  document.getElementById('ipTitle').textContent = poi.icon+' '+poi.name;
+  document.getElementById('ipDesc').textContent = poi.desc;
+  ip.classList.add('show');
+  setTimeout(function(){ip.classList.remove('show');},4000);
+}
+
+// ═══════════════════════════════════════════
+// TELEPORT SPOTS
+// ═══════════════════════════════════════════
+function teleport(spot) {
+  var spots = {
+    pitch:  {pos:new THREE.Vector3(0,1.7,-15),   yaw:0},
+    stand:  {pos:new THREE.Vector3(0,18,-48),     yaw:Math.PI},
+    tunnel: {pos:new THREE.Vector3(-54,1.7,0),    yaw:Math.PI/2},
+    roof:   {pos:new THREE.Vector3(0,42,0),       yaw:0}
+  };
+  var s = spots[spot];
+  if(s){ PLR.pos.copy(s.pos); PLR.yaw=s.yaw; PLR.vel.set(0,0,0); }
+}
+
+// ═══════════════════════════════════════════
+// NIGHT MODE TOGGLE
+// ═══════════════════════════════════════════
+function toggleNight(){
+  IS_NIGHT=!IS_NIGHT;
+  setSkyColor();
+  ambLight.intensity = IS_NIGHT?0.1:0.5;
+  sunLight.intensity = IS_NIGHT?0:1.1;
+  FLOODLIGHTS.forEach(function(fl,i){
+    fl.intensity = IS_NIGHT?(i<4?3.5:0.8):0;
+  });
+}
+
+// ═══════════════════════════════════════════
+// MINIMAP
+// ═══════════════════════════════════════════
+var mmCtx = document.getElementById('minimapCanvas').getContext('2d');
+function drawMinimap(){
+  var W=110,H=110;
+  mmCtx.fillStyle='#0d1a0d';
+  mmCtx.fillRect(0,0,W,H);
+  // Pitch outline
+  mmCtx.strokeStyle='rgba(255,255,255,.4)';mmCtx.lineWidth=1;
+  mmCtx.strokeRect(15,10,80,90);
+  // Centre line
+  mmCtx.beginPath();mmCtx.moveTo(55,10);mmCtx.lineTo(55,100);mmCtx.stroke();
+  // Player dot
+  var px = 55 + PLR.pos.x*0.56;
+  var py = 55 - PLR.pos.z*0.63;
+  // Direction arrow
+  mmCtx.fillStyle='#ffd23f';
+  mmCtx.beginPath();
+  mmCtx.arc(px,py,4,0,Math.PI*2);
+  mmCtx.fill();
+  // Direction line
+  mmCtx.strokeStyle='#ffd23f';mmCtx.lineWidth=2;
+  mmCtx.beginPath();
+  mmCtx.moveTo(px,py);
+  mmCtx.lineTo(px+Math.sin(PLR.yaw)*8,py-Math.cos(PLR.yaw)*8);
+  mmCtx.stroke();
+}
+
+// ═══════════════════════════════════════════
+// PHYSICS & MOVEMENT
+// ═══════════════════════════════════════════
+var LAST_T = performance.now();
+var MOVE_SPEED = 0;
+
+function updatePlayer(dt){
+  PLR.sprinting = KEYS['ShiftLeft']||KEYS['ShiftRight'];
+  var speed = PLR.sprinting ? SPRINT_SPEED : WALK_SPEED;
+  var forward = new THREE.Vector3(-Math.sin(PLR.yaw),0,-Math.cos(PLR.yaw));
+  var right   = new THREE.Vector3(Math.cos(PLR.yaw),0,-Math.sin(PLR.yaw));
+  var move    = new THREE.Vector3(0,0,0);
+
+  if(KEYS['KeyW']||JOYSTICK_DELTA.y<-15) move.add(forward.clone().multiplyScalar(speed));
+  if(KEYS['KeyS']||JOYSTICK_DELTA.y>15)  move.add(forward.clone().multiplyScalar(-speed*.6));
+  if(KEYS['KeyA']||JOYSTICK_DELTA.x<-15) move.add(right.clone().multiplyScalar(-speed*.75));
+  if(KEYS['KeyD']||JOYSTICK_DELTA.x>15)  move.add(right.clone().multiplyScalar(speed*.75));
+
+  PLR.vel.x = move.x;
+  PLR.vel.z = move.z;
+  PLR.vel.y += GRAVITY*dt;
+
+  PLR.pos.x += PLR.vel.x*dt;
+  PLR.pos.y += PLR.vel.y*dt;
+  PLR.pos.z += PLR.vel.z*dt;
+
+  // Floor collision (ground at y=0 + eye height 1.7)
+  var floorY = 1.7;
+  if(PLR.pos.y < floorY){ PLR.pos.y=floorY; PLR.vel.y=0; PLR.onGround=true; }
+
+  // Soft boundary — gently push back
+  var BOUNDS = 72;
+  if(PLR.pos.x>BOUNDS)  PLR.pos.x=BOUNDS;
+  if(PLR.pos.x<-BOUNDS) PLR.pos.x=-BOUNDS;
+  if(PLR.pos.z>BOUNDS)  PLR.pos.z=BOUNDS;
+  if(PLR.pos.z<-BOUNDS) PLR.pos.z=-BOUNDS;
+  if(PLR.pos.y>80)      PLR.pos.y=80;
+
+  // Speed calculation
+  MOVE_SPEED = Math.sqrt(move.x*move.x+move.z*move.z);
+
+  // Update camera
+  camera.position.copy(PLR.pos);
+  camera.rotation.order='YXZ';
+  camera.rotation.y = PLR.yaw;
+  camera.rotation.x = PLR.pitch;
+
+  // Compass
+  var needle = document.getElementById('compassNeedle');
+  if(needle) needle.style.transform = 'rotate('+(PLR.yaw*180/Math.PI)+'deg)';
+
+  // Location
+  var loc = getLocation();
+  document.getElementById('location').textContent = loc.name;
+
+  // Interact prompt
+  var poi = getNearestPOI();
+  var prompt = document.getElementById('interactPrompt');
+  if(poi){ prompt.textContent='Press E — '+poi.icon+' '+poi.name; prompt.classList.add('show'); }
+  else   { prompt.classList.remove('show'); }
+
+  // Speed
+  var kmh = Math.round(MOVE_SPEED*3.6);
+  document.getElementById('speedVal').textContent = kmh;
+}
+
+// ═══════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════
+function startExplorer(){
+  document.getElementById('clickOverlay').style.display='none';
+  document.getElementById('c').requestPointerLock();
+}
+
+// Animate
+function animate(){
+  requestAnimationFrame(animate);
+  var now=performance.now();
+  var dt=Math.min((now-LAST_T)/1000,.05);
+  LAST_T=now;
+  updatePlayer(dt);
+  drawMinimap();
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',function(){
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+// Init
+camera.position.copy(PLR.pos);
+PLR.yaw = 0;
+
+// Show loading then click overlay
+setTimeout(function(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('clickOverlay').style.display='flex';
+  animate();
+}, 2000);
+</script>
+</body>
+</html>

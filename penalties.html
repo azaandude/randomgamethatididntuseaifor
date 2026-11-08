@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Penalty Shootout</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="database.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.15);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;--bad:#ff4d6d;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(6,255,165,.08),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(168,85,247,.09),transparent 55%);}
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;color:var(--a3);}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;background:rgba(255,255,255,.08);color:var(--text);text-decoration:none;border:1px solid var(--border);}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+.hidden{display:none!important;}
+.wrap{max-width:720px;margin:0 auto;padding:18px 16px 60px;position:relative;z-index:1;}
+.hero-title{font-family:'Bangers',cursive;font-size:2.6rem;letter-spacing:3px;text-align:center;
+  background:linear-gradient(135deg,var(--a3),var(--a2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{text-align:center;color:var(--muted);font-size:.85rem;margin:6px 0 16px;font-weight:700;}
+.panel{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.pcard{flex:1 1 200px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:12px;min-width:0;}
+.lbl{font-size:.65rem;letter-spacing:2px;color:var(--muted);font-weight:900;text-transform:uppercase;}
+.pn{font-family:'Fredoka One',cursive;font-size:1.1rem;margin-top:4px;}
+.pm{font-size:.72rem;color:var(--muted);font-weight:700;margin-top:2px;}
+.ovr{font-family:'Bangers',cursive;font-size:1.9rem;color:var(--a3);float:right;line-height:1;}
+.btn{font-family:'Fredoka One',cursive;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;color:#07070f;background:var(--a3);font-size:.9rem;}
+.btn.alt{background:rgba(255,255,255,.1);color:var(--text);}
+.btn.big{font-size:1.2rem;padding:14px 26px;}
+.btn:disabled{opacity:.4;cursor:default;}
+.search{width:100%;background:rgba(255,255,255,.06);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;}
+.res{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.82rem;}
+.res .n{flex:1;font-weight:800;min-width:0;}
+.res small{color:var(--muted);font-weight:700;}
+.board{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.score{font-family:'Bangers',cursive;font-size:3rem;letter-spacing:3px;}
+.kicks{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+.board > div:first-child .kicks{justify-content:flex-start;}
+.board > div:last-child .kicks{justify-content:flex-end;}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);background:rgba(255,255,255,.05);}
+.dot.g{background:var(--a3);border-color:var(--a3);}
+.dot.s{background:var(--a1);border-color:var(--a1);}
+.dot.m{background:#555;border-color:#666;}
+canvas#pen{width:100%;max-width:640px;display:block;margin:0 auto;border-radius:14px;border:1.5px solid var(--border);touch-action:manipulation;cursor:pointer;}
+.status{text-align:center;font-family:'Fredoka One',cursive;font-size:1rem;margin:12px 0 4px;min-height:24px;}
+.dive{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:420px;margin:10px auto 0;}
+.dive button{font-size:1.4rem;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:900;}
+.dive button:hover{background:rgba(168,85,247,.28);}
+.dive button:disabled{opacity:.3;cursor:default;}
+.ctrl{display:flex;justify-content:center;margin-top:12px;flex-wrap:wrap;gap:10px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.chip{font-size:.72rem;font-weight:800;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--border);}
+.chip.g{border-color:var(--a3);color:var(--a3);}
+.chip.s{border-color:var(--a1);color:var(--a1);}
+.chip.m{color:var(--muted);}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.stat{background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center;}
+.stat b{display:block;font-family:'Bangers',cursive;font-size:1.6rem;color:var(--a2);letter-spacing:1px;}
+.stat small{font-size:.62rem;color:var(--muted);font-weight:800;letter-spacing:1px;text-transform:uppercase;}
+.big-end{font-family:'Bangers',cursive;font-size:2.4rem;text-align:center;letter-spacing:2px;margin:8px 0;}
+.center{text-align:center;}
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  .score{font-size:2.2rem}
+  .hero-title{font-size:2rem}
+  .stats{grid-template-columns:repeat(3,1fr)}
+  nav{padding:0 10px}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🥅 PENALTY SHOOTOUT</div>
+  <div style="display:flex;gap:7px">
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero-title">🥅 PENALTY SHOOTOUT</div>
+  <div class="hero-sub">Real players, real goalkeepers. You take five, then you keep five. Level after ten? Sudden death.</div>
+
+  <!-- SETUP -->
+  <div id="setup">
+    <div class="panel">
+      <div class="row">
+        <div class="pcard" id="takerCard"></div>
+        <div class="pcard" id="keeperCard"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn alt" id="shufT">🎲 Shuffle taker</button>
+        <button class="btn alt" id="shufK">🧤 Shuffle keeper</button>
+      </div>
+      <div style="margin-top:12px">
+        <input class="search" id="q" placeholder="Search any real player… (2+ letters)" autocomplete="off">
+        <div id="results"></div>
+        <div class="pm" style="margin-top:6px">Tap <b>Taker</b> to pick a shooter, or <b>Keeper</b> to pick a goalkeeper.</div>
+      </div>
+      <div class="ctrl"><button class="btn big" id="kickoff">⚽ Kick off</button></div>
+      <div id="setupMsg" class="status" style="color:var(--bad)"></div>
+    </div>
+    <div class="panel"><div class="lbl" style="margin-bottom:6px">Your record</div><div id="recordsBox"></div></div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="hidden">
+    <div class="panel">
+      <div class="board">
+        <div style="flex:1;min-width:0">
+          <div class="lbl" id="lblYou"></div>
+          <div class="kicks" id="dotsYou"></div>
+        </div>
+        <div class="score"><span id="scoreYou">0</span><span style="color:var(--muted)">–</span><span id="scoreCpu">0</span></div>
+        <div style="flex:1;min-width:0;text-align:right">
+          <div class="lbl" id="lblCpu"></div>
+          <div class="kicks" id="dotsCpu"></div>
+        </div>
+      </div>
+      <canvas id="pen" width="640" height="400"></canvas>
+      <div class="status" id="status"></div>
+      <div class="dive hidden" id="dive">
+        <button data-z="0">↖</button><button data-z="1">↑</button><button data-z="2">↗</button>
+        <button data-z="3">↙</button><button data-z="4">↓</button><button data-z="5">↘</button>
+      </div>
+      <div class="ctrl"><button class="btn big hidden" id="act">Lock aim</button></div>
+      <div class="ctrl"><button class="btn alt" id="back" style="font-size:.75rem">⟵ Back to setup (match not recorded)</button></div>
+    </div>
+  </div>
+
+  <!-- END -->
+  <div id="end" class="panel hidden">
+    <div class="big-end" id="endTitle"></div>
+    <div class="center" style="color:var(--muted);font-weight:800" id="endScore"></div>
+    <div class="chips" id="endChips" style="justify-content:center"></div>
+    <div class="stats" id="endStats"></div>
+    <div class="ctrl"><button class="btn big" id="rematch">🔁 Rematch</button><button class="btn alt" id="changeP">✏️ Change players</button></div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// PENALTY SHOOTOUT  -  ES5, canvas, no backend. Stats in localStorage.
+// You take (aim with the moving reticle, lock, set power, shoot).
+// CPU takes (you pick a dive zone first, then the kick is resolved).
+// =====================================================================
+var KEY = 'nom_penalties';
+var CW = 640, CH = 400;
+var GX = 150, GY = 60, GW = 340, GH = 150;     // goal frame on canvas
+var SPOT = { x: 320, y: 300 };                 // penalty spot
+var ARROWS = ['↖','↑','↗','↙','↓','↘'];
+var ALL = [], OUT = [], GKS = [];
+var pickTaker = null, pickKeeper = null;
+var S = null;                                  // current shootout
+var V = {                                      // view / animation state
+  stage: 'idle', time: 0, pT: 0,
+  u: 0.5, v: 0.5, lockU: 0.5, lockV: 0.5, power: 0,
+  kx: 320, ky: 180, ktx: 320, kty: 180, kr: 0, krT: 0,
+  ball: null, flight: null, texts: [], conf: [], diveZone: -1
+};
+var canvas = document.getElementById('pen');
+var ctx = canvas.getContext('2d');
+
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function rnd(a, b) { return a + Math.random() * (b - a); }
+function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function gauss() { var u = Math.random() || 1e-9, v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function triangle(t) { return 1 - Math.abs(((t * 0.9) % 2) - 1); }   // power meter 0..1..0
+
+// ---------------------------------------------------------------------
+// Zones: 3 columns x 2 rows across the goal, 0..5
+// ---------------------------------------------------------------------
+function zoneOf(u, v) {
+  var col = u < 1/3 ? 0 : (u < 2/3 ? 1 : 2);
+  var row = v < 0.5 ? 0 : 1;
+  return row * 3 + col;
+}
+function zoneCenter(z) {
+  return { u: ((z % 3) + 0.5) / 3, v: Math.floor(z / 3) === 0 ? 0.25 : 0.75 };
+}
+// chance the keeper parries: full chance when the dive matches the zone,
+// some reach when diving to a neighbouring zone, almost none on the far side
+function reachSave(dive, zone, pCorrect) {
+  if (dive === zone) return pCorrect;
+  var dc = Math.abs((dive % 3) - (zone % 3));
+  return dc === 0 ? 0.08 : (dc === 1 ? 0.12 : 0.02);
+}
+function nearPost(u, v) {
+  return (u > -0.05 && u < 0.05) || (u > 0.95 && u < 1.05) || (v > -0.05 && v < 0.05) || (v > 0.95 && v < 1.05);
+}
+
+// ---------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------
+function buildPool() {
+  ALL = [];
+  if (!window.NOMDB || !NOMDB.leagues) return;
+  NOMDB.leagues.forEach(function (lg) {
+    lg.clubs.forEach(function (c) {
+      (c.players || []).forEach(function (p) {
+        ALL.push({ name: p.name, pos: p.pos, ovr: p.ovr, sho: p.sho || p.ovr, nat: p.nat || '',
+          club: c.name, emoji: c.emoji || '', league: lg.name });
+      });
+    });
+  });
+  OUT = ALL.filter(function (p) { return p.pos !== 'GK' && p.ovr >= 68; });
+  GKS = ALL.filter(function (p) { return p.pos === 'GK' && p.ovr >= 62; });
+}
+
+// ---------------------------------------------------------------------
+// Stats
+// ---------------------------------------------------------------------
+function blankStats() { return { played: 0, wins: 0, losses: 0, goals: 0, shots: 0, saves: 0, streak: 0, bestStreak: 0 }; }
+function loadStats() {
+  try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === 'object') return s; } catch (e) {}
+  return blankStats();
+}
+function saveStats(st) { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+
+// ---------------------------------------------------------------------
+// Setup screen
+// ---------------------------------------------------------------------
+function pcard(p, label) {
+  if (!p) { return '<div class="lbl">' + esc(label) + '</div><div class="pm">Pick one</div>'; }
+  return '<div class="lbl">' + esc(label) + '</div>'
+    + '<div class="ovr">' + p.ovr + '</div>'
+    + '<div class="pn">' + esc(p.name) + '</div>'
+    + '<div class="pm">' + esc(p.pos) + ' · ' + esc(p.emoji) + ' ' + esc(p.club) + '</div>'
+    + '<div class="pm">' + esc(p.league) + (p.nat ? ' · ' + esc(p.nat) : '') + '</div>';
+}
+function renderSetup() {
+  $('takerCard').innerHTML = pcard(pickTaker, 'Your taker');
+  $('keeperCard').innerHTML = pcard(pickKeeper, 'Your keeper');
+  $('kickoff').disabled = !(pickTaker && pickKeeper);
+  $('setupMsg').textContent = '';
+}
+function renderRecords() {
+  var st = loadStats();
+  var pct = st.played ? Math.round(st.wins / st.played * 100) : 0;
+  $('recordsBox').innerHTML = '<div class="stats">'
+    + '<div class="stat"><b>' + st.played + '</b><small>Played</small></div>'
+    + '<div class="stat"><b>' + st.wins + '-' + st.losses + '</b><small>Won-Lost</small></div>'
+    + '<div class="stat"><b>' + pct + '%</b><small>Win rate</small></div>'
+    + '<div class="stat"><b>' + st.goals + '</b><small>Goals</small></div>'
+    + '<div class="stat"><b>' + st.saves + '</b><small>Saves</small></div>'
+    + '<div class="stat"><b>' + st.bestStreak + '</b><small>Best streak</small></div>'
+    + '</div>';
+}
+function doSearch() {
+  var q = $('q').value.trim().toLowerCase();
+  var box = $('results');
+  if (q.length < 2) { box.innerHTML = ''; return; }
+  var hits = [];
+  for (var i = 0; i < ALL.length && hits.length < 8; i++) {
+    if (ALL[i].name.toLowerCase().indexOf(q) >= 0) hits.push(i);
+  }
+  box.innerHTML = hits.map(function (i) {
+    var p = ALL[i];
+    return '<div class="res"><span class="n">' + esc(p.name) + ' <small>' + esc(p.pos) + ' · ' + p.ovr + ' · ' + esc(p.club) + '</small></span>'
+      + '<button class="btn alt" data-i="' + i + '" data-role="t">Taker</button>'
+      + '<button class="btn alt" data-i="' + i + '" data-role="k">Keeper</button></div>';
+  }).join('') || '<div class="pm" style="padding:8px 4px">No matches.</div>';
+}
+$('results').addEventListener('click', function (e) {
+  var b = e.target;
+  while (b && b !== this && !b.getAttribute('data-role')) b = b.parentNode;
+  if (!b || b === this) return;
+  var p = ALL[parseInt(b.getAttribute('data-i'), 10)];
+  if (b.getAttribute('data-role') === 't') {
+    pickTaker = p;
+  } else {
+    if (p.pos !== 'GK') { $('setupMsg').textContent = p.name + ' is not a goalkeeper. Pick a GK for the keeper slot.'; return; }
+    pickKeeper = p;
+  }
+  renderSetup();
+});
+$('q').addEventListener('input', doSearch);
+$('shufT').addEventListener('click', function () { pickTaker = pick(OUT); renderSetup(); });
+$('shufK').addEventListener('click', function () { pickKeeper = pick(GKS); renderSetup(); });
+$('kickoff').addEventListener('click', kickOff);
+
+// ---------------------------------------------------------------------
+// Match flow
+// ---------------------------------------------------------------------
+function kickOff() {
+  if (!pickTaker || !pickKeeper) return;
+  var cpuT = pick(OUT.filter(function (p) { return p.club !== pickTaker.club; }));
+  var cpuK = pick(GKS.filter(function (p) { return p.club !== pickKeeper.club; }));
+  S = { taker: pickTaker, keeper: pickKeeper, cpuTaker: cpuT, cpuKeeper: cpuK,
+        kicks: [], gA: 0, gB: 0, kA: 0, kB: 0, winner: null, over: false };
+  V.texts = []; V.conf = []; V.flight = null; V.ball = null;
+  $('setup').classList.add('hidden');
+  $('end').classList.add('hidden');
+  $('game').classList.remove('hidden');
+  $('lblYou').textContent = 'You · ' + pickTaker.name;
+  $('lblCpu').textContent = cpuT.name + ' · CPU';
+  nextKick();
+}
+
+function setStatus(t) { $('status').textContent = t; }
+function setAct(label) {
+  var b = $('act');
+  if (label) { b.textContent = label; b.classList.remove('hidden'); }
+  else { b.classList.add('hidden'); }
+}
+function setDive(on) {
+  var btns = $('dive').querySelectorAll('button');
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = !on;
+  $('dive').classList.toggle('hidden', !on);
+}
+
+function nextKick() {
+  var k = S.kicks.length;
+  V.ball = null; V.flight = null; V.diveZone = -1;
+  V.ktx = GX + GW / 2; V.kty = GY + GH * 0.8; V.krT = 0;
+  var sd = k >= 10 ? ' · SUDDEN DEATH' : '';
+  if (k % 2 === 0) {
+    V.stage = 'aim0'; V.pT = 0; V.power = 0; V.u = 0.5; V.v = 0.5;
+    setDive(false);
+    setAct('Lock aim');
+    setStatus('Your kick' + sd + ': lock the reticle on your target.');
+  } else {
+    V.stage = 'dive';
+    setAct(null);
+    setDive(true);
+    setStatus('CPU shoots' + sd + '. Pick a zone to dive into!');
+  }
+  renderBoard();
+}
+
+function act() {
+  if (V.stage === 'aim0') {
+    V.lockU = V.u; V.lockV = V.v; V.pT = 0;
+    V.stage = 'power';
+    setAct('Shoot!');
+    setStatus('Hit it when the bar is in the green.');
+  } else if (V.stage === 'power') {
+    resolveYourShot();
+  } else if (V.stage === 'result') {
+    nextKick();
+  }
+  $('act').blur();
+}
+
+function resolveYourShot() {
+  var P = V.power;
+  var sho = S.taker.sho || 70;
+  var sigma = 0.025 + (1 - sho / 100) * 0.05 + Math.abs(P - 0.75) * 0.15;
+  if (Math.abs(P - 0.75) < 0.06) sigma *= 0.6;
+  var fu = V.lockU + gauss() * sigma;
+  var fv = V.lockV + gauss() * sigma * 1.1;
+  var inside = fu >= 0 && fu <= 1 && fv >= 0 && fv <= 1;
+  var zone = inside ? zoneOf(fu, fv) : -1;
+
+  // CPU keeper: sometimes reads the shot, otherwise guesses at random
+  var gkO = S.cpuKeeper.ovr;
+  var readP = clamp(0.25 + (gkO - 65) / 300, 0.15, 0.5);
+  var dive = (Math.random() < readP && inside) ? zone : Math.floor(Math.random() * 6);
+  var zc = zoneCenter(dive);
+  V.ktx = GX + zc.u * GW; V.kty = GY + zc.v * GH;
+  V.krT = (zc.u < 0.5 ? -1 : 1) * 0.5;
+
+  var outcome;
+  if (!inside) {
+    outcome = nearPost(fu, fv) ? 'post' : 'wide';
+  } else {
+    var pC = clamp(0.6 + gkO / 500 - Math.max(0, P - 0.85) * 1.2, 0.1, 0.9);
+    outcome = Math.random() < reachSave(dive, zone, pC) ? 'saved' : 'goal';
+  }
+  startFlight({ ex: GX + fu * GW, ey: GY + fv * GH, dur: 0.75, lob: 90,
+    outcome: outcome, by: 'you', zone: zone, dive: dive });
+  V.stage = 'flight';
+  setAct(null);
+  setDive(false);
+  setStatus('...');
+}
+
+function chooseDive(z) {
+  if (V.stage !== 'dive') return;
+  V.diveZone = z;
+  var zc = zoneCenter(z);
+  V.ktx = GX + zc.u * GW; V.kty = GY + zc.v * GH;
+  V.krT = (zc.u < 0.5 ? -1 : 1) * 0.6;
+
+  var sho = S.cpuTaker.sho || 70;
+  var tu, tv;
+  if (Math.random() < 0.4) { tu = Math.random() < 0.5 ? rnd(0.04, 0.2) : rnd(0.8, 0.96); }
+  else { tu = rnd(0.2, 0.8); }
+  tv = rnd(0.1, 0.9);
+  var sigma = 0.02 + (1 - sho / 100) * 0.06;
+  var fu = tu + gauss() * sigma;
+  var fv = tv + gauss() * sigma * 1.1;
+  var inside = fu >= 0 && fu <= 1 && fv >= 0 && fv <= 1;
+  var zone = inside ? zoneOf(fu, fv) : -1;
+  var outcome;
+  if (!inside) {
+    outcome = nearPost(fu, fv) ? 'post' : 'wide';
+  } else {
+    var pC2 = clamp(0.6 + S.keeper.ovr / 500 - Math.max(0, sho - 80) / 200, 0.1, 0.9);
+    outcome = Math.random() < reachSave(z, zone, pC2) ? 'saved' : 'goal';
+  }
+  startFlight({ ex: GX + fu * GW, ey: GY + fv * GH, dur: 0.75, lob: 90,
+    outcome: outcome, by: 'cpu', zone: zone, dive: z });
+  V.stage = 'flight';
+  setDive(false);
+  setAct(null);
+  setStatus('CPU shoots...');
+}
+
+function startFlight(o) {
+  V.flight = { sx: SPOT.x, sy: SPOT.y, ex: o.ex, ey: o.ey, t: 0, dur: o.dur, lob: o.lob,
+    outcome: o.outcome, by: o.by, zone: o.zone, dive: o.dive };
+}
+
+function finishKick(f) {
+  var scored = f.outcome === 'goal';
+  if (f.by === 'you') { S.kA++; if (scored) S.gA++; }
+  else { S.kB++; if (scored) S.gB++; }
+  S.kicks.push({ by: f.by, outcome: f.outcome, zone: f.zone });
+
+  var label = { goal: 'GOAL!', saved: 'SAVED!', wide: 'WIDE!', post: 'WOODWORK!' }[f.outcome];
+  var col = f.outcome === 'goal' ? '#06ffa5' : (f.outcome === 'saved' ? '#ff6b35' : '#8888bb');
+  addText(label, col);
+  if (f.by === 'you') {
+    if (scored) { setStatus('Goal! ' + S.taker.name + ' scores.'); burst(); }
+    else if (f.outcome === 'saved') setStatus('Saved by ' + S.cpuKeeper.name + '.');
+    else setStatus(f.outcome === 'post' ? 'Off the woodwork!' : 'Off target.');
+  } else {
+    if (scored) setStatus(S.cpuTaker.name + ' scores for the CPU.');
+    else if (f.outcome === 'saved') setStatus('Saved by ' + S.keeper.name + '! Big dive.');
+    else setStatus(f.outcome === 'post' ? 'Off the woodwork!' : 'CPU misses!');
+  }
+
+  renderBoard();
+  if (checkEnd()) {
+    S.over = true;
+    V.stage = 'over';
+    setAct(null);
+    setDive(false);
+    setTimeout(showEnd, 1700);
+  } else {
+    V.stage = 'result';
+    setAct('Next kick');
+    setDive(false);
+  }
+}
+
+function checkEnd() {
+  var rA = 5 - S.kA, rB = 5 - S.kB;
+  if (S.kA <= 5 && S.kB <= 5) {
+    if (S.gA > S.gB + rB) { S.winner = 'you'; return true; }
+    if (S.gB > S.gA + rA) { S.winner = 'cpu'; return true; }
+  }
+  if (S.kA === S.kB && S.kA >= 5 && S.gA !== S.gB) {
+    S.winner = S.gA > S.gB ? 'you' : 'cpu';
+    return true;
+  }
+  return false;
+}
+
+function dotsHtml(side) {
+  var arr = S.kicks.filter(function (k) { return k.by === side; });
+  var n = Math.max(5, arr.length);
+  var h = '';
+  for (var i = 0; i < n; i++) {
+    var k = arr[i];
+    var cls = !k ? '' : (k.outcome === 'goal' ? ' g' : (k.outcome === 'saved' ? ' s' : ' m'));
+    h += '<div class="dot' + cls + '"></div>';
+  }
+  return h;
+}
+function renderBoard() {
+  if (!S) return;
+  $('scoreYou').textContent = S.gA;
+  $('scoreCpu').textContent = S.gB;
+  $('dotsYou').innerHTML = dotsHtml('you');
+  $('dotsCpu').innerHTML = dotsHtml('cpu');
+}
+
+function showEnd() {
+  var st = loadStats();
+  st.played++;
+  if (S.winner === 'you') { st.wins++; st.streak++; st.bestStreak = Math.max(st.bestStreak || 0, st.streak); }
+  else { st.losses++; st.streak = 0; }
+  st.goals = (st.goals || 0) + S.gA;
+  st.shots = (st.shots || 0) + S.kA;
+  var mySaves = S.kicks.filter(function (k) { return k.by === 'cpu' && k.outcome === 'saved'; }).length;
+  st.saves = (st.saves || 0) + mySaves;
+  saveStats(st);
+
+  $('game').classList.add('hidden');
+  $('end').classList.remove('hidden');
+  $('endTitle').textContent = S.winner === 'you' ? '🏆 YOU WIN!' : '💔 CPU WINS';
+  $('endTitle').style.color = S.winner === 'you' ? 'var(--a3)' : 'var(--a1)';
+  $('endScore').textContent = S.taker.name + ' ' + S.gA + ' – ' + S.gB + ' ' + S.cpuTaker.name;
+  $('endChips').innerHTML = S.kicks.map(function (k) {
+    var who = k.by === 'you' ? 'You' : 'CPU';
+    var word = { goal: 'Goal', saved: 'Saved', wide: 'Wide', post: 'Post' }[k.outcome];
+    var c = k.outcome === 'goal' ? 'g' : (k.outcome === 'saved' ? 's' : 'm');
+    return '<span class="chip ' + c + '">' + who + ': ' + word + '</span>';
+  }).join('');
+  $('endStats').innerHTML = '<div class="stat"><b>' + st.wins + '-' + st.losses + '</b><small>Record</small></div>'
+    + '<div class="stat"><b>' + st.goals + '</b><small>Career goals</small></div>'
+    + '<div class="stat"><b>' + st.saves + '</b><small>Career saves</small></div>';
+  if (S.winner === 'you') burst();
+  renderRecords();
+}
+
+$('rematch').addEventListener('click', kickOff);
+$('changeP').addEventListener('click', function () { showSetup(); });
+$('back').addEventListener('click', function () { if (S && !S.over && confirm('Leave this shootout? It will not be recorded.')) showSetup(); else if (S && S.over) showSetup(); });
+function showSetup() {
+  S = null; V.stage = 'idle'; V.flight = null;
+  $('game').classList.add('hidden');
+  $('end').classList.add('hidden');
+  $('setup').classList.remove('hidden');
+  renderSetup();
+  renderRecords();
+}
+
+// ---------------------------------------------------------------------
+// Input
+// ---------------------------------------------------------------------
+canvas.addEventListener('click', function (e) {
+  var r = canvas.getBoundingClientRect();
+  var x = (e.clientX - r.left) * CW / r.width;
+  var y = (e.clientY - r.top) * CH / r.height;
+  if (V.stage === 'dive') {
+    var u = clamp((x - GX) / GW, 0, 0.999), v = clamp((y - GY) / GH, 0, 0.999);
+    chooseDive(zoneOf(u, v));
+  } else {
+    act();
+  }
+});
+$('dive').addEventListener('click', function (e) {
+  var b = e.target;
+  if (b && b.getAttribute && b.getAttribute('data-z') !== null) chooseDive(parseInt(b.getAttribute('data-z'), 10));
+});
+$('act').addEventListener('click', act);
+window.addEventListener('keydown', function (e) {
+  if ((e.code === 'Space' || e.key === 'Enter') && (V.stage === 'aim0' || V.stage === 'power' || V.stage === 'result')) {
+    e.preventDefault();
+    act();
+  }
+});
+
+// ---------------------------------------------------------------------
+// Effects
+// ---------------------------------------------------------------------
+function addText(t, color) { V.texts.push({ t: t, c: color, life: 1.4 }); }
+function burst() {
+  for (var i = 0; i < 90; i++) {
+    V.conf.push({ x: CW / 2 + rnd(-30, 30), y: GY + 20, vx: rnd(-220, 220), vy: rnd(-380, -120),
+      c: pick(['#06ffa5', '#ffd23f', '#ff6b35', '#a855f7', '#3b82f6', '#ec4899']), life: rnd(1.2, 2.2), rot: rnd(0, 6) });
+  }
+}
+
+// ---------------------------------------------------------------------
+// Update + draw
+// ---------------------------------------------------------------------
+function update(dt) {
+  V.time += dt;
+  if (V.stage === 'aim0') {
+    V.u = 0.5 + 0.62 * Math.sin(V.time * 1.3);
+    V.v = 0.5 + 0.6 * Math.sin(V.time * 1.9 + 1);
+  }
+  if (V.stage === 'power') {
+    V.pT += dt;
+    V.power = triangle(V.pT);
+  }
+  var k = Math.min(1, dt * 7);
+  V.kx += (V.ktx - V.kx) * k;
+  V.ky += (V.kty - V.ky) * k;
+  V.kr += (V.krT - V.kr) * k;
+
+  if (V.flight) {
+    var f = V.flight;
+    f.t += dt;
+    var p = Math.min(1, f.t / f.dur);
+    V.ball = { x: f.sx + (f.ex - f.sx) * p, y: f.sy + (f.ey - f.sy) * p - Math.sin(Math.PI * p) * f.lob, r: 10 - 4 * p };
+    if (p >= 1) { V.flight = null; finishKick(f); }
+  }
+  V.texts.forEach(function (t) { t.life -= dt; });
+  V.texts = V.texts.filter(function (t) { return t.life > 0; });
+  V.conf.forEach(function (c) { c.vy += 700 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.life -= dt; c.rot += dt * 6; });
+  V.conf = V.conf.filter(function (c) { return c.life > 0 && c.y < CH + 20; });
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawFigure(x, y, shirt, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#1b1b1b';
+  ctx.fillRect(-9, 18, 7, 24);
+  ctx.fillRect(2, 18, 7, 24);
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-12, 6, 24, 14);
+  ctx.fillStyle = shirt;
+  roundRect(-13, -14, 26, 24, 6);
+  ctx.fill();
+  ctx.strokeStyle = shirt;
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-12, -8); ctx.lineTo(-30, -24); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(12, -8); ctx.lineTo(30, -24); ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(-31, -26, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(31, -26, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f1c27d';
+  ctx.beginPath(); ctx.arc(0, -26, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, CW, CH);
+
+  // pitch
+  for (var i = 0; i < 8; i++) {
+    ctx.fillStyle = i % 2 ? '#0f6b3a' : '#128a48';
+    ctx.fillRect(0, i * CH / 8, CW, CH / 8);
+  }
+  // markings
+  ctx.strokeStyle = 'rgba(255,255,255,.75)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(70, GY + GH, 500, 150);
+  ctx.strokeRect(220, GY + GH, 200, 50);
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(SPOT.x, SPOT.y, 3.5, 0, Math.PI * 2); ctx.fill();
+
+  // net
+  ctx.fillStyle = 'rgba(255,255,255,.07)';
+  ctx.fillRect(GX, GY, GW, GH);
+  ctx.strokeStyle = 'rgba(255,255,255,.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (var x = GX; x <= GX + GW; x += 14) { ctx.moveTo(x, GY); ctx.lineTo(x, GY + GH); }
+  for (var y = GY; y <= GY + GH; y += 14) { ctx.moveTo(GX, y); ctx.lineTo(GX + GW, y); }
+  ctx.stroke();
+
+  // zone hints while diving
+  if (V.stage === 'dive') {
+    ctx.font = '22px Nunito, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var z = 0; z < 6; z++) {
+      var zc = zoneCenter(z);
+      var zx = GX + ((z % 3) * GW / 3), zy = GY + (Math.floor(z / 3) * GH / 2);
+      ctx.strokeStyle = 'rgba(168,85,247,.6)';
+      ctx.setLineDash([6, 5]);
+      ctx.strokeRect(zx + 3, zy + 3, GW / 3 - 6, GH / 2 - 6);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.fillText(ARROWS[z], GX + zc.u * GW, GY + zc.v * GH);
+    }
+  }
+
+  // posts
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(GX, GY + GH); ctx.lineTo(GX, GY); ctx.lineTo(GX + GW, GY); ctx.lineTo(GX + GW, GY + GH);
+  ctx.stroke();
+
+  // keeper
+  if (S) {
+    // yellow = your keeper (you dive), orange = CPU keeper (you shoot)
+    drawFigure(V.kx, V.ky, V.stage === 'dive' ? '#ffd23f' : '#ff6b35', V.kr);
+  }
+
+  // reticle (you aiming)
+  if (V.stage === 'aim0' || V.stage === 'power') {
+    var ru = V.stage === 'aim0' ? V.u : V.lockU;
+    var rv = V.stage === 'aim0' ? V.v : V.lockV;
+    var rx = GX + ru * GW, ry = GY + rv * GH;
+    ctx.strokeStyle = '#06ffa5';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(rx, ry, 16, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rx - 24, ry); ctx.lineTo(rx - 8, ry); ctx.moveTo(rx + 8, ry); ctx.lineTo(rx + 24, ry);
+    ctx.moveTo(rx, ry - 24); ctx.lineTo(rx, ry - 8); ctx.moveTo(rx, ry + 8); ctx.lineTo(rx, ry + 24); ctx.stroke();
+  }
+
+  // taker label
+  var takerName = (S && S.kicks.length % 2 === 0) ? S.taker.name : (S ? S.cpuTaker.name : '');
+  if (!V.flight && !V.ball && S) {
+    ctx.fillStyle = 'rgba(255,255,255,.8)';
+    ctx.font = '700 13px Nunito, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(takerName, SPOT.x, SPOT.y + 28);
+  }
+
+  // ball
+  var b = V.flight ? V.ball : { x: SPOT.x, y: SPOT.y, r: 10 };
+  if (b) {
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // power bar
+  if (V.stage === 'power') {
+    var bx = CW - 40, by = 50, bw = 18, bh = 240;
+    ctx.fillStyle = 'rgba(0,0,0,.5)';
+    ctx.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
+    ctx.fillStyle = 'rgba(255,255,255,.1)';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = 'rgba(6,255,165,.55)';
+    ctx.fillRect(bx, by + bh * (1 - 0.8), bw, bh * 0.1);
+    var grad = ctx.createLinearGradient(0, by + bh, 0, by);
+    grad.addColorStop(0, '#06ffa5'); grad.addColorStop(0.6, '#ffd23f'); grad.addColorStop(1, '#ff4d6d');
+    ctx.fillStyle = grad;
+    ctx.fillRect(bx, by + bh * (1 - V.power), bw, bh * V.power);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bx, by, bw, bh);
+  }
+
+  // text pops
+  V.texts.forEach(function (t, i) {
+    var age = 1.4 - t.life;
+    ctx.globalAlpha = Math.min(1, t.life * 2);
+    ctx.font = '64px Bangers, Impact, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(0,0,0,.6)';
+    ctx.strokeText(t.t, CW / 2, 150 - age * 30 - i * 0);
+    ctx.fillStyle = t.c;
+    ctx.fillText(t.t, CW / 2, 150 - age * 30);
+    ctx.globalAlpha = 1;
+  });
+
+  // confetti
+  V.conf.forEach(function (c) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, c.life);
+    ctx.translate(c.x, c.y);
+    ctx.rotate(c.rot);
+    ctx.fillStyle = c.c;
+    ctx.fillRect(-4, -2, 8, 4);
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+}
+
+var last = 0;
+function frame(ts) {
+  if (!last) last = ts;
+  var dt = Math.min(0.05, (ts - last) / 1000);
+  last = ts;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------
+buildPool();
+if (OUT.length && GKS.length) {
+  pickTaker = pick(OUT);
+  pickKeeper = pick(GKS);
+}
+renderSetup();
+renderRecords();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

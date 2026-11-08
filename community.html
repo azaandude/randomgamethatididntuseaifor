@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Community Chat</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
+<script src="firebase-config.js" defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07070f;color:#eeeeff;font-family:'Nunito',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 50% at 10% 0%,rgba(168,85,247,.07),transparent 60%),radial-gradient(ellipse 60% 40% at 90% 100%,rgba(6,255,165,.05),transparent 60%);}
+
+/* HEADER */
+.header{background:rgba(7,7,15,.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.07);padding:0 16px;height:54px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:10;}
+.logo{font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:3px;background:linear-gradient(135deg,#ff6b35,#ffd23f,#06ffa5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.header-sub{font-family:'Fredoka One',cursive;font-size:.72rem;color:#55558a;letter-spacing:1px;}
+.online-badge{display:flex;align-items:center;gap:5px;background:rgba(6,255,165,.15);border:1.5px solid rgba(6,255,165,.4);border-radius:20px;padding:3px 10px;font-size:.65rem;font-weight:800;color:#06ffa5;}
+.online-dot{width:6px;height:6px;border-radius:50%;background:#06ffa5;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+.ml{margin-left:auto;}
+.hbtn{font-family:'Fredoka One',cursive;font-size:.75rem;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#eeeeff;text-decoration:none;display:inline-flex;align-items:center;transition:all .2s;}
+.hbtn:hover{background:rgba(255,255,255,.13);}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+
+/* SIDEBAR */
+.sidebar{width:220px;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;flex-shrink:0;background:rgba(7,7,15,.8);}
+.sidebar-head{padding:14px 14px 10px;font-family:'Bangers',cursive;font-size:.9rem;letter-spacing:2px;color:#55558a;border-bottom:1px solid rgba(255,255,255,.05);}
+.channel{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;transition:all .18s;font-weight:800;font-size:.82rem;color:#8888bb;border-left:3px solid transparent;border-radius:0 8px 8px 0;margin-bottom:2px;}
+.channel:hover{background:rgba(255,255,255,.08);color:#cccce8;}
+.channel.active{background:rgba(168,85,247,.18);color:#fff;border-left-color:#a855f7;font-weight:900;box-shadow:inset 0 0 12px rgba(168,85,247,.08);}
+.channel-icon{font-size:.9rem;flex-shrink:0;}
+.channel-name{flex:1;}
+.channel-count{font-size:.6rem;background:rgba(168,85,247,.2);color:#a855f7;border-radius:10px;padding:1px 7px;font-weight:900;}
+.sidebar-section{padding:10px 14px 6px;font-size:.55rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#404060;margin-top:6px;}
+.online-user{display:flex;align-items:center;gap:7px;padding:6px 14px;font-size:.76rem;font-weight:700;color:#aaaacc;}
+.user-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.user-dot.online{background:#06ffa5;}
+.user-dot.away{background:#ffd23f;}
+
+/* MAIN CHAT */
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.channel-header{padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;background:rgba(7,7,15,.6);flex-shrink:0;}
+.channel-header-icon{font-size:1.2rem;}
+.channel-header-name{font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;color:#eeeeff;}
+.channel-header-desc{font-size:.68rem;color:#55558a;font-weight:700;margin-top:1px;}
+.pin-bar{background:rgba(255,210,63,.06);border-bottom:1px solid rgba(255,210,63,.15);padding:7px 18px;display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;color:#ffd23f;flex-shrink:0;}
+
+/* MESSAGES */
+.messages{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:2px;}
+.messages::-webkit-scrollbar{width:4px;}
+.messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px;}
+
+.msg-group{margin-bottom:10px;}
+.msg-header{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;}
+.msg-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;font-weight:900;font-family:'Bangers',cursive;background:linear-gradient(135deg,#a855f7,#3b82f6);}
+.msg-name{font-weight:900;font-size:.84rem;cursor:pointer;}
+.msg-name:hover{text-decoration:underline;}
+.msg-time{font-size:.6rem;color:#55558a;font-weight:700;}
+.msg-badge{font-size:.5rem;font-weight:900;padding:1px 6px;border-radius:8px;letter-spacing:1px;text-transform:uppercase;}
+.badge-owner{background:rgba(255,210,63,.2);color:#ffd23f;}
+.badge-mod{background:rgba(6,255,165,.15);color:#06ffa5;}
+.msg-body{margin-left:42px;}
+.msg-text{font-size:.84rem;font-weight:600;line-height:1.65;color:#eeeeff;word-break:break-word;}
+.msg-text a{color:#06ffa5;text-decoration:none;}
+.msg-text a:hover{text-decoration:underline;}
+.msg-continued{margin-left:42px;padding:1px 0;}
+
+/* Reactions */
+.msg-reactions{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;margin-left:42px;}
+.reaction{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:2px 9px;font-size:.75rem;cursor:pointer;transition:all .15s;}
+.reaction:hover{background:rgba(255,255,255,.12);}
+.reaction.mine{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.3);}
+.reaction-count{font-size:.7rem;font-weight:800;color:#aaaacc;}
+
+/* System message */
+.sys-msg{text-align:center;font-size:.68rem;color:#404060;font-weight:700;padding:4px 0;font-style:italic;}
+
+/* Recommendation card */
+.rec-card{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 14px;margin-top:6px;margin-left:42px;max-width:380px;}
+.rec-card-title{font-family:'Fredoka One',cursive;font-size:.85rem;color:#ffd23f;margin-bottom:4px;}
+.rec-card-body{font-size:.76rem;color:#aaaacc;line-height:1.6;}
+.rec-card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;}
+.rec-tag{font-size:.58rem;font-weight:900;padding:2px 8px;border-radius:10px;letter-spacing:.5px;}
+
+/* INPUT AREA */
+.input-area{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.06);background:rgba(7,7,15,.8);flex-shrink:0;}
+.input-tools{display:flex;gap:6px;margin-bottom:7px;flex-wrap:wrap;}
+.tool-btn{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 12px;font-size:.72rem;font-weight:800;color:#aaaacc;cursor:pointer;transition:all .18s;}
+.tool-btn:hover{background:rgba(255,255,255,.18);color:#fff;transform:translateY(-1px);}
+.tool-btn.active{background:rgba(255,210,63,.2);border-color:rgba(255,210,63,.5);color:#ffd23f;box-shadow:0 0 8px rgba(255,210,63,.15);}
+.input-row{display:flex;gap:9px;align-items:flex-end;}
+.input-box{flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:11px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:.86rem;font-weight:600;color:#eeeeff;outline:none;resize:none;min-height:44px;max-height:120px;line-height:1.5;transition:all .2s;overflow-y:auto;}
+.input-box:focus{border-color:#a855f7;background:rgba(168,85,247,.06);box-shadow:0 0 0 3px rgba(168,85,247,.1);}
+.input-box::placeholder{color:#404060;}
+.send-btn{width:46px;height:46px;border:none;border-radius:11px;background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff;font-size:1.1rem;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(168,85,247,.35);}
+.send-btn:hover{transform:scale(1.07);}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.char-count{font-size:.6rem;color:#404060;font-weight:700;text-align:right;margin-top:4px;}
+
+/* Rec form (hidden by default) */
+.rec-form{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px;margin-bottom:9px;display:none;}
+.rec-form.show{display:block;}
+.rec-form-title{font-family:'Fredoka One',cursive;font-size:.8rem;color:#ffd23f;margin-bottom:9px;}
+.rec-row{display:flex;gap:7px;margin-bottom:7px;}
+.rec-input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:7px;padding:7px 10px;font-family:'Nunito',sans-serif;font-size:.78rem;font-weight:700;color:#eeeeff;outline:none;}
+.rec-input:focus{border-color:#ffd23f;}
+.rec-select{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:7px;padding:7px 10px;font-family:'Nunito',sans-serif;font-size:.78rem;font-weight:700;color:#eeeeff;outline:none;cursor:pointer;appearance:none;}
+
+/* Typing indicator */
+.typing{font-size:.68rem;color:#55558a;font-weight:700;font-style:italic;padding:4px 18px;flex-shrink:0;min-height:22px;}
+
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;flex:1;gap:12px;color:#55558a;font-family:'Fredoka One',cursive;font-size:.9rem;letter-spacing:2px;}
+.spinner{width:28px;height:28px;border:2px solid rgba(255,255,255,.08);border-top-color:#a855f7;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.msg-group{animation:fadein .25s ease;}
+
+@media(max-width:640px){.sidebar{display:none;}.rec-card{max-width:100%;}}
+
+/* ── GLOBAL POLISH ── */
+*{-webkit-tap-highlight-color:rgba(168,85,247,.2);}
+a{-webkit-tap-highlight-color:rgba(168,85,247,.15);}
+
+/* Bigger, more visible nav buttons */
+.nbtn,.hbtn,.tbtn{
+  font-family:'Fredoka One',cursive;font-size:.8rem;
+  padding:8px 16px;border-radius:9px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.09);
+  color:#eeeeff;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:all .18s ease;font-weight:700;
+  letter-spacing:.3px;white-space:nowrap;
+}
+.nbtn:hover,.hbtn:hover,.tbtn:hover{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.4);
+  color:#fff;transform:translateY(-1px);
+}
+
+/* Bigger action tabs */
+.dtab{
+  font-family:'Fredoka One',cursive;font-size:.82rem;
+  padding:9px 18px;border-radius:10px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);color:#aaaacc;
+  transition:all .18s ease;font-weight:700;
+}
+.dtab:hover{background:rgba(255,255,255,.15);color:#fff;transform:translateY(-1px);}
+.dtab.active{
+  background:rgba(255,210,63,.18);
+  border-color:rgba(255,210,63,.5);
+  color:#ffd23f;font-weight:900;
+  box-shadow:0 0 12px rgba(255,210,63,.15);
+}
+
+/* smBtn used in multiplayer/community/etc */
+.smBtn{
+  background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.22);
+  border-radius:8px;padding:8px 16px;font-size:.78rem;font-weight:800;
+  color:#aaaacc;cursor:pointer;transition:all .18s ease;
+  font-family:'Nunito',sans-serif;white-space:nowrap;
+}
+.smBtn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);color:#fff;transform:translateY(-1px);}
+.smBtn.active{background:rgba(6,255,165,.18);border-color:rgba(6,255,165,.45);color:#06ffa5;box-shadow:0 0 10px rgba(6,255,165,.15);}
+.smBtn.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+.smBtn.danger:hover{background:rgba(239,68,68,.2);}
+
+/* bigbtn polish */
+.bigbtn{transition:all .18s ease;}
+.bigbtn:hover{transform:translateY(-3px);filter:brightness(1.1);}
+.bigbtn:active{transform:scale(.97);}
+
+/* Card hover glow */
+.card{transition:border-color .2s ease;}
+.card:hover{border-color:rgba(255,255,255,.13);}
+
+/* Input polish */
+input,select,textarea{
+  color:#eeeeff!important;
+  border:1.5px solid rgba(255,255,255,.18)!important;
+  transition:all .18s ease!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#a855f7!important;
+  box-shadow:0 0 0 3px rgba(168,85,247,.15)!important;
+}
+input::placeholder,textarea::placeholder{color:#55558a!important;}
+
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body data-online-only>
+<a href="index.html" class="nom-hub" style="position:fixed;left:10px;bottom:10px;z-index:9999;background:rgba(7,7,15,.85);color:#eeeeff;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 12px;font:700 12px sans-serif;text-decoration:none">🏠 Hub</a>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">NAME-O-MATIC</div>
+  <div class="header-sub">Community Chat</div>
+  <div class="online-badge"><div class="online-dot"></div><span id="onlineCount">0</span> online</div>
+  <div class="ml" style="display:flex;gap:8px;align-items:center">
+    <span id="userDisplay" style="font-size:.74rem;font-weight:800;color:#aaaacc"></span>
+    <a href="app.html" class="hbtn">← App</a>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-head">💬 CHANNELS</div>
+    <div class="channel active" onclick="switchChannel('general',this)">
+      <span class="channel-icon">💬</span>
+      <span class="channel-name">general</span>
+      <span class="channel-count" id="cnt-general">0</span>
+    </div>
+    <div class="channel" onclick="switchChannel('recommendations',this)">
+      <span class="channel-icon">⭐</span>
+      <span class="channel-name">recommendations</span>
+      <span class="channel-count" id="cnt-recommendations">0</span>
+    </div>
+    <div class="channel" onclick="switchChannel('football',this)">
+      <span class="channel-icon">⚽</span>
+      <span class="channel-name">football-chat</span>
+      <span class="channel-count" id="cnt-football">0</span>
+    </div>
+    <div class="channel" onclick="switchChannel('predictions',this)">
+      <span class="channel-icon">🔮</span>
+      <span class="channel-name">predictions</span>
+      <span class="channel-count" id="cnt-predictions">0</span>
+    </div>
+    <div class="channel" onclick="switchChannel('ai-tips',this)">
+      <span class="channel-icon">🤖</span>
+      <span class="channel-name">ai-tips</span>
+      <span class="channel-count" id="cnt-ai-tips">0</span>
+    </div>
+    <div class="channel" onclick="switchChannel('bugs',this)">
+      <span class="channel-icon">🐛</span>
+      <span class="channel-name">bugs-feedback</span>
+      <span class="channel-count" id="cnt-bugs">0</span>
+    </div>
+
+    <div class="sidebar-section">Online Now</div>
+    <div id="onlineList"></div>
+  </div>
+
+  <!-- CHAT MAIN -->
+  <div class="chat-main">
+
+    <!-- Channel header -->
+    <div class="channel-header">
+      <div class="channel-header-icon" id="chIcon">💬</div>
+      <div>
+        <div class="channel-header-name" id="chName">general</div>
+        <div class="channel-header-desc" id="chDesc">General chat — say hi, share ideas, talk football!</div>
+      </div>
+    </div>
+
+    <!-- Pinned message -->
+    <div class="pin-bar">📌 <b>Welcome to NAME-O-MATIC Community!</b> Share recommendations, football predictions, and AI tips. Be kind. Have fun. ⚽</div>
+
+    <!-- Messages -->
+    <div class="messages" id="messages">
+      <div class="loading"><div class="spinner"></div>Loading messages...</div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="typing" id="typingIndicator"></div>
+
+    <!-- Rec form -->
+    <div class="rec-form" id="recForm">
+      <div class="rec-form-title">⭐ Post a Recommendation</div>
+      <div class="rec-row">
+        <input class="rec-input" id="recTitle" placeholder="What are you recommending? (e.g. Gemini for free AI)">
+        <select class="rec-select" id="recCategory">
+          <option value="ai">🤖 AI / API</option>
+          <option value="feature">✨ App Feature</option>
+          <option value="football">⚽ Football</option>
+          <option value="tool">🛠️ Tool</option>
+          <option value="tip">💡 Tip</option>
+        </select>
+      </div>
+      <div class="rec-row">
+        <input class="rec-input" id="recBody" placeholder="Describe it — why should others try it?">
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-area">
+      <div class="input-tools">
+        <div class="tool-btn" onclick="toggleRecForm()" id="recToggle">⭐ Recommendation</div>
+        <div class="tool-btn" onclick="insertEmoji('⚽')">⚽</div>
+        <div class="tool-btn" onclick="insertEmoji('🔥')">🔥</div>
+        <div class="tool-btn" onclick="insertEmoji('👑')">👑</div>
+        <div class="tool-btn" onclick="insertEmoji('💡')">💡</div>
+        <div class="tool-btn" onclick="insertEmoji('🎯')">🎯</div>
+      </div>
+      <div class="input-row">
+        <textarea class="input-box" id="msgInput" placeholder="Message #general..." rows="1"
+          onkeydown="handleKey(event)" oninput="handleInput(this)" maxlength="500"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">▶</button>
+      </div>
+      <div class="char-count" id="charCount">0 / 500</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+var db, auth, currentUser;
+var CHANNEL = 'general';
+var MSG_LIMIT = 50;
+var UNSUBSCRIBE = null;
+var IS_SENDING = false;
+var TYPING_TIMEOUT = null;
+
+var CHANNEL_INFO = {
+  general:         { icon:'💬', desc:'General chat — say hi, share ideas, talk football!' },
+  recommendations: { icon:'⭐', desc:'Share your best recommendations for AI, tools, and features!' },
+  football:        { icon:'⚽', desc:'Football chat — predictions, debates, who\'s the GOAT?' },
+  predictions:     { icon:'🔮', desc:'Predict match results, share your tips!' },
+  'ai-tips':       { icon:'🤖', desc:'Tips for getting the best out of AI — prompts, models, tricks!' },
+  bugs:            { icon:'🐛', desc:'Report bugs or share feedback to improve the app.' }
+};
+
+var REC_COLORS = {
+  ai:'#3b82f6', feature:'#a855f7', football:'#06ffa5', tool:'#ffd23f', tip:'#ff6b35'
+};
+
+// ── AVATAR COLORS ─────────────────────────────
+function avatarColor(uid) {
+  var cols = ['#ff6b35','#ffd23f','#06ffa5','#a855f7','#3b82f6','#ec4899','#f59e0b','#10b981'];
+  var hash = 0;
+  for (var i=0; i<uid.length; i++) hash = uid.charCodeAt(i) + ((hash<<5)-hash);
+  return cols[Math.abs(hash) % cols.length];
+}
+
+function initials(name) {
+  return (name || 'U').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+}
+
+// ══════════════════════════════════════════════
+// INIT FIREBASE
+// ══════════════════════════════════════════════
+function initChat(attempts) {
+  if (typeof firebase === 'undefined' || typeof FIREBASE_CONFIG === 'undefined') {
+    if (attempts > 0) { setTimeout(function(){ initChat(attempts-1); }, 200); }
+    else { showError('Firebase not loaded. Make sure firebase-config.js is filled in!'); }
+    return;
+  }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+  } catch(e) {
+    // Already initialized
+  }
+  auth = firebase.auth();
+  db   = firebase.firestore();
+
+  auth.onAuthStateChanged(function(user) {
+    if (user) {
+      currentUser = { uid: user.uid, name: user.displayName || 'Anonymous', email: user.email };
+      document.getElementById('userDisplay').textContent = '👤 ' + currentUser.name.split(' ')[0];
+      startChat();
+    } else {
+      // Allow anonymous access for reading, require auth for sending
+      currentUser = null;
+      document.getElementById('userDisplay').textContent = '👤 Guest';
+      startChat();
+    }
+  });
+}
+
+function showError(msg) {
+  document.getElementById('messages').innerHTML = '<div style="text-align:center;padding:40px;color:#55558a;font-size:.82rem;font-weight:700">⚠️ '+msg+'</div>';
+}
+
+function startChat() {
+  loadChannel(CHANNEL);
+  updatePresence();
+  listenOnline();
+}
+
+// ══════════════════════════════════════════════
+// CHANNEL
+// ══════════════════════════════════════════════
+function switchChannel(ch, btn) {
+  CHANNEL = ch;
+  document.querySelectorAll('.channel').forEach(function(c){c.classList.remove('active');});
+  if (btn) btn.classList.add('active');
+  var info = CHANNEL_INFO[ch] || { icon:'💬', desc:'' };
+  document.getElementById('chIcon').textContent = info.icon;
+  document.getElementById('chName').textContent = ch;
+  document.getElementById('chDesc').textContent = info.desc;
+  document.getElementById('msgInput').placeholder = 'Message #'+ch+'...';
+  loadChannel(ch);
+  document.getElementById('recForm').classList.remove('show');
+  document.getElementById('recToggle').classList.remove('active');
+}
+
+function loadChannel(ch) {
+  if (UNSUBSCRIBE) { UNSUBSCRIBE(); UNSUBSCRIBE = null; }
+  document.getElementById('messages').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+  if (!db) { showError('Not connected to Firebase yet.'); return; }
+  UNSUBSCRIBE = db.collection('chat_'+ch)
+    .orderBy('ts', 'asc')
+    .limitToLast(MSG_LIMIT)
+    .onSnapshot(function(snap) {
+      renderMessages(snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }));
+      // Update count badge
+      var el = document.getElementById('cnt-'+ch);
+      if (el) el.textContent = snap.size;
+    }, function(err) {
+      showError('Could not load messages: ' + err.message);
+    });
+}
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+function renderMessages(msgs) {
+  var el = document.getElementById('messages');
+  if (!msgs.length) {
+    el.innerHTML = '<div class="sys-msg">No messages yet — be the first to say something! 👋</div>';
+    return;
+  }
+  var html = '';
+  var lastUid = null;
+  var lastTime = null;
+
+  msgs.forEach(function(m, idx) {
+    var ts = m.ts ? m.ts.toDate ? m.ts.toDate() : new Date(m.ts) : new Date();
+    var timeStr = ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    var sameUser = m.uid === lastUid;
+    var sameMinute = lastTime && (ts - lastTime) < 60000;
+    var grouped = sameUser && sameMinute;
+
+    if (m.type === 'system') {
+      html += '<div class="sys-msg">'+escHtml(m.text)+'</div>';
+      lastUid = null; lastTime = null; return;
+    }
+
+    if (!grouped) {
+      html += '<div class="msg-group">';
+      var col = avatarColor(m.uid||'x');
+      var badge = m.isOwner ? '<span class="msg-badge badge-owner">Owner</span>' : m.isMod ? '<span class="msg-badge badge-mod">Mod</span>' : '';
+      html += '<div style="display:flex;gap:9px;align-items:flex-start">';
+      html += '<div class="msg-avatar" style="background:linear-gradient(135deg,'+col+','+col+'88)">'+initials(m.name)+'</div>';
+      html += '<div style="flex:1"><div class="msg-header"><span class="msg-name" style="color:'+col+'">'+escHtml(m.name||'User')+'</span>'+badge+'<span class="msg-time">'+timeStr+'</span></div>';
+    } else {
+      html += '<div class="msg-continued">';
+    }
+
+    // Message content
+    if (m.type === 'rec') {
+      var tagCol = REC_COLORS[m.recCategory] || '#aaaacc';
+      html += '<div class="msg-text">'+escHtml(m.text||'')+'</div>';
+      html += '<div class="rec-card">';
+      html += '<div class="rec-card-title">'+escHtml(m.recTitle||'')+'</div>';
+      html += '<div class="rec-card-body">'+escHtml(m.recBody||'')+'</div>';
+      html += '<div class="rec-card-tags"><span class="rec-tag" style="background:'+tagCol+'22;color:'+tagCol+'">'+escHtml(m.recCategory||'tip')+'</span></div>';
+      html += '</div>';
+    } else {
+      html += '<div class="msg-text">'+linkify(escHtml(m.text||''))+'</div>';
+    }
+
+    // Reactions
+    if (m.reactions && Object.keys(m.reactions).length) {
+      html += '<div class="msg-reactions">';
+      Object.keys(m.reactions).forEach(function(emoji) {
+        var users = m.reactions[emoji] || [];
+        var mine = currentUser && users.indexOf(currentUser.uid) !== -1;
+        html += '<div class="reaction'+(mine?' mine':'')+'" onclick="react(\''+m.id+'\',\''+emoji+'\')" title="'+users.length+' reaction(s)">';
+        html += emoji + ' <span class="reaction-count">'+users.length+'</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    // Quick react buttons on hover - always show for last few messages
+    if (idx >= msgs.length - 10) {
+      html += '<div style="display:flex;gap:4px;margin-top:4px;opacity:.35;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.35">';
+      ['👍','🔥','⚽','😂','💡'].forEach(function(e){
+        html += '<div onclick="react(\''+m.id+'\',\''+e+'\')" style="cursor:pointer;font-size:.8rem;background:rgba(255,255,255,.05);border-radius:6px;padding:2px 6px;transition:all .15s" onmouseover="this.style.background=\'rgba(255,255,255,.12)\'" onmouseout="this.style.background=\'rgba(255,255,255,.05)\'">'+e+'</div>';
+      });
+      html += '</div>';
+    }
+
+    if (!grouped) { html += '</div></div></div>'; }
+    else { html += '</div>'; }
+
+    lastUid = m.uid;
+    lastTime = ts;
+  });
+
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function linkify(text) {
+  return text.replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+// ══════════════════════════════════════════════
+// SEND
+// ══════════════════════════════════════════════
+function sendMsg() {
+  if (IS_SENDING) return;
+  var inp = document.getElementById('msgInput');
+  var text = (inp.value||'').trim();
+  if (!text) return;
+
+  if (!currentUser) {
+    alert('Sign in to send messages! Go to index.html to sign in.');
+    return;
+  }
+
+  // Check if sending a recommendation
+  var recForm = document.getElementById('recForm');
+  var isRec = recForm.classList.contains('show');
+  var recData = {};
+  if (isRec) {
+    var rt = (document.getElementById('recTitle').value||'').trim();
+    var rb = (document.getElementById('recBody').value||'').trim();
+    if (!rt || !rb) { alert('Fill in the recommendation title and description!'); return; }
+    recData = { type:'rec', recTitle:rt, recBody:rb, recCategory:document.getElementById('recCategory').value };
+  }
+
+  IS_SENDING = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  var msg = Object.assign({
+    uid:  currentUser.uid,
+    name: currentUser.name,
+    text: text,
+    ts:   firebase.firestore.FieldValue.serverTimestamp(),
+    type: isRec ? 'rec' : 'text',
+    reactions: {}
+  }, recData);
+
+  db.collection('chat_'+CHANNEL).add(msg)
+    .then(function() {
+      inp.value = '';
+      inp.style.height = 'auto';
+      document.getElementById('charCount').textContent = '0 / 500';
+      if (isRec) {
+        document.getElementById('recTitle').value='';
+        document.getElementById('recBody').value='';
+        recForm.classList.remove('show');
+        document.getElementById('recToggle').classList.remove('active');
+      }
+    })
+    .catch(function(e) { alert('Could not send: ' + e.message); })
+    .finally(function() {
+      IS_SENDING = false;
+      document.getElementById('sendBtn').disabled = false;
+    });
+}
+
+function react(msgId, emoji) {
+  if (!currentUser || !db) return;
+  var ref = db.collection('chat_'+CHANNEL).doc(msgId);
+  ref.get().then(function(doc) {
+    if (!doc.exists) return;
+    var reactions = doc.data().reactions || {};
+    var users = reactions[emoji] || [];
+    var idx = users.indexOf(currentUser.uid);
+    if (idx === -1) users.push(currentUser.uid);
+    else users.splice(idx, 1);
+    reactions[emoji] = users;
+    if (!users.length) delete reactions[emoji];
+    return ref.update({ reactions: reactions });
+  }).catch(function(){});
+}
+
+// ══════════════════════════════════════════════
+// INPUT HANDLING
+// ══════════════════════════════════════════════
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  // Typing indicator
+  if (!currentUser || !db) return;
+  clearTimeout(TYPING_TIMEOUT);
+  db.collection('typing').doc(currentUser.uid).set({ name:currentUser.name, ts:Date.now() }).catch(function(){});
+  TYPING_TIMEOUT = setTimeout(function(){
+    if(db&&currentUser) db.collection('typing').doc(currentUser.uid).delete().catch(function(){});
+  }, 2500);
+}
+
+function handleInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  document.getElementById('charCount').textContent = el.value.length + ' / 500';
+}
+
+function insertEmoji(e) {
+  var inp = document.getElementById('msgInput');
+  inp.value += e;
+  inp.focus();
+  handleInput(inp);
+}
+
+function toggleRecForm() {
+  var form = document.getElementById('recForm');
+  var btn  = document.getElementById('recToggle');
+  form.classList.toggle('show');
+  btn.classList.toggle('active');
+  if (CHANNEL !== 'recommendations') { switchChannel('recommendations', document.querySelector('.channel:nth-child(2)')); }
+}
+
+// ══════════════════════════════════════════════
+// PRESENCE / ONLINE
+// ══════════════════════════════════════════════
+function updatePresence() {
+  if (!currentUser || !db) return;
+  var ref = db.collection('presence').doc(currentUser.uid);
+  ref.set({ name: currentUser.name, uid: currentUser.uid, ts: Date.now(), online: true });
+  setInterval(function(){ ref.set({ name:currentUser.name, uid:currentUser.uid, ts:Date.now(), online:true }); }, 30000);
+  window.addEventListener('beforeunload', function(){ ref.set({ online:false, ts:Date.now(), name:currentUser.name, uid:currentUser.uid }); });
+}
+
+function listenOnline() {
+  if (!db) return;
+  // Listen to presence (users active in last 2 mins)
+  setInterval(function(){
+    db.collection('presence').where('online','==',true).get().then(function(snap){
+      var now = Date.now();
+      var active = snap.docs.filter(function(d){ return now - (d.data().ts||0) < 120000; });
+      document.getElementById('onlineCount').textContent = active.length;
+      var list = document.getElementById('onlineList');
+      list.innerHTML = active.slice(0,8).map(function(d){
+        var col = avatarColor(d.data().uid||'x');
+        return '<div class="online-user"><div class="user-dot online" style="background:'+col+'"></div><span>'+escHtml(d.data().name||'User').split(' ')[0]+'</span></div>';
+      }).join('');
+    }).catch(function(){});
+  }, 10000);
+
+  // Typing indicator
+  db.collection('typing').onSnapshot(function(snap){
+    var now = Date.now();
+    var typers = snap.docs
+      .filter(function(d){ return now - (d.data().ts||0) < 4000 && (!currentUser || d.id !== currentUser.uid); })
+      .map(function(d){ return d.data().name; });
+    var el = document.getElementById('typingIndicator');
+    if (typers.length === 1) el.textContent = typers[0] + ' is typing...';
+    else if (typers.length > 1) el.textContent = typers.slice(0,-1).join(', ') + ' and ' + typers.slice(-1) + ' are typing...';
+    else el.textContent = '';
+  });
+}
+
+// ══════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════
+window.addEventListener('load', function(){ initChat(25); });
+</script>
+</body>
+</html>

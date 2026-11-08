@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>NAME-O-MATIC — Tactics Board</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.12);--text:#eeeeff;--muted:#55558a;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* NAV */
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:52px;display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.35rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a1),var(--a2),var(--a3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.78rem;padding:7px 14px;border-radius:8px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(255,255,255,.09);
+  color:var(--text);text-decoration:none;transition:all .18s;white-space:nowrap;}
+.nbtn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);}
+.nbtn.active{background:rgba(255,210,63,.18);border-color:rgba(255,210,63,.5);color:var(--a2);}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:200px;background:rgba(7,7,15,.9);border-right:1.5px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+.sidebar::-webkit-scrollbar{width:3px;}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);}
+.sblock{padding:10px 10px 6px;border-bottom:1px solid rgba(255,255,255,.06);}
+.sblock-title{font-family:'Bangers',cursive;font-size:.78rem;letter-spacing:2px;color:var(--muted);margin-bottom:7px;}
+.form-btn{width:100%;text-align:left;padding:7px 10px;font-family:'Fredoka One',cursive;
+  font-size:.75rem;border:1.5px solid rgba(255,255,255,.15);border-radius:8px;
+  background:rgba(255,255,255,.07);color:var(--text);cursor:pointer;margin-bottom:4px;transition:all .15s;}
+.form-btn:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);}
+.form-btn.sel{background:rgba(255,210,63,.2);border-color:rgba(255,210,63,.5);color:var(--a2);}
+.color-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
+.color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid rgba(255,255,255,.1);transition:all .15s;}
+.color-dot:hover,.color-dot.sel{border-color:#fff;transform:scale(1.15);}
+.tool-row{display:flex;gap:4px;flex-wrap:wrap;}
+.tool-btn{padding:6px 8px;font-size:.7rem;font-weight:800;border:1.5px solid rgba(255,255,255,.18);
+  border-radius:7px;background:rgba(255,255,255,.07);color:var(--text);cursor:pointer;transition:all .15s;flex:1;text-align:center;}
+.tool-btn:hover{background:rgba(255,255,255,.18);}
+.tool-btn.sel{background:rgba(168,85,247,.2);border-color:rgba(168,85,247,.5);color:var(--a4);}
+.action-btn{width:100%;padding:8px;font-family:'Fredoka One',cursive;font-size:.78rem;
+  border:1.5px solid;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:all .18s;font-weight:700;}
+.action-btn:hover{transform:translateY(-1px);}
+.action-btn.green{background:rgba(6,255,165,.15);border-color:rgba(6,255,165,.4);color:var(--a3);}
+.action-btn.orange{background:rgba(255,107,53,.15);border-color:rgba(255,107,53,.4);color:var(--a1);}
+.action-btn.purple{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.4);color:var(--a4);}
+.action-btn.red{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.35);color:#fca5a5;}
+input[type="text"]{width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.2);
+  border-radius:7px;padding:6px 10px;color:var(--text);font-family:'Nunito',sans-serif;
+  font-size:.76rem;font-weight:700;outline:none;margin-bottom:4px;}
+input[type="text"]:focus{border-color:var(--a4);}
+
+/* PITCH CANVAS AREA */
+.pitch-wrap{flex:1;display:flex;align-items:stretch;justify-content:center;
+  background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(6,255,165,.04),transparent);
+  padding:10px;overflow:hidden;}
+#pitchCanvas{display:block;border-radius:12px;cursor:crosshair;touch-action:none;}
+
+/* PLAYER TOOLTIP */
+#tooltip{position:fixed;background:rgba(0,0,0,.88);border:1.5px solid rgba(255,255,255,.2);
+  border-radius:9px;padding:7px 12px;font-size:.72rem;font-weight:700;color:var(--text);
+  pointer-events:none;z-index:300;display:none;white-space:nowrap;}
+
+/* SAVE MODAL */
+#saveModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;
+  align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.modal-box{background:#0e0e1e;border:1.5px solid rgba(168,85,247,.4);border-radius:16px;padding:24px;min-width:300px;}
+.modal-box h3{font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:3px;color:var(--a4);margin-bottom:14px;}
+.modal-row{display:flex;gap:8px;margin-top:10px;}
+
+/* INSTRUCTION BAR */
+#instrBar{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.75);border:1.5px solid var(--border);border-radius:20px;
+  padding:6px 18px;font-size:.68rem;font-weight:800;color:var(--muted);
+  pointer-events:none;z-index:50;white-space:nowrap;}
+
+@media(max-width:600px){.sidebar{width:140px;}.sblock{padding:7px 7px 4px;}}
+</style>
+<script>
+/* nom-upgrade: safe storage read */
+function nomGet(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}}
+</script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🗂️ TACTICS BOARD</div>
+  <div class="ml" style="display:flex;gap:6px;">
+    <button class="nbtn active" onclick="setTool('move')" id="tool-move">✋ Move</button>
+    <button class="nbtn" onclick="setTool('arrow')" id="tool-arrow">↗️ Arrow</button>
+    <button class="nbtn" onclick="setTool('pass')" id="tool-pass">🔵 Pass Line</button>
+    <button class="nbtn" onclick="setTool('run')" id="tool-run">🟢 Run</button>
+    <button class="nbtn" onclick="setTool('zone')" id="tool-zone">🟡 Zone</button>
+    <div style="width:1px;height:24px;background:var(--border);margin:0 2px;"></div>
+    <button class="nbtn" onclick="undoLast()">↩️ Undo</button>
+    <button class="nbtn" onclick="clearArrows()">🗑️ Clear Lines</button>
+    <button class="nbtn" onclick="openSave()">💾 Save</button>
+    <a href="index.html" class="nbtn">← Home</a>
+  </div>
+</nav>
+
+<div class="layout">
+  <div class="sidebar">
+
+    <!-- FORMATION -->
+    <div class="sblock">
+      <div class="sblock-title">⚙️ FORMATION</div>
+      <button class="form-btn sel" onclick="setFormation('433',this)">4-3-3</button>
+      <button class="form-btn" onclick="setFormation('442',this)">4-4-2</button>
+      <button class="form-btn" onclick="setFormation('352',this)">3-5-2</button>
+      <button class="form-btn" onclick="setFormation('4231',this)">4-2-3-1</button>
+      <button class="form-btn" onclick="setFormation('343',this)">3-4-3</button>
+      <button class="form-btn" onclick="setFormation('532',this)">5-3-2</button>
+      <button class="form-btn" onclick="setFormation('451',this)">4-5-1</button>
+    </div>
+
+    <!-- TEAM COLOR -->
+    <div class="sblock">
+      <div class="sblock-title">🎨 TEAM COLOR</div>
+      <div class="color-row" id="colorRow">
+        <div class="color-dot sel" style="background:#e8012c" onclick="setColor('#e8012c',this)" title="Red"></div>
+        <div class="color-dot" style="background:#3b82f6" onclick="setColor('#3b82f6',this)" title="Blue"></div>
+        <div class="color-dot" style="background:#ffd23f" onclick="setColor('#ffd23f',this)" title="Yellow"></div>
+        <div class="color-dot" style="background:#06ffa5" onclick="setColor('#06ffa5',this)" title="Green"></div>
+        <div class="color-dot" style="background:#a855f7" onclick="setColor('#a855f7',this)" title="Purple"></div>
+        <div class="color-dot" style="background:#ec4899" onclick="setColor('#ec4899',this)" title="Pink"></div>
+        <div class="color-dot" style="background:#000000" onclick="setColor('#000000',this)" title="Black"></div>
+        <div class="color-dot" style="background:#ffffff" onclick="setColor('#ffffff',this)" title="White"></div>
+        <div class="color-dot" style="background:#f97316" onclick="setColor('#f97316',this)" title="Orange"></div>
+      </div>
+      <div class="sblock-title" style="margin-top:6px;">OPPONENT</div>
+      <div class="color-row" id="oppColorRow">
+        <div class="color-dot sel" style="background:#3b82f6" onclick="setOppColor('#3b82f6',this)"></div>
+        <div class="color-dot" style="background:#06ffa5" onclick="setOppColor('#06ffa5',this)"></div>
+        <div class="color-dot" style="background:#ffd23f" onclick="setOppColor('#ffd23f',this)"></div>
+        <div class="color-dot" style="background:#e8012c" onclick="setOppColor('#e8012c',this)"></div>
+        <div class="color-dot" style="background:#aaaaaa" onclick="setOppColor('#aaaaaa',this)"></div>
+        <div class="color-dot" style="background:#ec4899" onclick="setOppColor('#ec4899',this)"></div>
+      </div>
+    </div>
+
+    <!-- PLAYERS -->
+    <div class="sblock">
+      <div class="sblock-title">👥 EDIT PLAYER</div>
+      <div id="selectedPlayerInfo" style="font-size:.7rem;color:var(--muted);margin-bottom:6px;">Click a player to edit</div>
+      <input type="text" id="playerNameInput" placeholder="Player name..." oninput="updatePlayerName(this.value)">
+      <button class="action-btn green" onclick="addOpponent()">➕ Add Opponent</button>
+      <button class="action-btn orange" onclick="togglePlayerNumbers()">🔢 Toggle Numbers</button>
+      <button class="action-btn red" onclick="removeSelected()">🗑️ Remove Player</button>
+    </div>
+
+    <!-- LABELS & STYLE -->
+    <div class="sblock">
+      <div class="sblock-title">💬 LABEL</div>
+      <input type="text" id="labelInput" placeholder="Add text label..." oninput="">
+      <button class="action-btn purple" onclick="addLabel()">+ Add Label</button>
+    </div>
+
+    <!-- TACTICS NOTES -->
+    <div class="sblock">
+      <div class="sblock-title">📝 NOTES</div>
+      <textarea id="tacticNotes" style="width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);border-radius:7px;padding:7px;color:var(--text);font-family:'Nunito',sans-serif;font-size:.7rem;font-weight:700;outline:none;resize:none;height:70px;" placeholder="e.g. High press, quick transitions..."></textarea>
+    </div>
+
+    <!-- PRESETS -->
+    <div class="sblock">
+      <div class="sblock-title">⚡ QUICK TACTICS</div>
+      <button class="action-btn purple" onclick="applyTactic('tiki')">🕷️ Tiki-Taka</button>
+      <button class="action-btn orange" onclick="applyTactic('counter')">⚡ Counter-Attack</button>
+      <button class="action-btn green" onclick="applyTactic('press')">🔥 High Press</button>
+      <button class="action-btn" style="background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);color:var(--a5);" onclick="applyTactic('park')">🛡️ Park the Bus</button>
+    </div>
+
+  </div><!-- sidebar -->
+
+  <div class="pitch-wrap">
+    <canvas id="pitchCanvas"></canvas>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip"></div>
+
+<!-- INSTRUCTION BAR -->
+<div id="instrBar">✋ Drag players to move · ↗️ Draw arrows for runs · Double-click player name to edit</div>
+
+<!-- SAVE MODAL -->
+<div id="saveModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+  <div class="modal-box">
+    <h3>💾 SAVE TACTIC</h3>
+    <input type="text" id="tacticNameInput" placeholder="Tactic name (e.g. Home Press)..." style="font-size:.84rem;margin-bottom:0;">
+    <div class="modal-row">
+      <button class="action-btn green" style="flex:1;margin:0;" onclick="saveTactic()">Save</button>
+      <button class="action-btn red" style="flex:1;margin:0;" onclick="closeSave()">Cancel</button>
+    </div>
+    <div style="margin-top:14px;font-family:'Bangers',cursive;font-size:.85rem;letter-spacing:2px;color:var(--muted);margin-bottom:6px;">SAVED TACTICS</div>
+    <div id="savedTacticsList" style="max-height:150px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+var canvas = document.getElementById('pitchCanvas');
+var ctx = canvas.getContext('2d');
+var TOOL = 'move';
+var TEAM_COLOR = '#e8012c';
+var OPP_COLOR = '#3b82f6';
+var SHOW_NUMBERS = true;
+var SELECTED = null;
+var DRAGGING = false;
+var DRAG_OFFSET = {x:0,y:0};
+var DRAW_START = null;
+var ARROWS = [];
+var LABELS = [];
+var HISTORY = [];
+var PLAYERS = [];
+var W, H, PW, PH, OX, OY;
+
+// ═══════════════════════════════════════════════════════
+// FORMATIONS (positions as 0-1 fractions of pitch)
+// ═══════════════════════════════════════════════════════
+var FORMATIONS = {
+  '433': [
+    {pos:'GK',x:.5,y:.92},{pos:'LB',x:.18,y:.72},{pos:'CB',x:.37,y:.76},
+    {pos:'CB',x:.63,y:.76},{pos:'RB',x:.82,y:.72},{pos:'CM',x:.25,y:.54},
+    {pos:'CM',x:.5,y:.52},{pos:'CM',x:.75,y:.54},{pos:'LW',x:.2,y:.28},
+    {pos:'ST',x:.5,y:.2},{pos:'RW',x:.8,y:.28}
+  ],
+  '442': [
+    {pos:'GK',x:.5,y:.92},{pos:'LB',x:.15,y:.72},{pos:'CB',x:.37,y:.76},
+    {pos:'CB',x:.63,y:.76},{pos:'RB',x:.85,y:.72},{pos:'LM',x:.15,y:.52},
+    {pos:'CM',x:.38,y:.54},{pos:'CM',x:.62,y:.54},{pos:'RM',x:.85,y:.52},
+    {pos:'ST',x:.37,y:.2},{pos:'ST',x:.63,y:.2}
+  ],
+  '352': [
+    {pos:'GK',x:.5,y:.92},{pos:'CB',x:.25,y:.74},{pos:'CB',x:.5,y:.76},
+    {pos:'CB',x:.75,y:.74},{pos:'LM',x:.12,y:.52},{pos:'CM',x:.32,y:.54},
+    {pos:'CM',x:.5,y:.5},{pos:'CM',x:.68,y:.54},{pos:'RM',x:.88,y:.52},
+    {pos:'ST',x:.37,y:.2},{pos:'ST',x:.63,y:.2}
+  ],
+  '4231': [
+    {pos:'GK',x:.5,y:.92},{pos:'LB',x:.15,y:.72},{pos:'CB',x:.37,y:.76},
+    {pos:'CB',x:.63,y:.76},{pos:'RB',x:.85,y:.72},{pos:'CDM',x:.38,y:.58},
+    {pos:'CDM',x:.62,y:.58},{pos:'LAM',x:.22,y:.38},{pos:'CAM',x:.5,y:.36},
+    {pos:'RAM',x:.78,y:.38},{pos:'ST',x:.5,y:.2}
+  ],
+  '343': [
+    {pos:'GK',x:.5,y:.92},{pos:'CB',x:.25,y:.76},{pos:'CB',x:.5,y:.78},
+    {pos:'CB',x:.75,y:.76},{pos:'LM',x:.12,y:.52},{pos:'CM',x:.37,y:.54},
+    {pos:'CM',x:.63,y:.54},{pos:'RM',x:.88,y:.52},{pos:'LW',x:.2,y:.22},
+    {pos:'ST',x:.5,y:.16},{pos:'RW',x:.8,y:.22}
+  ],
+  '532': [
+    {pos:'GK',x:.5,y:.92},{pos:'LB',x:.1,y:.72},{pos:'CB',x:.28,y:.76},
+    {pos:'CB',x:.5,y:.78},{pos:'CB',x:.72,y:.76},{pos:'RB',x:.9,y:.72},
+    {pos:'CM',x:.28,y:.5},{pos:'CM',x:.5,y:.48},{pos:'CM',x:.72,y:.5},
+    {pos:'ST',x:.37,y:.2},{pos:'ST',x:.63,y:.2}
+  ],
+  '451': [
+    {pos:'GK',x:.5,y:.92},{pos:'LB',x:.15,y:.72},{pos:'CB',x:.37,y:.76},
+    {pos:'CB',x:.63,y:.76},{pos:'RB',x:.85,y:.72},{pos:'LM',x:.12,y:.5},
+    {pos:'CM',x:.3,y:.52},{pos:'CM',x:.5,y:.5},{pos:'CM',x:.7,y:.52},
+    {pos:'RM',x:.88,y:.5},{pos:'ST',x:.5,y:.18}
+  ]
+};
+
+var PLAYER_NAMES_DEFAULT = {
+  GK:'Goalkeeper',LB:'Left Back',RB:'Right Back',CB:'Centre Back',
+  LM:'Left Mid',RM:'Right Mid',CM:'Centre Mid',CDM:'Def Mid',
+  CAM:'Att Mid',LAM:'Left AM',RAM:'Right AM',
+  LW:'Left Wing',RW:'Right Wing',ST:'Striker',CF:'Centre Forward'
+};
+
+// ═══════════════════════════════════════════════════════
+// RESIZE & INIT
+// ═══════════════════════════════════════════════════════
+function resize(){
+  var wrap = canvas.parentElement;
+  W = wrap.clientWidth - 20;
+  H = wrap.clientHeight - 20;
+  canvas.width = W;
+  canvas.height = H;
+  // Pitch proportions (standard 105x68)
+  var aspect = 68/105;
+  if(W * aspect <= H){
+    PW = W - 40;
+    PH = PW * aspect;
+  } else {
+    PH = H - 20;
+    PW = PH / aspect;
+  }
+  OX = (W - PW) / 2;
+  OY = (H - PH) / 2;
+  // Reposition players to match new pitch size
+  PLAYERS.forEach(function(p){
+    p.cx = OX + p.fx * PW;
+    p.cy = OY + p.fy * PH;
+  });
+  draw();
+}
+
+function initPlayers(formation){
+  var spots = FORMATIONS[formation] || FORMATIONS['433'];
+  PLAYERS = spots.map(function(s,i){
+    return {
+      fx: s.x, fy: s.y,
+      cx: OX + s.x*PW, cy: OY + s.y*PH,
+      pos: s.pos, name: PLAYER_NAMES_DEFAULT[s.pos] || s.pos,
+      num: i+1, isOpp: false, r: 18
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════════════
+function drawPitch(){
+  // Grass
+  var grad = ctx.createLinearGradient(OX,OY,OX,OY+PH);
+  grad.addColorStop(0,'#1a5c1a');grad.addColorStop(.5,'#1e6b1e');grad.addColorStop(1,'#155c15');
+  ctx.fillStyle=grad;
+  ctx.beginPath();ctx.roundRect(OX,OY,PW,PH,10);ctx.fill();
+
+  // Stripes
+  ctx.save();ctx.beginPath();ctx.roundRect(OX,OY,PW,PH,10);ctx.clip();
+  for(var i=0;i<10;i++){
+    ctx.fillStyle = i%2===0?'rgba(0,0,0,.07)':'rgba(255,255,255,.03)';
+    ctx.fillRect(OX+i*(PW/10),OY,PW/10,PH);
+  }
+  ctx.restore();
+
+  // Lines
+  ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=2;
+  ctx.strokeRect(OX,OY,PW,PH);
+  // Centre line
+  ctx.beginPath();ctx.moveTo(OX,OY+PH/2);ctx.lineTo(OX+PW,OY+PH/2);ctx.stroke();
+  // Centre circle
+  ctx.beginPath();ctx.arc(OX+PW/2,OY+PH/2,PW*.085,0,Math.PI*2);ctx.stroke();
+  // Centre spot
+  ctx.fillStyle='rgba(255,255,255,.75)';
+  ctx.beginPath();ctx.arc(OX+PW/2,OY+PH/2,3,0,Math.PI*2);ctx.fill();
+  // Penalty areas
+  var paw=PW*.305, pah=PH*.365;
+  ctx.strokeRect(OX,OY+(PH-pah)/2,paw,pah);
+  ctx.strokeRect(OX+PW-paw,OY+(PH-pah)/2,paw,pah);
+  // 6-yard boxes
+  var sw=PW*.115,sh=PH*.205;
+  ctx.strokeRect(OX,OY+(PH-sh)/2,sw,sh);
+  ctx.strokeRect(OX+PW-sw,OY+(PH-sh)/2,sw,sh);
+  // Penalty spots
+  ctx.fillStyle='rgba(255,255,255,.75)';
+  ctx.beginPath();ctx.arc(OX+PW*.115,OY+PH/2,3,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(OX+PW*.885,OY+PH/2,3,0,Math.PI*2);ctx.fill();
+  // Corner arcs
+  [[OX,OY],[OX+PW,OY],[OX,OY+PH],[OX+PW,OY+PH]].forEach(function(p,i){
+    var sa=[0,Math.PI/2,3*Math.PI/2,Math.PI][i];
+    var ea=sa+Math.PI/2;
+    ctx.beginPath();ctx.arc(p[0],p[1],PW*.025,sa,ea);ctx.stroke();
+  });
+}
+
+function drawArrow(a){
+  var x1=a.x1,y1=a.y1,x2=a.x2,y2=a.y2;
+  var col = a.type==='pass'?'rgba(59,130,246,.85)':a.type==='run'?'rgba(6,255,165,.85)':a.type==='zone'?'rgba(255,210,63,.4)':'rgba(255,255,255,.75)';
+  ctx.save();
+  ctx.strokeStyle=col;ctx.fillStyle=col;
+  if(a.type==='zone'){
+    ctx.lineWidth=0;
+    ctx.fillStyle='rgba(255,210,63,.12)';
+    var r=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+    ctx.beginPath();ctx.arc(x1+(x2-x1)/2,y1+(y2-y1)/2,r/2,0,Math.PI*2);ctx.fill();
+    ctx.restore();return;
+  }
+  ctx.lineWidth = a.type==='pass'?2.5:2;
+  if(a.type==='arrow') ctx.setLineDash([0]);
+  else if(a.type==='run') ctx.setLineDash([8,4]);
+  else ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  // Arrowhead
+  ctx.setLineDash([]);
+  var ang=Math.atan2(y2-y1,x2-x1);
+  var len=10;
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-len*Math.cos(ang-Math.PI/7),y2-len*Math.sin(ang-Math.PI/7));
+  ctx.lineTo(x2-len*Math.cos(ang+Math.PI/7),y2-len*Math.sin(ang+Math.PI/7));
+  ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+function drawLabel(l){
+  ctx.save();
+  ctx.font='700 12px Nunito,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,.9)';
+  ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=3;
+  ctx.strokeText(l.text,l.x,l.y);
+  ctx.fillText(l.text,l.x,l.y);
+  ctx.restore();
+}
+
+function drawPlayer(p){
+  var r=p.r;
+  // Shadow
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.25)';
+  ctx.beginPath();ctx.ellipse(p.cx+2,p.cy+r*.6,r*.7,r*.25,0,0,Math.PI*2);ctx.fill();
+  // Circle
+  ctx.fillStyle = p.isOpp ? OPP_COLOR : TEAM_COLOR;
+  ctx.strokeStyle = SELECTED===p?'#fff':p.isOpp?'rgba(255,255,255,.5)':'rgba(255,255,255,.3)';
+  ctx.lineWidth = SELECTED===p?3:1.5;
+  ctx.beginPath();ctx.arc(p.cx,p.cy,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+  // Shine
+  var shine=ctx.createRadialGradient(p.cx-r*.3,p.cy-r*.35,1,p.cx,p.cy,r);
+  shine.addColorStop(0,'rgba(255,255,255,.4)');shine.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=shine;ctx.beginPath();ctx.arc(p.cx,p.cy,r,0,Math.PI*2);ctx.fill();
+  // Number
+  if(SHOW_NUMBERS && !p.isOpp){
+    ctx.font='900 '+(r*.75)+'px Nunito,sans-serif';
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(p.num,p.cx,p.cy);
+  } else if(p.isOpp){
+    ctx.font='900 '+(r*.75)+'px Nunito,sans-serif';
+    ctx.fillStyle='rgba(255,255,255,.8)';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('X',p.cx,p.cy);
+  }
+  // Name
+  ctx.font='700 10px Nunito,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,.9)';
+  ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineWidth=2.5;
+  ctx.textAlign='center';ctx.textBaseline='top';
+  var label = p.isOpp ? 'Opp' : (p.name.length>8?p.name.slice(0,8)+'…':p.name);
+  ctx.strokeText(label,p.cx,p.cy+r+2);
+  ctx.fillText(label,p.cx,p.cy+r+2);
+  ctx.restore();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawPitch();
+  ARROWS.forEach(drawArrow);
+  LABELS.forEach(drawLabel);
+  PLAYERS.forEach(drawPlayer);
+  // Draw in-progress arrow
+  if(DRAW_START){
+    ctx.save();ctx.globalAlpha=.6;
+    drawArrow({x1:DRAW_START.x,y1:DRAW_START.y,x2:DRAW_START.ex||DRAW_START.x,y2:DRAW_START.ey||DRAW_START.y,type:TOOL});
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PLAYER HIT TEST
+// ═══════════════════════════════════════════════════════
+function hitPlayer(x,y){
+  for(var i=PLAYERS.length-1;i>=0;i--){
+    var p=PLAYERS[i];
+    var d=Math.sqrt((x-p.cx)**2+(y-p.cy)**2);
+    if(d<=p.r+4) return p;
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+// POINTER EVENTS
+// ═══════════════════════════════════════════════════════
+function getXY(e){
+  var rect=canvas.getBoundingClientRect();
+  var src = e.touches ? e.touches[0] : e;
+  return {x:(src.clientX-rect.left)*(canvas.width/rect.width),
+          y:(src.clientY-rect.top)*(canvas.height/rect.height)};
+}
+
+canvas.addEventListener('pointerdown',function(e){
+  e.preventDefault();
+  var pt=getXY(e);
+  var p=hitPlayer(pt.x,pt.y);
+  if(TOOL==='move'){
+    if(p){
+      SELECTED=p; DRAGGING=true;
+      DRAG_OFFSET={x:pt.x-p.cx,y:pt.y-p.cy};
+      document.getElementById('selectedPlayerInfo').textContent=p.pos+': '+p.name;
+      document.getElementById('playerNameInput').value=p.name;
+    } else {
+      SELECTED=null;
+      document.getElementById('selectedPlayerInfo').textContent='Click a player to edit';
+      document.getElementById('playerNameInput').value='';
+    }
+  } else {
+    // Arrow tools — start from player center if clicking player
+    DRAW_START = p ? {x:p.cx,y:p.cy,ex:p.cx,ey:p.cy} : {x:pt.x,y:pt.y,ex:pt.x,ey:pt.y};
+  }
+  draw();
+});
+
+canvas.addEventListener('pointermove',function(e){
+  e.preventDefault();
+  var pt=getXY(e);
+  if(TOOL==='move' && DRAGGING && SELECTED){
+    SELECTED.cx=pt.x-DRAG_OFFSET.x;
+    SELECTED.cy=pt.y-DRAG_OFFSET.y;
+    // Keep in pitch
+    SELECTED.cx=Math.max(OX+SELECTED.r,Math.min(OX+PW-SELECTED.r,SELECTED.cx));
+    SELECTED.cy=Math.max(OY+SELECTED.r,Math.min(OY+PH-SELECTED.r,SELECTED.cy));
+    SELECTED.fx=(SELECTED.cx-OX)/PW;
+    SELECTED.fy=(SELECTED.cy-OY)/PH;
+    draw();
+  } else if(DRAW_START){
+    DRAW_START.ex=pt.x; DRAW_START.ey=pt.y;
+    draw();
+  }
+  // Tooltip
+  var p=hitPlayer(pt.x,pt.y);
+  var tt=document.getElementById('tooltip');
+  if(p){
+    tt.textContent=(p.isOpp?'Opponent':'#'+p.num+' ')+p.name+' ('+p.pos+')';
+    tt.style.display='block';
+    tt.style.left=(e.clientX+12)+'px';tt.style.top=(e.clientY-8)+'px';
+  } else {
+    tt.style.display='none';
+  }
+});
+
+canvas.addEventListener('pointerup',function(e){
+  e.preventDefault();
+  var pt=getXY(e);
+  if(TOOL!=='move' && DRAW_START){
+    var dx=pt.x-DRAW_START.x, dy=pt.y-DRAW_START.y;
+    if(Math.abs(dx)>8||Math.abs(dy)>8){
+      var p2=hitPlayer(pt.x,pt.y);
+      saveHistory();
+      ARROWS.push({x1:DRAW_START.x,y1:DRAW_START.y,
+        x2:p2?p2.cx:pt.x, y2:p2?p2.cy:pt.y, type:TOOL});
+    }
+    DRAW_START=null;
+  }
+  DRAGGING=false;
+  draw();
+});
+
+canvas.addEventListener('touchstart',function(e){e.preventDefault();},{passive:false});
+canvas.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});
+canvas.addEventListener('touchend',function(e){e.preventDefault();},{passive:false});
+
+// ═══════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════
+var TOOL_INSTRS = {
+  move:'✋ Drag players around the pitch. Click to select and edit.',
+  arrow:'↗️ Click and drag to draw a movement arrow.',
+  pass:'🔵 Click and drag to draw a pass line.',
+  run:'🟢 Click and drag to draw a player run.',
+  zone:'🟡 Click and drag to mark a pressing/defensive zone.'
+};
+
+function setTool(t){
+  TOOL=t;
+  SELECTED=null; DRAGGING=false; DRAW_START=null;
+  ['move','arrow','pass','run','zone'].forEach(function(tn){
+    var btn=document.getElementById('tool-'+tn);
+    if(btn) btn.classList.toggle('active',tn===t);
+  });
+  document.getElementById('instrBar').textContent = TOOL_INSTRS[t]||'';
+  draw();
+}
+
+function setFormation(f,btn){
+  saveHistory();
+  document.querySelectorAll('.form-btn').forEach(function(b){b.classList.remove('sel');});
+  if(btn) btn.classList.add('sel');
+  initPlayers(f);
+  resize();
+}
+
+function setColor(col,dot){
+  TEAM_COLOR=col;
+  document.querySelectorAll('#colorRow .color-dot').forEach(function(d){d.classList.remove('sel');});
+  if(dot) dot.classList.add('sel');
+  draw();
+}
+
+function setOppColor(col,dot){
+  OPP_COLOR=col;
+  document.querySelectorAll('#oppColorRow .color-dot').forEach(function(d){d.classList.remove('sel');});
+  if(dot) dot.classList.add('sel');
+  draw();
+}
+
+function updatePlayerName(v){
+  if(SELECTED){ SELECTED.name=v; draw(); }
+}
+
+function togglePlayerNumbers(){
+  SHOW_NUMBERS=!SHOW_NUMBERS; draw();
+}
+
+function addOpponent(){
+  saveHistory();
+  PLAYERS.push({fx:.5,fy:.4,cx:OX+PW*.5,cy:OY+PH*.4,
+    pos:'OPP',name:'Opponent',num:0,isOpp:true,r:18});
+  draw();
+}
+
+function removeSelected(){
+  if(!SELECTED) return;
+  saveHistory();
+  PLAYERS=PLAYERS.filter(function(p){return p!==SELECTED;});
+  SELECTED=null;
+  document.getElementById('selectedPlayerInfo').textContent='Click a player to edit';
+  document.getElementById('playerNameInput').value='';
+  draw();
+}
+
+function addLabel(){
+  var txt=(document.getElementById('labelInput').value||'').trim();
+  if(!txt) return;
+  saveHistory();
+  LABELS.push({text:txt,x:OX+PW*.5,y:OY+PH*.5});
+  document.getElementById('labelInput').value='';
+  draw();
+}
+
+function clearArrows(){
+  saveHistory();
+  ARROWS=[];LABELS=[];draw();
+}
+
+function undoLast(){
+  var state=HISTORY.pop();
+  if(!state) return;
+  ARROWS=state.arrows;LABELS=state.labels;PLAYERS=state.players;draw();
+}
+
+function saveHistory(){
+  HISTORY.push({
+    arrows:ARROWS.map(function(a){return Object.assign({},a);}),
+    labels:LABELS.map(function(l){return Object.assign({},l);}),
+    players:PLAYERS.map(function(p){return Object.assign({},p);})
+  });
+  if(HISTORY.length>30) HISTORY.shift();
+}
+
+// ── QUICK TACTICS ────────────────────────────────────────────
+var TACTIC_PRESETS = {
+  tiki: {
+    arrows:[
+      {x1:.3,y1:.5,x2:.5,y2:.48,type:'pass'},
+      {x1:.5,y1:.48,x2:.45,y2:.35,type:'pass'},
+      {x1:.45,y1:.35,x2:.6,y2:.38,type:'pass'},
+      {x1:.25,y1:.52,x2:.28,y2:.38,type:'run'},
+    ],
+    notes:'Short passing, keep possession, triangles everywhere.'
+  },
+  counter:{
+    arrows:[
+      {x1:.2,y1:.28,x2:.6,y2:.2,type:'run'},
+      {x1:.8,y1:.28,x2:.6,y2:.2,type:'run'},
+      {x1:.5,y1:.5,x2:.5,y2:.28,type:'pass'},
+      {x1:.5,y1:.76,x2:.2,y2:.65,type:'zone'},
+    ],
+    notes:'Defend deep, win the ball, play it long to the strikers immediately.'
+  },
+  press:{
+    arrows:[
+      {x1:.2,y1:.28,x2:.22,y2:.38,type:'run'},
+      {x1:.5,y1:.2,x2:.45,y2:.32,type:'run'},
+      {x1:.8,y1:.28,x2:.78,y2:.38,type:'run'},
+      {x1:.5,y1:.5,x2:.4,y2:.38,type:'zone'},
+      {x1:.3,y1:.54,x2:.28,y2:.42,type:'zone'},
+    ],
+    notes:'High press from the front. Win the ball high up the pitch.'
+  },
+  park:{
+    arrows:[
+      {x1:.2,y1:.65,x2:.35,y2:.7,type:'zone'},
+      {x1:.5,y1:.7,x2:.5,y2:.78,type:'zone'},
+      {x1:.8,y1:.65,x2:.65,y2:.7,type:'zone'},
+      {x1:.15,y1:.72,x2:.85,y2:.72,type:'arrow'},
+    ],
+    notes:'Drop deep, compact shape, 2 banks of 4. No risks.'
+  }
+};
+
+function applyTactic(name){
+  var t=TACTIC_PRESETS[name];
+  if(!t) return;
+  saveHistory();
+  ARROWS=t.arrows.map(function(a){
+    return {x1:OX+a.x1*PW,y1:OY+a.y1*PH,x2:OX+a.x2*PW,y2:OY+a.y2*PH,type:a.type};
+  });
+  document.getElementById('tacticNotes').value=t.notes;
+  draw();
+}
+
+// ── SAVE/LOAD ─────────────────────────────────────────────────
+function openSave(){
+  document.getElementById('saveModal').style.display='flex';
+  loadSavedList();
+}
+
+function closeSave(){
+  document.getElementById('saveModal').style.display='none';
+}
+
+document.getElementById('saveModal').addEventListener('click',function(e){
+  if(e.target===this) closeSave();
+});
+
+function saveTactic(){
+  var name=(document.getElementById('tacticNameInput').value||'').trim()||('Tactic '+(Date.now()%10000));
+  var data={
+    name:name,
+    players:PLAYERS.map(function(p){return {fx:p.fx,fy:p.fy,pos:p.pos,name:p.name,num:p.num,isOpp:p.isOpp};}),
+    arrows:ARROWS.map(function(a){
+      return {fx1:(a.x1-OX)/PW,fy1:(a.y1-OY)/PH,fx2:(a.x2-OX)/PW,fy2:(a.y2-OY)/PH,type:a.type};
+    }),
+    labels:LABELS,
+    notes:document.getElementById('tacticNotes').value,
+    teamColor:TEAM_COLOR,oppColor:OPP_COLOR,
+    ts:Date.now()
+  };
+  var saved=nomGet('nom_tactics',[]);
+  saved.unshift(data);
+  if(saved.length>20) saved=saved.slice(0,20);
+  localStorage.setItem('nom_tactics',JSON.stringify(saved));
+  document.getElementById('tacticNameInput').value='';
+  loadSavedList();
+}
+
+function loadSavedList(){
+  var saved=nomGet('nom_tactics',[]);
+  var el=document.getElementById('savedTacticsList');
+  if(!saved.length){el.innerHTML='<div style="color:var(--muted);font-size:.72rem;padding:8px 0">No saved tactics yet.</div>';return;}
+  el.innerHTML=saved.map(function(t,i){
+    return '<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)">'
+      +'<span style="font-size:.74rem;font-weight:800;flex:1;color:var(--text)">'+t.name+'</span>'
+      +'<button onclick="loadTactic('+i+')" style="font-size:.65rem;font-weight:800;padding:3px 9px;border:1.5px solid rgba(6,255,165,.4);border-radius:6px;background:rgba(6,255,165,.1);color:var(--a3);cursor:pointer;">Load</button>'
+      +'<button onclick="deleteTactic('+i+')" style="font-size:.65rem;font-weight:800;padding:3px 9px;border:1.5px solid rgba(239,68,68,.3);border-radius:6px;background:rgba(239,68,68,.08);color:#fca5a5;cursor:pointer;">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function loadTactic(i){
+  var saved=nomGet('nom_tactics',[]);
+  var t=saved[i];if(!t) return;
+  TEAM_COLOR=t.teamColor||'#e8012c';
+  OPP_COLOR=t.oppColor||'#3b82f6';
+  PLAYERS=t.players.map(function(p){return {fx:p.fx,fy:p.fy,cx:OX+p.fx*PW,cy:OY+p.fy*PH,pos:p.pos,name:p.name,num:p.num,isOpp:p.isOpp,r:18};});
+  ARROWS=t.arrows.map(function(a){return {x1:OX+a.fx1*PW,y1:OY+a.fy1*PH,x2:OX+a.fx2*PW,y2:OY+a.fy2*PH,type:a.type};});
+  LABELS=t.labels||[];
+  document.getElementById('tacticNotes').value=t.notes||'';
+  closeSave();draw();
+}
+
+function deleteTactic(i){
+  var saved=nomGet('nom_tactics',[]);
+  saved.splice(i,1);
+  localStorage.setItem('nom_tactics',JSON.stringify(saved));
+  loadSavedList();
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('resize',resize);
+resize();
+initPlayers('433');
+resize();
+draw();
+</script>
+</body>
+</html>

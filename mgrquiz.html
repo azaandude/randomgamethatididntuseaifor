@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — What's Your Manager Style?</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.15);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+.hidden{display:none!important;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(168,85,247,.09),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(255,210,63,.07),transparent 55%);}
+
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.25rem;letter-spacing:2px;
+  background:linear-gradient(135deg,var(--a4),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(255,255,255,.09);
+  color:var(--text);text-decoration:none;transition:all .18s;font-weight:700;}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+
+.wrap{max-width:600px;margin:0 auto;padding:18px 14px 50px;position:relative;z-index:1;}
+.hero{text-align:center;padding:14px 0 20px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(1.8rem,6vw,2.8rem);letter-spacing:2px;
+  background:linear-gradient(135deg,var(--a4),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.hero-sub{font-size:.8rem;font-weight:700;color:var(--muted);}
+
+.progress-track{height:8px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden;margin-bottom:20px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--a4),var(--a2));transition:width .3s;}
+
+.gcard{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:22px 18px;margin-bottom:14px;}
+.q-num{font-size:.62rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.q-text{font-family:'Fredoka One',cursive;font-size:1.05rem;line-height:1.5;margin-bottom:18px;}
+.opt-btn{width:100%;text-align:left;padding:14px 16px;margin-bottom:9px;border-radius:12px;
+  border:1.5px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);
+  font-weight:700;font-size:.85rem;cursor:pointer;transition:all .18s;}
+.opt-btn:hover{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);transform:translateX(3px);}
+
+/* RESULT SCREEN */
+#resultScreen{display:none;text-align:center;}
+.result-icon{font-size:4rem;margin-bottom:8px;}
+.result-title{font-family:'Bangers',cursive;font-size:2rem;letter-spacing:2px;margin-bottom:6px;}
+.result-tagline{font-family:'Fredoka One',cursive;font-size:.95rem;color:var(--a2);margin-bottom:16px;}
+.result-desc{font-size:.84rem;font-weight:700;color:var(--muted);line-height:1.7;margin-bottom:18px;text-align:left;}
+.trait-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;}
+.trait-chip{font-size:.68rem;font-weight:800;padding:6px 13px;border-radius:20px;
+  background:rgba(255,255,255,.08);border:1.5px solid var(--border);}
+.suggested-formation{background:rgba(168,85,247,.08);border:1.5px solid rgba(168,85,247,.25);
+  border-radius:12px;padding:14px;margin-bottom:16px;text-align:center;}
+.sf-label{font-size:.6rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.sf-value{font-family:'Bangers',cursive;font-size:1.3rem;color:var(--a4);}
+
+.bigbtn{width:100%;padding:13px;font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;
+  border:none;border-radius:12px;cursor:pointer;transition:all .2s;margin-bottom:8px;}
+.bigbtn:hover{transform:translateY(-2px);}
+.btn-share{background:linear-gradient(135deg,var(--a4),var(--a2));color:#1a0800;}
+.btn-retry{background:rgba(255,255,255,.08);color:var(--text);border:1.5px solid var(--border);}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .3s ease both;}
+
+/* nom-upgrade: mobile */
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  img,canvas,video,svg{max-width:100%;height:auto}
+  nav{flex-wrap:wrap;height:auto;min-height:54px;padding:8px 10px;gap:6px}
+  nav .nbtn{font-size:.7rem;padding:5px 8px}
+  .nom-hub{bottom:8px}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🧠 MANAGER STYLE</div>
+  <div class="ml" style="display:flex;gap:7px">
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero fadein">
+    <div class="hero-title">🧠 WHICH MANAGER ARE YOU?</div>
+    <div class="hero-sub">8 real football scenarios — Champions League comebacks, cup final collapses, deadline day dilemmas. Find out which legendary manager's approach matches yours.</div>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+  <div id="quizScreen">
+    <div class="gcard fadein" id="questionCard"></div>
+  </div>
+
+  <div id="resultScreen">
+    <div class="gcard fadein">
+      <div class="result-icon" id="resultIcon">⚽</div>
+      <div class="result-title" id="resultTitle">The Tactician</div>
+      <div class="result-tagline" id="resultTagline">Every pass has a purpose.</div>
+      <div class="result-desc" id="resultDesc"></div>
+      <div class="trait-row" id="traitRow"></div>
+      <div class="suggested-formation">
+        <div class="sf-label">Your Formation Match</div>
+        <div class="sf-value" id="sfValue">4-3-3</div>
+      </div>
+      <button class="bigbtn btn-share" onclick="shareResult()">📋 SHARE RESULT</button>
+      <button class="bigbtn btn-retry" onclick="restartQuiz()">🔄 RETAKE QUIZ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// QUESTIONS — each answer adds points toward one or more archetypes
+// Archetypes: guardiola, klopp, mourinho, ancelotti
+// ═══════════════════════════════════════════════════════════════
+var QUESTIONS = [
+  { q: "It's added time in a Champions League final. You're 1-0 down with one final corner of the match. What's the instruction?", opts: [
+      { t: "Work it short and patient — one clean chance beats five scrappy ones", pts: {guardiola:2} },
+      { t: "Everyone forward, including the keeper — leave nothing in reserve", pts: {klopp:2} },
+      { t: "Whip it to the near post where we've drilled the routine all week", pts: {mourinho:2} },
+      { t: "Trust whoever's in the box — read it and react", pts: {ancelotti:2} }
+  ]},
+  { q: "Your team trails 3-0 from a Champions League semi-final first leg, and you're missing both first-choice strikers for the second leg at home. Team talk?", opts: [
+      { t: "\"Believe in the process — the patterns will create the chances\"", pts: {guardiola:2} },
+      { t: "\"Tonight the crowd is our twelfth man — feed off them\"", pts: {klopp:2} },
+      { t: "\"Forget the aggregate score — win the next 15 minutes\"", pts: {mourinho:1,ancelotti:1} },
+      { t: "\"Stay calm, stay composed — the goals will come if we're patient\"", pts: {ancelotti:2} }
+  ]},
+  { q: "Your title rivals spent double your transfer budget this summer. It's deadline day and you have one signing left. Priority?", opts: [
+      { t: "A ball-playing defender who can start attacks from the back", pts: {guardiola:2} },
+      { t: "A relentless presser who'll close down defenders under pressure", pts: {klopp:2} },
+      { t: "A versatile squad player who can plug three different positions", pts: {mourinho:2} },
+      { t: "Whoever the dressing room needs most for balance and harmony", pts: {ancelotti:2} }
+  ]},
+  { q: "Relegation six-pointer, Tuesday night, half your squad out through injury. Approach?", opts: [
+      { t: "Keep the same principles — reshuffle personnel, not philosophy", pts: {guardiola:2} },
+      { t: "Whoever plays, plays with everything they've got — energy over polish", pts: {klopp:2} },
+      { t: "Set up ultra-compact, deny space, nick it on the counter", pts: {mourinho:2} },
+      { t: "Adapt the system entirely around who's actually fit to play", pts: {ancelotti:2} }
+  ]},
+  { q: "You're 2-0 down at half-time in a cup final against a lower-division side. What changes?", opts: [
+      { t: "Nothing tactically — reinforce the plan, trust the quality", pts: {guardiola:2} },
+      { t: "A blunt, direct message — match their intensity first, football second", pts: {klopp:2} },
+      { t: "A back-three, an extra man in midfield, shut the game down first", pts: {mourinho:2} },
+      { t: "A calm read of what's actually going wrong, then one sharp fix", pts: {ancelotti:2} }
+  ]},
+  { q: "Your star player criticizes the tactics publicly after a loss. Next match is in three days.", opts: [
+      { t: "Explain the tactical reasoning in detail — the plan speaks for itself", pts: {guardiola:2} },
+      { t: "A private, honest, emotional conversation — clear the air fast", pts: {klopp:2} },
+      { t: "Handle it firmly and move on — the results will do the talking", pts: {mourinho:2} },
+      { t: "Quietly manage the ego, keep the dressing room united", pts: {ancelotti:2} }
+  ]},
+  { q: "You're the underdog away from home against a side that dominates possession. Game plan?", opts: [
+      { t: "Match them at their own game — press high, win the ball back fast", pts: {guardiola:1,klopp:1} },
+      { t: "Suffocate them with pressing until they crack under it", pts: {klopp:2} },
+      { t: "Sit deep, stay organized, strike on the break", pts: {mourinho:2} },
+      { t: "Set up to frustrate first, then adjust once you've seen their patterns", pts: {ancelotti:2} }
+  ]},
+  { q: "You've just won a trophy after a gruelling season. Pre-season starts in six weeks. First priority?", opts: [
+      { t: "Refine the details further — there's always another level of control", pts: {guardiola:2} },
+      { t: "Protect the squad's energy — rest matters as much as tactics", pts: {klopp:2} },
+      { t: "Analyse what could still go wrong next season and fix it early", pts: {mourinho:2} },
+      { t: "Let the group enjoy it — man-management before methodology", pts: {ancelotti:2} }
+  ]}
+];
+
+// Result labels reference real managers by the tactical philosophies they are
+// widely and publicly known for in football media and analysis. Descriptions
+// below are factual summaries of well-documented public reputations, not
+// quotes or fictional scenes attributed to them.
+var ARCHETYPES = {
+  guardiola: {
+    icon: '🎯', title: 'Guardiola-Style: The Positional Purist', tagline: 'Control the ball, control the game.',
+    desc: "Your instincts match the philosophy Pep Guardiola became famous for at Barcelona, Bayern Munich, and Manchester City — patient possession, positional discipline, and a belief that if you control the ball, you control the match. Chaos makes you uncomfortable; you'd rather win 1-0 through 30 passes than 3-2 through a scramble. Guardiola is widely credited with pioneering \"positional play\" as an evolution of tiki-taka, built on obsessive tactical preparation.",
+    traits: ['Patient', 'Possession-first', 'Positionally disciplined', 'Detail-obsessed'],
+    formation: '4-3-3'
+  },
+  klopp: {
+    icon: '🔥', title: 'Klopp-Style: The High-Energy Motivator', tagline: 'Give absolutely everything.',
+    desc: "You share the approach Jürgen Klopp made famous at Borussia Dortmund and Liverpool — relentless counter-pressing (\"gegenpressing\"), emotional intensity, and a squad that runs itself into the ground for the badge and for you. Klopp's teams have been widely described in football media as playing \"heavy metal football\" — chaotic, high-tempo, and powered as much by will as by tactics.",
+    traits: ['Relentless', 'Emotionally driven', 'High-press', 'Unifying'],
+    formation: '4-2-3-1'
+  },
+  mourinho: {
+    icon: '🧩', title: 'Mourinho-Style: The Pragmatic Winner', tagline: 'Whatever it takes to win.',
+    desc: "You align with the reputation José Mourinho built at Porto, Chelsea, Inter Milan, and beyond — defensive solidity first, ruthless efficiency, and a game plan built around the specific opponent rather than a fixed philosophy. Often characterized in football media as favoring compact, well-organized defensive structures, Mourinho's sides have a well-documented record of grinding out results in the biggest games, especially in knockout football.",
+    traits: ['Calculating', 'Result-driven', 'Opponent-focused', 'Defensively organized'],
+    formation: '3-5-2'
+  },
+  ancelotti: {
+    icon: '🧠', title: 'Ancelotti-Style: The Adaptable Winner', tagline: 'Read the room, then win it.',
+    desc: "Your style echoes Carlo Ancelotti's well-known reputation across Milan, Chelsea, Bayern, Napoli, and Real Madrid — calm under pressure, tactically flexible, and famous for man-managing dressing rooms full of egos into genuine harmony. Ancelotti has repeatedly been credited in football analysis for adapting his system to the players available rather than forcing one rigid idea, a big part of why his teams have won Champions League titles in different eras with different squads.",
+    traits: ['Adaptable', 'Calm', 'Man-management focused', 'Flexible'],
+    formation: '4-4-2'
+  }
+};
+
+var CURRENT_Q = 0;
+var SCORES = { guardiola:0, klopp:0, mourinho:0, ancelotti:0 };
+
+function renderQuestion() {
+  var q = QUESTIONS[CURRENT_Q];
+  document.getElementById('progressFill').style.width = (CURRENT_Q/QUESTIONS.length*100) + '%';
+  var html = '<div class="q-num">Question ' + (CURRENT_Q+1) + ' of ' + QUESTIONS.length + '</div>';
+  html += '<div class="q-text">' + escH(q.q) + '</div>';
+  html += q.opts.map(function(opt, i) {
+    return '<button class="opt-btn" onclick="answerQuestion(' + i + ')">' + escH(opt.t) + '</button>';
+  }).join('');
+  document.getElementById('questionCard').innerHTML = html;
+}
+
+function answerQuestion(i) {
+  var opt = QUESTIONS[CURRENT_Q].opts[i];
+  Object.keys(opt.pts).forEach(function(key) { SCORES[key] += opt.pts[key]; });
+  CURRENT_Q++;
+  if (CURRENT_Q >= QUESTIONS.length) { showResult(); }
+  else { renderQuestion(); }
+}
+
+function showResult() {
+  document.getElementById('progressFill').style.width = '100%';
+  document.getElementById('quizScreen').style.display = 'none';
+  document.getElementById('resultScreen').style.display = 'block';
+
+  var winner = 'guardiola';
+  Object.keys(SCORES).forEach(function(key) { if (SCORES[key] > SCORES[winner]) winner = key; });
+  var arch = ARCHETYPES[winner];
+
+  document.getElementById('resultIcon').textContent = arch.icon;
+  document.getElementById('resultTitle').textContent = arch.title;
+  document.getElementById('resultTagline').textContent = arch.tagline;
+  document.getElementById('resultDesc').textContent = arch.desc;
+  document.getElementById('traitRow').innerHTML = arch.traits.map(function(t){ return '<span class="trait-chip">'+t+'</span>'; }).join('');
+  document.getElementById('sfValue').textContent = arch.formation;
+
+  window._lastResult = arch;
+}
+
+function shareResult() {
+  var arch = window._lastResult;
+  if (!arch) return;
+  var text = "I'm " + arch.icon + " " + arch.title + " — " + arch.tagline + "\n\nFind your manager style at NAME-O-MATIC 9000";
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){
+      var btn = document.querySelector('.btn-share');
+      var orig = btn.textContent;
+      btn.textContent = '✅ COPIED!';
+      setTimeout(function(){ btn.textContent = orig; }, 1500);
+    });
+  } else { alert(text); }
+}
+
+function restartQuiz() {
+  CURRENT_Q = 0;
+  SCORES = { guardiola:0, klopp:0, mourinho:0, ancelotti:0 };
+  document.getElementById('resultScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'block';
+  renderQuestion();
+}
+
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+renderQuestion();
+</script>
+</body>
+</html>

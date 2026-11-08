@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Referee Career (3D)</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
+<script src="database.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1ecc;--border:rgba(255,255,255,.18);--text:#eeeeff;--muted:#aaaadd;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;--red:#ef4444;}
+body{background:#000;color:var(--text);font-family:'Nunito',sans-serif;height:100vh;overflow:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+.hidden{display:none!important;}
+
+#pitchCanvas{position:fixed;inset:0;z-index:0;display:block;}
+
+#loadingScreen{position:fixed;inset:0;background:#000;z-index:1000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;}
+.load-logo{font-family:'Bangers',cursive;font-size:2.2rem;letter-spacing:5px;
+  background:linear-gradient(135deg,#ffd23f,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.load-bar{width:220px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;}
+.load-fill{height:100%;background:linear-gradient(90deg,#ff6b35,#ffd23f);animation:loadAnim 1.6s ease-in-out infinite;}
+@keyframes loadAnim{0%{width:0%;}70%{width:90%;}100%{width:100%;}}
+
+#hud{position:fixed;inset:0;z-index:10;overflow-y:auto;pointer-events:none;}
+#hud.scrollable{pointer-events:auto;}
+.wrap{max-width:880px;margin:0 auto;padding:14px 12px 40px;pointer-events:auto;}
+
+nav{display:flex;align-items:center;gap:10px;padding:10px 4px;pointer-events:auto;}
+.logo{font-family:'Bangers',cursive;font-size:1.2rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a2),var(--a1),var(--a6));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-shadow:0 2px 12px rgba(0,0,0,.8);}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.72rem;padding:6px 12px;border-radius:9px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(0,0,0,.5);
+  color:var(--text);text-decoration:none;transition:all .18s;font-weight:700;backdrop-filter:blur(6px);}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+
+.gcard{background:var(--card);backdrop-filter:blur(16px);border:1.5px solid var(--border);
+  border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);}
+
+.hero{text-align:center;padding:8px 0 16px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(1.9rem,6vw,3.2rem);letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a2),var(--a1));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-shadow:0 4px 20px rgba(0,0,0,.6);margin-bottom:5px;}
+.hero-sub{font-size:.78rem;font-weight:700;color:var(--muted);text-shadow:0 2px 8px rgba(0,0,0,.8);}
+
+.career-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.ref-badge{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--a2),var(--a1));
+  display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;
+  box-shadow:0 0 20px rgba(255,210,63,.3);}
+.ref-name{font-family:'Bangers',cursive;font-size:1.2rem;letter-spacing:2px;}
+.ref-tier{font-size:.68rem;font-weight:800;color:var(--a2);text-transform:uppercase;letter-spacing:1px;}
+.career-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:13px;}
+.cstat{background:rgba(255,255,255,.06);border-radius:10px;padding:9px;text-align:center;}
+.cstat-val{font-family:'Bangers',cursive;font-size:1.2rem;color:var(--a3);}
+.cstat-lbl{font-size:.52rem;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.rep-bar-track{height:11px;background:rgba(255,255,255,.1);border-radius:7px;overflow:hidden;margin-bottom:5px;}
+.rep-bar-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,#ff6b35,#ffd23f,#06ffa5);transition:width .4s;}
+.tier-labels{display:flex;justify-content:space-between;font-size:.54rem;font-weight:800;color:var(--muted);text-transform:uppercase;}
+.tier-track{display:flex;gap:4px;margin:13px 0;flex-wrap:wrap;}
+.tier-chip{flex:1;min-width:74px;text-align:center;padding:7px 4px;border-radius:9px;border:1.5px solid var(--border);
+  background:rgba(255,255,255,.05);font-size:.58rem;font-weight:800;color:var(--muted);}
+.tier-chip.current{background:rgba(255,210,63,.22);border-color:rgba(255,210,63,.5);color:var(--a2);box-shadow:0 0 10px rgba(255,210,63,.15);}
+.tier-chip.passed{color:var(--a3);}
+
+.bigbtn{width:100%;padding:14px;font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;
+  border:none;border-radius:13px;cursor:pointer;transition:all .2s;}
+.bigbtn:hover{transform:translateY(-2px);}
+.btn-go{background:linear-gradient(135deg,#06ffa5,#3b82f6);color:#000;box-shadow:0 8px 24px rgba(6,255,165,.35);}
+.btn-reset{background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.35);color:#fca5a5;font-size:.74rem;padding:9px;margin-top:8px;}
+
+.achievements-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px;}
+.ach-badge{font-size:1.2rem;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);opacity:.3;}
+.ach-badge.earned{opacity:1;background:rgba(255,210,63,.18);border-color:rgba(255,210,63,.45);box-shadow:0 0 10px rgba(255,210,63,.2);}
+
+.models-card{background:rgba(59,130,246,.06);border:1.5px solid rgba(59,130,246,.25);border-radius:14px;padding:16px;margin-bottom:14px;}
+.models-card-title{font-family:'Bangers',cursive;font-size:.95rem;letter-spacing:2px;color:var(--a5);margin-bottom:8px;}
+.models-card p{font-size:.72rem;font-weight:700;color:var(--muted);line-height:1.7;margin-bottom:6px;}
+.models-card code{background:rgba(255,255,255,.1);color:var(--a3);padding:2px 7px;border-radius:5px;font-size:.68rem;}
+
+#matchTopHud{position:fixed;top:0;left:0;right:0;z-index:20;display:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.8),transparent);padding:10px 14px 24px;pointer-events:none;}
+.mth-row{display:flex;align-items:center;gap:10px;max-width:880px;margin:0 auto;flex-wrap:wrap;pointer-events:auto;}
+.mth-stat{background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border:1px solid var(--border);
+  border-radius:10px;padding:6px 12px;text-align:center;min-width:58px;}
+.mth-val{font-family:'Bangers',cursive;font-size:1.05rem;}
+.mth-lbl{font-size:.46rem;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.bar-mini{width:48px;height:6px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;margin:3px auto 0;}
+.bar-mini-fill{height:100%;border-radius:4px;transition:width .3s;}
+.fixture-pill{background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border:1px solid var(--border);
+  border-radius:20px;padding:6px 16px;font-family:'Fredoka One',cursive;font-size:.8rem;margin:0 auto;
+  display:table;text-align:center;}
+.fixture-score{font-family:'Bangers',cursive;font-size:1.1rem;color:var(--a2);margin:0 6px;}
+
+#commentaryFeed{position:fixed;bottom:14px;left:14px;width:270px;max-height:120px;overflow-y:auto;z-index:20;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:12px;
+  padding:8px 12px;font-size:.68rem;font-weight:700;color:var(--muted);display:none;}
+#commentaryFeed div{padding:2px 0;}
+#commentaryFeed div:last-child{color:#fff;}
+
+#modelStatusPanel{position:fixed;top:60px;right:14px;z-index:20;display:none;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border:1px solid var(--border);
+  border-radius:10px;padding:9px 12px;min-width:165px;}
+.model-status-row{display:flex;align-items:center;gap:6px;font-size:.6rem;font-weight:700;
+  color:var(--muted);padding:2px 0;white-space:nowrap;}
+.ms-label{color:#fff;flex-shrink:0;}
+.ms-text{margin-left:auto;font-size:.56rem;}
+
+.md-speed{position:fixed;bottom:14px;right:14px;z-index:20;display:none;gap:6px;}
+.md-btn{font-family:'Fredoka One',cursive;font-size:.72rem;padding:9px 14px;border-radius:9px;
+  border:1.5px solid var(--border);background:rgba(0,0,0,.55);color:var(--text);cursor:pointer;
+  backdrop-filter:blur(8px);pointer-events:auto;}
+.md-btn.active{background:rgba(6,255,165,.2);border-color:rgba(6,255,165,.5);color:var(--a3);}
+
+#incidentCard{position:fixed;bottom:0;left:0;right:0;z-index:30;display:none;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.85) 30%);padding:30px 14px 18px;}
+.inc-inner{max-width:600px;margin:0 auto;background:rgba(14,14,30,.9);backdrop-filter:blur(16px);
+  border:2px solid rgba(255,210,63,.45);border-radius:18px;padding:16px 18px;box-shadow:0 0 40px rgba(255,210,63,.15);}
+.inc-header{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+.inc-icon{font-size:1.6rem;}
+.inc-title{font-family:'Bangers',cursive;font-size:1rem;letter-spacing:1px;color:var(--a2);}
+.inc-timer{margin-left:auto;font-family:'Bangers',cursive;font-size:1.2rem;color:var(--red);}
+.inc-desc{font-size:.78rem;font-weight:700;color:var(--text);line-height:1.55;margin-bottom:11px;}
+
+.decision-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:7px;margin-bottom:7px;}
+.dec-btn{padding:10px 6px;font-family:'Fredoka One',cursive;font-size:.74rem;border-radius:10px;
+  border:1.5px solid var(--border);cursor:pointer;transition:all .18s;text-align:center;background:rgba(255,255,255,.08);color:var(--text);position:relative;}
+.dec-btn .keynum{position:absolute;top:2px;left:4px;font-size:.55rem;color:var(--muted);font-weight:900;}
+.dec-btn:hover{transform:translateY(-2px);}
+.dec-btn.play-on{border-color:rgba(6,255,165,.45);}.dec-btn.play-on:hover{background:rgba(6,255,165,.18);}
+.dec-btn.foul{border-color:rgba(255,210,63,.45);}.dec-btn.foul:hover{background:rgba(255,210,63,.18);}
+.dec-btn.yellow{border-color:#ffd23f;background:rgba(255,210,63,.12);}.dec-btn.yellow:hover{background:rgba(255,210,63,.28);}
+.dec-btn.red{border-color:#ef4444;background:rgba(239,68,68,.12);}.dec-btn.red:hover{background:rgba(239,68,68,.28);}
+.dec-btn.penalty{border-color:rgba(168,85,247,.45);}.dec-btn.penalty:hover{background:rgba(168,85,247,.18);}
+.dec-btn.var{border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.1);font-size:.68rem;}.dec-btn.var:hover{background:rgba(59,130,246,.24);}
+.dec-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+#feedbackOverlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:40;display:none;
+  max-width:420px;width:90%;text-align:center;padding:20px;border-radius:16px;backdrop-filter:blur(16px);}
+#feedbackOverlay.correct{background:rgba(6,255,165,.15);border:2px solid rgba(6,255,165,.5);}
+#feedbackOverlay.wrong{background:rgba(239,68,68,.15);border:2px solid rgba(239,68,68,.5);}
+.fb-title{font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:2px;margin-bottom:6px;}
+.fb-title.correct{color:var(--a3);}.fb-title.wrong{color:var(--red);}
+.fb-desc{font-size:.76rem;font-weight:700;color:var(--text);margin-bottom:10px;}
+.fb-next{font-family:'Fredoka One',cursive;font-size:.82rem;padding:9px 22px;border-radius:9px;border:none;
+  background:linear-gradient(135deg,var(--a4),var(--a5));color:#fff;cursor:pointer;}
+
+#whistleFlash{position:fixed;inset:0;background:rgba(255,255,255,.85);opacity:0;pointer-events:none;z-index:25;transition:opacity .15s;}
+#whistleFlash.flash{opacity:1;transition:opacity 0s;}
+
+#varOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,5,.85);z-index:500;
+  align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+.var-box{background:rgba(14,14,30,.95);border:2px solid var(--a5);border-radius:18px;padding:22px;max-width:420px;width:90%;
+  box-shadow:0 0 50px rgba(59,130,246,.35);}
+.var-title{font-family:'Bangers',cursive;font-size:1.2rem;letter-spacing:3px;color:var(--a5);text-align:center;margin-bottom:12px;}
+.var-clue{font-size:.76rem;font-weight:700;color:var(--a2);background:rgba(255,210,63,.1);
+  border-radius:8px;padding:10px;margin-bottom:13px;line-height:1.55;}
+
+.report-emoji{font-size:3.2rem;text-align:center;margin-bottom:4px;}
+.report-title{font-family:'Bangers',cursive;font-size:1.8rem;letter-spacing:3px;text-align:center;margin-bottom:4px;
+  background:linear-gradient(135deg,var(--a2),var(--a1));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.report-stars{text-align:center;font-size:1.5rem;margin-bottom:14px;letter-spacing:3px;}
+.manager-quote{background:rgba(255,255,255,.05);border-left:3px solid var(--a4);border-radius:0 10px 10px 0;
+  padding:11px 15px;margin-bottom:9px;font-size:.76rem;font-weight:700;font-style:italic;color:var(--muted);}
+.manager-quote b{color:var(--text);font-style:normal;}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .3s ease both;}
+.cfp{position:fixed;pointer-events:none;border-radius:2px;top:-20px;z-index:999;}
+@keyframes cff{0%{transform:translateY(0) rotate(0);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+
+/* nom-upgrade: mobile */
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  img,canvas,video,svg{max-width:100%;height:auto}
+  nav{flex-wrap:wrap;height:auto;min-height:54px;padding:8px 10px;gap:6px}
+  nav .nbtn{font-size:.7rem;padding:5px 8px}
+  .nom-hub{bottom:8px}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<canvas id="pitchCanvas"></canvas>
+
+<div id="loadingScreen">
+  <div class="load-logo">🟨 REFEREE CAREER</div>
+  <div style="font-size:.7rem;color:#8888bb;font-weight:700;letter-spacing:2px;">BUILDING STADIUM...</div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+</div>
+
+<div id="whistleFlash"></div>
+
+<div id="matchTopHud">
+  <div class="fixture-pill" id="fixturePill">Home <span class="fixture-score" id="fixtureScore">0-0</span> Away</div>
+  <div class="mth-row" style="margin-top:8px;justify-content:center;">
+    <div class="mth-stat"><div class="mth-val" id="matchClock" style="color:var(--a2)">0'</div><div class="mth-lbl">Minute</div></div>
+    <div class="mth-stat">
+      <div class="mth-val" id="staminaVal" style="color:var(--a3)">100</div><div class="mth-lbl">Fitness</div>
+      <div class="bar-mini"><div class="bar-mini-fill" id="staminaBar" style="width:100%;background:linear-gradient(90deg,#06ffa5,#3b82f6)"></div></div>
+    </div>
+    <div class="mth-stat">
+      <div class="mth-val" id="authorityVal" style="color:var(--a2)">100</div><div class="mth-lbl">Authority</div>
+      <div class="bar-mini"><div class="bar-mini-fill" id="authorityBar" style="width:100%;background:linear-gradient(90deg,#ffd23f,#ff6b35)"></div></div>
+    </div>
+    <div class="mth-stat"><div class="mth-val" id="varCount" style="color:var(--a5)">3</div><div class="mth-lbl">VAR Left</div></div>
+  </div>
+</div>
+
+<div id="commentaryFeed"></div>
+<div id="modelStatusPanel"><div style="font-family:'Bangers',cursive;font-size:.7rem;letter-spacing:1px;color:var(--a5);margin-bottom:5px;">📦 CUSTOM MODELS</div><div id="modelStatusList"></div></div>
+<div class="md-speed" id="speedControls">
+  <button class="md-btn active" id="speed1x" onclick="setMatchSpeed(1)">▶ 1x</button>
+  <button class="md-btn" id="speed2x" onclick="setMatchSpeed(2)">⏩ 2x</button>
+  <button class="md-btn" id="speed3x" onclick="setMatchSpeed(4)">⏩⏩ 4x</button>
+</div>
+
+<div id="hud" class="scrollable">
+  <nav>
+    <div class="logo">🟨 REFEREE CAREER</div>
+    <div class="ml" style="display:flex;gap:7px">
+      <a href="index.html" class="nbtn">🏠 Home</a>
+      <a href="app.html" class="nbtn">⚡ App</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+
+    <div id="homeScreen">
+      <div class="hero fadein">
+        <div class="hero-title">🟨 REFEREE CAREER</div>
+        <div class="hero-sub">Third-person. A real, flowing match — you keep pace with play and make the call the instant it happens. From Sunday League mud to a packed Champions League Final.</div>
+      </div>
+
+      <div class="gcard fadein">
+        <div class="career-top">
+          <div class="ref-badge">🧑‍⚖️</div>
+          <div>
+            <div class="ref-name" id="refName">Ref. Smith</div>
+            <div class="ref-tier" id="refTierLabel">Sunday League</div>
+          </div>
+        </div>
+
+        <div class="career-stats">
+          <div class="cstat"><div class="cstat-val" id="statMatches">0</div><div class="cstat-lbl">Matches</div></div>
+          <div class="cstat"><div class="cstat-val" id="statAccuracy">—</div><div class="cstat-lbl">Accuracy</div></div>
+          <div class="cstat"><div class="cstat-val" id="statReds">0</div><div class="cstat-lbl">Red Cards</div></div>
+          <div class="cstat"><div class="cstat-val" id="statBest">0</div><div class="cstat-lbl">Best Rating</div></div>
+        </div>
+
+        <div class="rep-bar-track"><div class="rep-bar-fill" id="repBarFill" style="width:0%"></div></div>
+        <div class="tier-labels"><span>0</span><span id="repValue">Reputation: 0</span><span>100</span></div>
+
+        <div class="tier-track" id="tierTrack"></div>
+        <div class="achievements-row" id="achievementsRow"></div>
+
+        <button class="bigbtn btn-go" style="margin-top:15px" onclick="startMatch()">▶ START NEXT MATCH</button>
+        <button class="bigbtn btn-reset" onclick="resetCareer()">🔄 Reset Career</button>
+      </div>
+
+      <div class="models-card fadein">
+        <div class="models-card-title">📦 CUSTOM 3D MODELS</div>
+        <p>Want your own player and referee models on the pitch instead of the default mannequins? Create a folder called <code>models</code> in the same place as this page and drop in:</p>
+        <p><code>models/player_home.glb</code> — home team players<br><code>models/player_away.glb</code> — away team players<br><code>models/referee.glb</code> — the referee</p>
+        <p>Any file you skip just falls back to the default mannequin automatically. Every model is auto-scaled to the right height and recentred so it stands properly on the pitch. This only works when the page is hosted on a real web server (e.g. GitHub Pages) — it won't work if you just double-click the file.</p>
+      </div>
+    </div>
+
+    <div id="incidentCard">
+      <div class="inc-inner">
+        <div class="inc-header">
+          <span class="inc-icon" id="incIcon">⚠️</span>
+          <span class="inc-title" id="incTitle">INCIDENT!</span>
+          <span class="inc-timer" id="incTimer">5</span>
+        </div>
+        <div class="inc-desc" id="incDesc">Description...</div>
+        <div class="decision-grid" id="decisionGrid"></div>
+        <button class="dec-btn var" id="varBtn" onclick="openVAR()" style="width:100%">📺 Review with VAR</button>
+      </div>
+    </div>
+
+    <div id="feedbackOverlay">
+      <div class="fb-title" id="fbTitle">CORRECT CALL!</div>
+      <div class="fb-desc" id="fbDesc">Explanation...</div>
+      <button class="fb-next" onclick="nextPhase()">Continue →</button>
+    </div>
+
+    <div id="reportScreen" class="hidden">
+      <div class="gcard fadein">
+        <div class="report-emoji" id="reportEmoji">🏆</div>
+        <div class="report-title" id="reportTitle">FULL TIME</div>
+        <div class="report-stars" id="reportStars">⭐⭐⭐⭐⭐</div>
+
+        <div class="career-stats">
+          <div class="cstat"><div class="cstat-val" id="rptAccuracy" style="color:var(--a3)">0%</div><div class="cstat-lbl">Accuracy</div></div>
+          <div class="cstat"><div class="cstat-val" id="rptRating" style="color:var(--a2)">0</div><div class="cstat-lbl">Performance</div></div>
+          <div class="cstat"><div class="cstat-val" id="rptRepChange" style="color:var(--a4)">+0</div><div class="cstat-lbl">Reputation</div></div>
+          <div class="cstat"><div class="cstat-val" id="rptCards" style="color:var(--a1)">0🟨 0🟥</div><div class="cstat-lbl">Cards Shown</div></div>
+        </div>
+
+        <div id="managerQuotes"></div>
+        <div id="newAchievement" class="hidden" style="text-align:center;margin:14px 0;"></div>
+
+        <button class="bigbtn btn-go" onclick="returnHome()">📋 BACK TO CAREER</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// THREE.JS SCENE SETUP
+// ═══════════════════════════════════════════════════════════════
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(58, window.innerWidth/window.innerHeight, 0.1, 500);
+var renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('pitchCanvas'), antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+var ambLight = new THREE.AmbientLight(0x9ab0c8, 0.55);
+scene.add(ambLight);
+var sun = new THREE.DirectionalLight(0xfff8e0, 1.1);
+sun.position.set(60, 140, 50);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -70; sun.shadow.camera.right = 70;
+sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 300;
+scene.add(sun);
+var FLOODLIGHTS = [];
+
+// ═══════════════════════════════════════════════════════════════
+// PITCH
+// ═══════════════════════════════════════════════════════════════
+var PITCH_W = 100, PITCH_H = 64;
+var PITCH_STRIPES = [];
+(function buildPitch(){
+  var sg = new THREE.Mesh(new THREE.PlaneGeometry(130, 92), new THREE.MeshLambertMaterial({ color: 0x2a1a08 }));
+  sg.rotation.x = -Math.PI/2; sg.position.y = -0.02; sg.receiveShadow = true; scene.add(sg);
+  for (var i = 0; i < 10; i++) {
+    var mat = new THREE.MeshLambertMaterial({ color: i%2===0 ? 0x1e6b1e : 0x165416 });
+    var g = new THREE.Mesh(new THREE.PlaneGeometry(PITCH_W/10, PITCH_H), mat);
+    g.rotation.x = -Math.PI/2;
+    g.position.set(-PITCH_W/2 + i*(PITCH_W/10) + PITCH_W/20, 0.01, 0);
+    g.receiveShadow = true; scene.add(g);
+    PITCH_STRIPES.push(mat);
+  }
+  var lm = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: .85, transparent: true });
+  function ln(x1,z1,x2,z2){
+    var geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x1,.06,z1), new THREE.Vector3(x2,.06,z2)]);
+    scene.add(new THREE.Line(geo, lm));
+  }
+  var hw = PITCH_W/2, hh = PITCH_H/2;
+  ln(-hw,-hh,hw,-hh); ln(-hw,hh,hw,hh); ln(-hw,-hh,-hw,hh); ln(hw,-hh,hw,hh); ln(0,-hh,0,hh);
+  ln(-hw,-hh*.58,-hw+16,-hh*.58); ln(-hw,hh*.58,-hw+16,hh*.58); ln(-hw+16,-hh*.58,-hw+16,hh*.58);
+  ln(hw,-hh*.58,hw-16,-hh*.58); ln(hw,hh*.58,hw-16,hh*.58); ln(hw-16,-hh*.58,hw-16,hh*.58);
+  var cc = new THREE.Mesh(new THREE.RingGeometry(8.5,9,40), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, opacity: .8, transparent: true }));
+  cc.rotation.x = -Math.PI/2; cc.position.y = 0.08; scene.add(cc);
+})();
+
+function buildGoal(x, dir) {
+  var g = new THREE.Group();
+  var pm = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  [[-3.66],[3.66]].forEach(function(z){
+    var p = new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,2.44,8), pm);
+    p.position.set(0, 1.22, z[0]); p.castShadow = true; g.add(p);
+  });
+  var cross = new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,7.32,8), pm);
+  cross.rotation.z = Math.PI/2; cross.position.y = 2.44; g.add(cross);
+  var net = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.44, 7.32), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, opacity: .18, transparent: true }));
+  net.position.set(dir*.9, .82, 0); g.add(net);
+  g.position.x = x; scene.add(g);
+}
+buildGoal(PITCH_W/2, 1);
+buildGoal(-PITCH_W/2, -1);
+
+// ═══════════════════════════════════════════════════════════════
+// STANDS + CROWD
+// ═══════════════════════════════════════════════════════════════
+var CROWD_HEADS = [];
+(function buildStands(){
+  function stand(w,d,h,x,z,ry){
+    var g = new THREE.Group();
+    var base = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({ color: 0x0d1520 }));
+    base.position.y = h/2; base.castShadow = true; g.add(base);
+    for (var r = 0; r < 5; r++) {
+      var row = new THREE.Mesh(new THREE.BoxGeometry(w-1, .5, d*.18), new THREE.MeshLambertMaterial({ color: r%2===0 ? 0xe8012c : 0x0d1520 }));
+      row.position.set(0, h*.14 + r*2, -d*.3 + r*d*.06); g.add(row);
+    }
+    var roof = new THREE.Mesh(new THREE.BoxGeometry(w+3, .8, d*.42), new THREE.MeshLambertMaterial({ color: 0x111825, opacity: .9, transparent: true }));
+    roof.position.set(0, h+.4, -d*.22); g.add(roof);
+    [-w/2+5, w/2-5].forEach(function(lx){
+      var mast = new THREE.Mesh(new THREE.CylinderGeometry(.25,.35,h+10,6), new THREE.MeshLambertMaterial({ color: 0x888899 }));
+      mast.position.set(lx, h/2+5, -d*.48); g.add(mast);
+      var lamp = new THREE.Mesh(new THREE.BoxGeometry(2.4,.6,1.8), new THREE.MeshBasicMaterial({ color: 0x444444 }));
+      lamp.position.set(lx, h+10, -d*.48); g.add(lamp);
+      var fl = new THREE.PointLight(0xfff5cc, 0, 130);
+      fl.position.set(lx, h+10, -d*.48);
+      g.add(fl); FLOODLIGHTS.push(fl);
+    });
+    g.position.set(x,0,z); g.rotation.y = ry; scene.add(g);
+  }
+  stand(108, 16, 22, 0, -42, 0);
+  stand(108, 16, 22, 0, 42, Math.PI);
+  stand(70, 14, 18, -58, 0, Math.PI/2);
+  stand(70, 14, 18, 58, 0, -Math.PI/2);
+
+  var headGeo = new THREE.SphereGeometry(.4, 4, 4);
+  var cols = [0xe8012c, 0xffffff, 0xffd23f, 0x3b82f6, 0x06ffa5];
+  for (var i = 0; i < 500; i++) {
+    var angle = Math.random()*Math.PI*2;
+    var r = 48 + Math.random()*16;
+    var head = new THREE.Mesh(headGeo, new THREE.MeshLambertMaterial({ color: cols[Math.floor(Math.random()*cols.length)] }));
+    head.position.set(Math.cos(angle)*r*.95, 3+Math.random()*13, Math.sin(angle)*r*.7);
+    head.visible = false;
+    scene.add(head);
+    CROWD_HEADS.push(head);
+  }
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// MANNEQUINS + BALL
+// ═══════════════════════════════════════════════════════════════
+function buildMannequin(shirtColor, isRef) {
+  var g = new THREE.Group();
+  var skin = new THREE.MeshLambertMaterial({ color: 0xffcc88 });
+  var shirt = new THREE.MeshLambertMaterial({ color: shirtColor });
+  var shorts = new THREE.MeshLambertMaterial({ color: isRef ? 0x111111 : 0x1a1a2e });
+  var head = new THREE.Mesh(new THREE.SphereGeometry(.22,8,8), skin);
+  head.position.y = 1.72; head.castShadow = true; g.add(head);
+  var body = new THREE.Mesh(new THREE.CylinderGeometry(.2,.22,.55,8), shirt);
+  body.position.y = 1.25; body.castShadow = true; g.add(body);
+  var sh = new THREE.Mesh(new THREE.CylinderGeometry(.18,.2,.3,8), shorts);
+  sh.position.y = .85; g.add(sh);
+  [-.1,.1].forEach(function(lx){
+    var leg = new THREE.Mesh(new THREE.CylinderGeometry(.08,.09,.52,8), shorts);
+    leg.position.set(lx,.48,0); g.add(leg);
+  });
+  [-.26,.26].forEach(function(ax){
+    var arm = new THREE.Mesh(new THREE.CylinderGeometry(.065,.07,.42,8), shirt);
+    arm.rotation.z = ax>0 ? -.45 : .45; arm.position.set(ax*1.1, 1.22, 0); g.add(arm);
+  });
+  g.position.set(0,.01,0);
+  scene.add(g);
+  return g;
+}
+
+var FIELD_PLAYERS = [];
+for (var fp = 0; fp < 6; fp++) {
+  var col = fp < 3 ? 0x3b82f6 : 0xe8012c;
+  var mesh = buildMannequin(col, false);
+  var startX = (Math.random()-0.5) * PITCH_W * 0.7;
+  var startZ = (Math.random()-0.5) * PITCH_H * 0.7;
+  mesh.position.set(startX, 0, startZ);
+  FIELD_PLAYERS.push({ mesh: mesh, team: fp < 3 ? 0 : 1, x: startX, z: startZ, targetX: startX, targetZ: startZ });
+}
+
+var REF_MESH = buildMannequin(0xfff200, true);
+var REF = { x: 0, z: 0, targetX: 0, targetZ: 0, facing: 0 };
+REF_MESH.position.set(0, 0, 0);
+
+var BALL_MESH = new THREE.Mesh(new THREE.SphereGeometry(.85,12,10), new THREE.MeshLambertMaterial({ color: 0xf5f5dc }));
+BALL_MESH.position.set(0,.85,0);
+BALL_MESH.castShadow = true;
+scene.add(BALL_MESH);
+var BALL = { x: 0, z: 0, targetX: 0, targetZ: 0 };
+
+// ═══════════════════════════════════════════════════════════════
+// CUSTOM 3D MODEL SUPPORT
+// Drop your own .glb files into a "models" folder next to this HTML
+// file, hosted on a real web server (GitHub Pages works; double-
+// clicking the file locally will not, browsers block that).
+//   models/player_home.glb   → home team mannequins
+//   models/player_away.glb   → away team mannequins
+//   models/referee.glb       → the referee
+//   models/ball.glb          → the ball (optional)
+// Anything you skip keeps the default placeholder — nothing breaks.
+// Every model is auto-scaled to the right height and recentred so it
+// stands flush on the pitch. If a model faces the wrong way, change
+// its rotationOffset below (radians — Math.PI = 180°).
+// ═══════════════════════════════════════════════════════════════
+var MODEL_CONFIG = {
+  player_home: { path: 'models/player_home.glb', targetHeight: 1.8, rotationOffset: 0 },
+  player_away: { path: 'models/player_away.glb', targetHeight: 1.8, rotationOffset: 0 },
+  referee:     { path: 'models/referee.glb',      targetHeight: 1.8, rotationOffset: 0 },
+  ball:        { path: 'models/ball.glb',          targetHeight: 0.22, rotationOffset: 0 }
+};
+var MODEL_STATUS = { player_home:'checking', player_away:'checking', referee:'checking', ball:'checking' };
+var GLTF_LOADER = (typeof THREE.GLTFLoader !== 'undefined') ? new THREE.GLTFLoader() : null;
+
+function loadCustomModel(key) {
+  return new Promise(function(resolve) {
+    var cfg = MODEL_CONFIG[key];
+    if (!GLTF_LOADER || !cfg) { MODEL_STATUS[key] = 'unavailable'; updateModelStatusUI(); resolve(null); return; }
+    GLTF_LOADER.load(cfg.path, function(gltf) {
+      try {
+        var model = gltf.scene;
+        var box = new THREE.Box3().setFromObject(model);
+        var size = box.getSize(new THREE.Vector3());
+        var height = size.y || 1;
+        model.scale.setScalar(cfg.targetHeight / height);
+        box.setFromObject(model);
+        var center = box.getCenter(new THREE.Vector3());
+        model.position.x -= center.x;
+        model.position.z -= center.z;
+        model.position.y -= box.min.y;
+        model.rotation.y = cfg.rotationOffset;
+        model.traverse(function(node){ if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
+        MODEL_STATUS[key] = 'custom';
+        updateModelStatusUI();
+        resolve(model);
+      } catch(e) { MODEL_STATUS[key] = 'default'; updateModelStatusUI(); resolve(null); }
+    }, undefined, function() {
+      MODEL_STATUS[key] = 'default';
+      updateModelStatusUI();
+      resolve(null);
+    });
+  });
+}
+function wrapModel(model) { var g = new THREE.Group(); g.add(model); return g; }
+
+function swapInCustomModels() {
+  FIELD_PLAYERS.forEach(function(p) {
+    var key = p.team === 0 ? 'player_home' : 'player_away';
+    loadCustomModel(key).then(function(model) {
+      if (!model) return;
+      var wrapped = wrapModel(model);
+      wrapped.position.copy(p.mesh.position);
+      wrapped.rotation.y = p.mesh.rotation.y;
+      scene.remove(p.mesh); p.mesh = wrapped; scene.add(p.mesh);
+    });
+  });
+  loadCustomModel('referee').then(function(model) {
+    if (!model) return;
+    var wrapped = wrapModel(model);
+    wrapped.position.copy(REF_MESH.position);
+    scene.remove(REF_MESH); REF_MESH = wrapped; scene.add(REF_MESH);
+  });
+  loadCustomModel('ball').then(function(model) {
+    if (!model) return;
+    var wrapped = wrapModel(model);
+    wrapped.position.copy(BALL_MESH.position);
+    scene.remove(BALL_MESH); BALL_MESH = wrapped; scene.add(BALL_MESH);
+  });
+}
+function updateModelStatusUI() {
+  var el = document.getElementById('modelStatusList');
+  if (!el) return;
+  var labels = { player_home:'Home Players', player_away:'Away Players', referee:'Referee', ball:'Ball' };
+  var html = '';
+  Object.keys(MODEL_STATUS).forEach(function(key) {
+    var s = MODEL_STATUS[key];
+    var dot = s === 'custom' ? '🟢' : s === 'checking' ? '🟡' : '⚪';
+    var text = s === 'custom' ? 'Your model' : s === 'checking' ? 'Checking...' : 'Default';
+    html += '<div class="model-status-row"><span>'+dot+'</span><span class="ms-label">'+labels[key]+'</span><span class="ms-text">'+text+'</span></div>';
+  });
+  el.innerHTML = html;
+}
+swapInCustomModels();
+
+// ═══════════════════════════════════════════════════════════════
+// TIER ATMOSPHERE
+// ═══════════════════════════════════════════════════════════════
+var IS_NIGHT = false;
+function applyTierAtmosphere(tierIdx) {
+  IS_NIGHT = tierIdx >= 4;
+  scene.background = new THREE.Color(IS_NIGHT ? 0x030308 : 0x87ceeb);
+  scene.fog = IS_NIGHT ? new THREE.FogExp2(0x020206, 0.006) : new THREE.Fog(0xb8dcf0, 60, 280);
+  ambLight.intensity = IS_NIGHT ? 0.18 : 0.55;
+  sun.intensity = IS_NIGHT ? 0.05 : 1.1;
+  FLOODLIGHTS.forEach(function(fl){ fl.intensity = IS_NIGHT ? 2.4 : 0; });
+  var crowdFraction = [0.04, 0.12, 0.28, 0.55, 0.8, 1.0][tierIdx] || 0.5;
+  var showCount = Math.floor(CROWD_HEADS.length * crowdFraction);
+  CROWD_HEADS.forEach(function(h, i){ h.visible = i < showCount; });
+  var qualityFactor = [0.4, 0.55, 0.7, 0.85, 1.0, 1.0][tierIdx] || 0.7;
+  PITCH_STRIPES.forEach(function(mat, i){
+    var base = i % 2 === 0 ? [30,107,30] : [22,84,22];
+    var dry = [120,110,40];
+    var r = Math.round(base[0]*qualityFactor + dry[0]*(1-qualityFactor));
+    var g = Math.round(base[1]*qualityFactor + dry[1]*(1-qualityFactor));
+    var b = Math.round(base[2]*qualityFactor + dry[2]*(1-qualityFactor));
+    mat.color.setRGB(r/255, g/255, b/255);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 3RD-PERSON FOLLOW CAMERA
+// ═══════════════════════════════════════════════════════════════
+var CAM_MODE = 'follow'; // follow | incident | var
+var CAM_CUR_POS = new THREE.Vector3(0, 12, 24);
+var CAM_CUR_LOOK = new THREE.Vector3(0, 1, 0);
+var CAM_ORBIT = 0;
+var INCIDENT_HOTSPOT = null;
+
+function updateCamera(dt) {
+  var targetPos, targetLook;
+  if (CAM_MODE === 'incident' && INCIDENT_HOTSPOT) {
+    CAM_ORBIT += dt * 0.15;
+    targetPos = new THREE.Vector3(
+      INCIDENT_HOTSPOT.x + Math.cos(CAM_ORBIT)*9,
+      3.4,
+      INCIDENT_HOTSPOT.z + Math.sin(CAM_ORBIT)*9
+    );
+    targetLook = new THREE.Vector3(INCIDENT_HOTSPOT.x, 1.2, INCIDENT_HOTSPOT.z);
+  } else if (CAM_MODE === 'var' && INCIDENT_HOTSPOT) {
+    CAM_ORBIT += dt * 0.4;
+    targetPos = new THREE.Vector3(
+      INCIDENT_HOTSPOT.x + Math.cos(CAM_ORBIT)*6,
+      5,
+      INCIDENT_HOTSPOT.z + Math.sin(CAM_ORBIT)*6
+    );
+    targetLook = new THREE.Vector3(INCIDENT_HOTSPOT.x, 1, INCIDENT_HOTSPOT.z);
+  } else {
+    // Follow cam: behind & above the referee, angled toward the ball
+    var toBall = Math.atan2(BALL.x - REF.x, BALL.z - REF.z);
+    var behindAngle = toBall + Math.PI;
+    targetPos = new THREE.Vector3(
+      REF.x + Math.sin(behindAngle) * 9,
+      6.5,
+      REF.z + Math.cos(behindAngle) * 9
+    );
+    targetLook = new THREE.Vector3(REF.x*0.4 + BALL.x*0.6, 1, REF.z*0.4 + BALL.z*0.6);
+  }
+  CAM_CUR_POS.lerp(targetPos, 0.035);
+  CAM_CUR_LOOK.lerp(targetLook, 0.05);
+  camera.position.copy(CAM_CUR_POS);
+  camera.lookAt(CAM_CUR_LOOK);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTINUOUS MOVEMENT SIM (ball drifts, players track it, ref jogs to keep up)
+// ═══════════════════════════════════════════════════════════════
+function pickBallDrift() {
+  BALL.targetX = Math.max(-PITCH_W/2+4, Math.min(PITCH_W/2-4, BALL.x + (Math.random()-0.5)*30));
+  BALL.targetZ = Math.max(-PITCH_H/2+4, Math.min(PITCH_H/2-4, BALL.z + (Math.random()-0.5)*22));
+}
+pickBallDrift();
+
+function updateFlow(dt, frozen) {
+  if (!frozen) {
+    // Ball drifts toward its target
+    var bdx = BALL.targetX-BALL.x, bdz = BALL.targetZ-BALL.z;
+    var bdist = Math.sqrt(bdx*bdx+bdz*bdz);
+    if (bdist < 2) pickBallDrift();
+    else { BALL.x += (bdx/bdist)*7*dt; BALL.z += (bdz/bdist)*7*dt; }
+    BALL_MESH.position.set(BALL.x, .85, BALL.z);
+
+    // Field players jog toward the ball loosely (stay somewhat spread out)
+    FIELD_PLAYERS.forEach(function(p, i) {
+      var spreadX = (i % 3 - 1) * 8, spreadZ = (Math.floor(i/3) - 0.5) * 10;
+      p.targetX = BALL.x + spreadX + (Math.random()-0.5)*3;
+      p.targetZ = BALL.z + spreadZ + (Math.random()-0.5)*3;
+      p.targetX = Math.max(-PITCH_W/2+2, Math.min(PITCH_W/2-2, p.targetX));
+      p.targetZ = Math.max(-PITCH_H/2+2, Math.min(PITCH_H/2-2, p.targetZ));
+      var dx = p.targetX-p.x, dz = p.targetZ-p.z;
+      var dist = Math.sqrt(dx*dx+dz*dz);
+      if (dist > 0.3) {
+        p.x += (dx/dist)*3.2*dt; p.z += (dz/dist)*3.2*dt;
+        p.mesh.rotation.y = Math.atan2(dx,dz);
+      }
+      p.mesh.position.set(p.x, 0, p.z);
+    });
+
+    // Referee jogs to stay near play (slightly behind the ball, diagonal)
+    REF.targetX = BALL.x * 0.85;
+    REF.targetZ = BALL.z * 0.85;
+    var rdx = REF.targetX-REF.x, rdz = REF.targetZ-REF.z;
+    var rdist = Math.sqrt(rdx*rdx+rdz*rdz);
+    if (rdist > 0.3) {
+      var speed = 5.5;
+      REF.x += (rdx/rdist)*speed*dt; REF.z += (rdz/rdist)*speed*dt;
+      REF.facing = Math.atan2(rdx,rdz);
+    }
+    REF_MESH.position.set(REF.x, 0, REF.z);
+    REF_MESH.rotation.y = REF.facing;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER LOOP
+// ═══════════════════════════════════════════════════════════════
+var LAST_T = performance.now();
+function animate() {
+  requestAnimationFrame(animate);
+  var now = performance.now();
+  var dt = Math.min((now - LAST_T)/1000, .05);
+  LAST_T = now;
+  var frozen = !!(MATCH && MATCH.currentIncident);
+  updateFlow(dt, frozen);
+  updateCamera(dt);
+  renderer.render(scene, camera);
+}
+window.addEventListener('resize', function(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CAREER / TIERS / ACHIEVEMENTS
+// ═══════════════════════════════════════════════════════════════
+var TIERS = [
+  {name:'Sunday League', min:0,  max:14, hasVar:false, color:'#8888bb'},
+  {name:'County Cup',    min:15, max:29, hasVar:false, color:'#3b82f6'},
+  {name:'League Two',    min:30, max:44, hasVar:false, color:'#06ffa5'},
+  {name:'Championship',  min:45, max:59, hasVar:true,  color:'#ffd23f'},
+  {name:'Premier League',min:60, max:79, hasVar:true,  color:'#ff6b35'},
+  {name:'Champions League Final', min:80, max:100, hasVar:true, color:'#a855f7'}
+];
+var ACHIEVEMENTS = [
+  {id:'first_red', icon:'🟥', name:'First Red Card', desc:'Show your first red card'},
+  {id:'perfect',   icon:'💯', name:'Perfect Match',   desc:'100% accuracy in a match'},
+  {id:'var_save',  icon:'📺', name:'VAR Hero',         desc:'Correctly overturn a call using VAR'},
+  {id:'promoted',  icon:'⬆️', name:'Promoted',         desc:'Reach a new league tier'},
+  {id:'survivor',  icon:'🛡️', name:'Iron Will',        desc:'Finish a match with fitness above 50'},
+  {id:'top_tier',  icon:'👑', name:'Elite Official',   desc:'Reach the Champions League Final tier'}
+];
+
+var CAREER = loadCareer();
+function defaultCareer() {
+  return { reputation: 5, matches: 0, totalDecisions: 0, correctDecisions: 0,
+           reds: 0, bestRating: 0, achievements: [], refName: 'Ref. ' + randomSurname() };
+}
+function loadCareer() {
+  try { var s = JSON.parse(localStorage.getItem('nom_ref_career')); if (s) return s; } catch(e) {}
+  return defaultCareer();
+}
+function saveCareer() { localStorage.setItem('nom_ref_career', JSON.stringify(CAREER)); }
+function randomSurname() {
+  var names = ['Smith','Walker','Taylor','Webb','Collins','Foy','Pawson','Oliver','Atkinson','Marriner','Moss','Attwell'];
+  return names[Math.floor(Math.random()*names.length)];
+}
+function getCurrentTier() {
+  for (var i = TIERS.length - 1; i >= 0; i--) { if (CAREER.reputation >= TIERS[i].min) return { tier: TIERS[i], idx: i }; }
+  return { tier: TIERS[0], idx: 0 };
+}
+
+function renderHome() {
+  document.getElementById('refName').textContent = CAREER.refName;
+  var ct = getCurrentTier();
+  document.getElementById('refTierLabel').textContent = ct.tier.name;
+  document.getElementById('statMatches').textContent = CAREER.matches;
+  var acc = CAREER.totalDecisions ? Math.round(CAREER.correctDecisions / CAREER.totalDecisions * 100) : 0;
+  document.getElementById('statAccuracy').textContent = CAREER.matches ? acc + '%' : '—';
+  document.getElementById('statReds').textContent = CAREER.reds;
+  document.getElementById('statBest').textContent = CAREER.bestRating.toFixed(1);
+  document.getElementById('repBarFill').style.width = CAREER.reputation + '%';
+  document.getElementById('repValue').textContent = 'Reputation: ' + Math.round(CAREER.reputation);
+  document.getElementById('tierTrack').innerHTML = TIERS.map(function(t, i) {
+    var cls = i === ct.idx ? 'current' : (CAREER.reputation > t.max ? 'passed' : '');
+    return '<div class="tier-chip ' + cls + '">' + t.name + '</div>';
+  }).join('');
+  document.getElementById('achievementsRow').innerHTML = ACHIEVEMENTS.map(function(a) {
+    var earned = CAREER.achievements.indexOf(a.id) !== -1;
+    return '<div class="ach-badge' + (earned ? ' earned' : '') + '" title="' + a.name + (earned ? '' : ' (locked)') + '">' + a.icon + '</div>';
+  }).join('');
+  applyTierAtmosphere(ct.idx);
+}
+function resetCareer() {
+  if (!confirm('Reset your entire referee career? This cannot be undone.')) return;
+  CAREER = defaultCareer(); saveCareer(); renderHome();
+}
+function unlockAchievement(id) {
+  if (CAREER.achievements.indexOf(id) === -1) { CAREER.achievements.push(id); return ACHIEVEMENTS.find(function(a){ return a.id === id; }); }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MATCH STATE + FLOW (continuous, not scenario-queue)
+// ═══════════════════════════════════════════════════════════════
+var MATCH = null;
+var MATCH_SPEED = 1;
+var MATCH_INTERVAL = null;
+
+function getRandomClubs() {
+  var fallback = ['Riverside FC','Park Rangers','City Athletic','United Town'];
+  if (window.NOMDB && window.NOMDB.leagues) {
+    var ct = getCurrentTier();
+    var leagueId = ct.idx >= 4 ? 'prem' : ct.idx === 3 ? 'champ' : null;
+    if (leagueId) {
+      var lg = window.NOMDB.leagues.find(function(l){ return l.id === leagueId; });
+      if (lg && lg.clubs.length >= 2) {
+        var shuffled = lg.clubs.slice().sort(function(){ return Math.random()-0.5; });
+        return [shuffled[0].name, shuffled[1].name];
+      }
+    }
+  }
+  var shuffled = fallback.slice().sort(function(){ return Math.random()-0.5; });
+  return [shuffled[0], shuffled[1]];
+}
+
+function startMatch() {
+  var ct = getCurrentTier();
+  applyTierAtmosphere(ct.idx);
+  var clubs = getRandomClubs();
+  MATCH = {
+    tier: ct.tier, home: clubs[0], away: clubs[1],
+    homeScore: 0, awayScore: 0, minute: 0,
+    fitness: 100, authority: 100, varLeft: ct.tier.hasVar ? 3 : 0,
+    decisions: 0, correct: 0, yellowCards: 0, redCards: 0,
+    currentIncident: null, varUsedThisIncident: false, finished: false
+  };
+  REF.x=0; REF.z=0; BALL.x=0; BALL.z=0; pickBallDrift();
+  FIELD_PLAYERS.forEach(function(p,i){ p.x=(Math.random()-0.5)*40; p.z=(Math.random()-0.5)*30; });
+
+  document.getElementById('homeScreen').style.display = 'none';
+  document.getElementById('reportScreen').classList.add('hidden');
+  document.getElementById('matchTopHud').style.display = 'block';
+  document.getElementById('commentaryFeed').style.display = 'block';
+  document.getElementById('modelStatusPanel').style.display = 'block';
+  document.getElementById('speedControls').style.display = 'flex';
+  document.getElementById('fixturePill').innerHTML = escH(MATCH.home) + ' <span class="fixture-score" id="fixtureScore">0-0</span> ' + escH(MATCH.away);
+  document.getElementById('commentaryFeed').innerHTML = '';
+  addCommentary('🏟️ Kickoff! ' + MATCH.home + ' vs ' + MATCH.away + ' — ' + MATCH.tier.name + '.');
+  updateMatchTopbar();
+  CAM_MODE = 'follow';
+  setMatchSpeed(1);
+  runMatchClock();
+}
+
+function setMatchSpeed(s) {
+  MATCH_SPEED = s;
+  ['speed1x','speed2x','speed3x'].forEach(function(id){ document.getElementById(id).classList.remove('active'); });
+  document.getElementById(s===1?'speed1x':s===2?'speed2x':'speed3x').classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INCIDENT GENERATION (unchanged proven logic)
+// ═══════════════════════════════════════════════════════════════
+var INCIDENT_TYPES = ['challenge','handball','penalty_foul','offside','dive','dogso','dissent','goal_check'];
+function generateIncident(type) {
+  var attackingTeam = Math.random() < 0.5 ? MATCH.home : MATCH.away;
+  var defendingTeam = attackingTeam === MATCH.home ? MATCH.away : MATCH.home;
+  var num1 = Math.floor(Math.random()*22)+1, num2 = Math.floor(Math.random()*22)+1;
+  var inBox = Math.random() < 0.35;
+
+  if (type === 'challenge') {
+    var severity = Math.random();
+    var truth = severity < 0.35 ? 'clean' : severity < 0.65 ? 'foul' : severity < 0.88 ? 'reckless' : 'violent';
+    return { type:'challenge', icon:'⚔️', title:'CHALLENGE FOR THE BALL', inBox:inBox,
+      desc:'#'+num1+' ('+defendingTeam+') goes in hard on #'+num2+' ('+attackingTeam+') near the '+(inBox?'penalty area':'midfield line')+'.',
+      truth:truth,
+      truthDesc: truth==='clean' ? 'Replay shows the defender won the ball fairly — no contact issue.' :
+                 truth==='foul' ? 'Slightly mistimed — clear contact before the ball, a standard foul.' :
+                 truth==='reckless' ? 'Excessive force with little regard for safety — this needed a card.' :
+                 'Studs-up, no attempt to play the ball — endangered the opponent.',
+      varClue: truth==='clean' ? 'Zoomed replay: defender\u2019s foot clearly touches the ball first.' :
+               truth==='foul' ? 'Zoomed replay: minor contact just after the ball.' :
+               truth==='reckless' ? 'Zoomed replay: high boot, force on the ankle.' :
+               'Zoomed replay: no attempt at the ball, excessive force.',
+      options: inBox ? ['play_on','foul','penalty','yellow','red'] : ['play_on','foul','yellow','red'] };
+  }
+  if (type === 'handball') {
+    var hb = Math.random();
+    var htruth = hb < 0.4 ? 'accidental' : hb < 0.75 ? 'deliberate' : 'deliberate_danger';
+    return { type:'handball', icon:'🤚', title:'HANDBALL APPEAL', inBox:inBox,
+      desc:'Ball strikes #'+num1+'\u2019s ('+defendingTeam+') arm '+(inBox?'inside the box':'near the box')+'.',
+      truth:htruth,
+      truthDesc: htruth==='accidental' ? 'Arm tucked in, deflection at close range — no offence.' :
+                 htruth==='deliberate' ? 'Arm moved to make the body bigger — handball.' :
+                 'Clear deliberate block to deny a goalscoring opportunity.',
+      varClue: htruth==='accidental' ? 'Replay: arm tucked tight, ball travels under 1m before contact.' :
+               htruth==='deliberate' ? 'Replay: arm extends outward, increasing area blocked.' :
+               'Replay: arm clearly raised to block a goalbound effort.',
+      options: inBox ? ['play_on','penalty','yellow','red'] : ['play_on','foul','yellow'] };
+  }
+  if (type === 'penalty_foul') {
+    var pf = Math.random();
+    var ptruth = pf < 0.3 ? 'no_foul' : pf < 0.75 ? 'penalty' : 'penalty_red';
+    return { type:'penalty_foul', icon:'🥅', title:'INCIDENT IN THE BOX', inBox:true,
+      desc:'#'+num2+' ('+attackingTeam+') goes down under a challenge from #'+num1+' ('+defendingTeam+') inside the area.',
+      truth:ptruth,
+      truthDesc: ptruth==='no_foul' ? 'Minimal contact, went down easily — no penalty.' :
+                 ptruth==='penalty' ? 'Clear trip from behind — stonewall penalty.' :
+                 'Penalty AND denial of a clear chance — red card territory.',
+      varClue: ptruth==='no_foul' ? 'Replay: defender\u2019s leg withdrawn before contact.' :
+               ptruth==='penalty' ? 'Replay: clear trip on the ankle.' :
+               'Replay: last defender, no cover, denies a certain goal.',
+      options: ['play_on','penalty','yellow','red'] };
+  }
+  if (type === 'offside') {
+    var off = Math.random() < 0.5;
+    return { type:'offside', icon:'🚩', title:'GOAL — CHECK FOR OFFSIDE', inBox:true,
+      desc:'#'+num2+' ('+attackingTeam+') has scored! The assistant flagged — was the striker level or beyond the last defender?',
+      truth: off ? 'offside' : 'onside',
+      truthDesc: off ? 'Shoulder beyond the last defender — offside, no goal.' : 'Level with the defender — goal stands!',
+      varClue: off ? 'VAR line: attacker ahead of defender by a clear margin.' : 'VAR line: attacker and defender level.',
+      options: ['goal_stands','disallow_goal'] };
+  }
+  if (type === 'dive') {
+    var dv = Math.random() < 0.6;
+    return { type:'dive', icon:'🎭', title:'WENT DOWN EASILY', inBox:inBox,
+      desc:'#'+num2+' ('+attackingTeam+') tumbles under a challenge from #'+num1+' ('+defendingTeam+'). Was there contact?',
+      truth: dv ? 'simulation' : 'genuine_foul',
+      truthDesc: dv ? 'No contact whatsoever — a clear dive.' : 'Clipped ankle just before the fall — genuine foul.',
+      varClue: dv ? 'Replay: defender\u2019s foot never makes contact.' : 'Replay: subtle but clear contact on the trailing leg.',
+      options: inBox ? ['play_on','penalty','yellow'] : ['play_on','foul','yellow'] };
+  }
+  if (type === 'dogso') {
+    var d = Math.random() < 0.55;
+    return { type:'dogso', icon:'🏃', title:'LAST-MAN CHALLENGE', inBox:false,
+      desc:'#'+num2+' ('+attackingTeam+') breaks clear with only the keeper to beat. #'+num1+' ('+defendingTeam+'), last defender, drags them down.',
+      truth: d ? 'dogso' : 'tactical',
+      truthDesc: d ? 'Clear denial of an obvious goalscoring opportunity — straight red.' : 'A covering defender was tracking back — yellow is sufficient.',
+      varClue: d ? 'Replay: no covering defender within 10 yards.' : 'Replay: a second defender was recovering.',
+      options: ['play_on','foul','yellow','red'] };
+  }
+  if (type === 'dissent') {
+    var harsh = Math.random() < 0.4;
+    return { type:'dissent', icon:'🗣️', title:'PLAYER CONFRONTS YOU', inBox:false,
+      desc:'#'+num1+' ('+defendingTeam+') runs to confront you, '+(harsh?'getting in your face with abusive language':'gesturing angrily from a distance')+'.',
+      truth: harsh ? 'serious_dissent' : 'minor_dissent',
+      truthDesc: harsh ? 'Aggressive, in your personal space — merits a card.' : 'Frustrated but no real escalation — a word is enough.',
+      varClue: 'VAR cannot review player conduct toward the referee — this call is yours alone.',
+      options: ['play_on','yellow','red'] };
+  }
+  var clean = Math.random() < 0.8;
+  return { type:'goal_check', icon:'⚽', title:'GOAL SCORED!', inBox:true,
+    desc:'#'+num2+' ('+attackingTeam+') smashes it in! Any reason to check this one?',
+    truth: clean ? 'onside' : 'offside',
+    truthDesc: clean ? 'Build-up was clean — goal stands!' : 'An attacker was offside during the build-up.',
+    varClue: clean ? 'No issues found in the build-up.' : 'An offside attacker touches the ball before the shot.',
+    options: ['goal_stands','disallow_goal'] };
+}
+
+var DECISION_LABELS = {
+  play_on:{label:'▶ Play On',cls:'play-on'}, foul:{label:'🟨 Foul',cls:'foul'},
+  yellow:{label:'🟨 Yellow Card',cls:'yellow'}, red:{label:'🟥 Red Card',cls:'red'},
+  penalty:{label:'🥅 Penalty',cls:'penalty'}, goal_stands:{label:'✅ Goal Stands',cls:'play-on'},
+  disallow_goal:{label:'🚫 Disallow Goal',cls:'red'}
+};
+var CORRECT_MAP = {
+  challenge:{clean:'play_on',foul:'foul',reckless:'yellow',violent:'red'},
+  handball:{accidental:'play_on',deliberate:'foul',deliberate_danger:'red'},
+  penalty_foul:{no_foul:'play_on',penalty:'penalty',penalty_red:'red'},
+  offside:{offside:'disallow_goal',onside:'goal_stands'},
+  dive:{simulation:'yellow',genuine_foul:'foul'},
+  dogso:{dogso:'red',tactical:'yellow'},
+  dissent:{serious_dissent:'yellow',minor_dissent:'play_on'},
+  goal_check:{onside:'goal_stands',offside:'disallow_goal'}
+};
+function getCorrectDecision(inc) {
+  var correct = CORRECT_MAP[inc.type][inc.truth];
+  if (inc.type === 'handball' && inc.inBox) {
+    if (inc.truth === 'deliberate') correct = 'penalty';
+    if (inc.truth === 'deliberate_danger') correct = 'red';
+  }
+  return correct;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MATCH CLOCK — continuous, incidents interrupt organically
+// ═══════════════════════════════════════════════════════════════
+function runMatchClock() {
+  clearInterval(MATCH_INTERVAL);
+  MATCH_INTERVAL = setInterval(function() {
+    if (!MATCH || MATCH.finished || MATCH.currentIncident) return;
+    MATCH.minute += MATCH_SPEED;
+    if (MATCH.minute >= 90) { MATCH.minute = 90; updateMatchTopbar(); endMatch(); return; }
+    MATCH.fitness = Math.max(0, MATCH.fitness - 0.12*MATCH_SPEED);
+    updateMatchTopbar();
+
+    // Organic flavor commentary occasionally
+    if (Math.random() < 0.06) addCommentary(flavorLine());
+
+    // Organic incident chance each tick
+    if (Math.random() < 0.05*MATCH_SPEED) triggerIncident();
+  }, 500);
+}
+
+function flavorLine() {
+  var lines = ['⚽ Play flowing nicely in midfield.', '🔄 Possession changes hands.', '🏃 Good pressing from both sides.',
+    '📐 Corner kick delivered, nothing comes of it.', '🧤 Routine save for the keeper.', '🔁 Throw-in, play resets.'];
+  return lines[Math.floor(Math.random()*lines.length)];
+}
+
+function updateMatchTopbar() {
+  document.getElementById('matchClock').textContent = Math.round(MATCH.minute) + "'";
+  document.getElementById('staminaVal').textContent = Math.round(MATCH.fitness);
+  document.getElementById('staminaBar').style.width = MATCH.fitness + '%';
+  document.getElementById('authorityVal').textContent = Math.round(MATCH.authority);
+  document.getElementById('authorityBar').style.width = MATCH.authority + '%';
+  document.getElementById('varCount').textContent = MATCH.varLeft;
+  var fs = document.getElementById('fixtureScore');
+  if (fs) fs.textContent = MATCH.homeScore + '-' + MATCH.awayScore;
+  document.getElementById('staminaBar').style.background = MATCH.fitness < 30 ? 'linear-gradient(90deg,#ef4444,#dc2626)' : 'linear-gradient(90deg,#06ffa5,#3b82f6)';
+  document.getElementById('authorityBar').style.background = MATCH.authority < 30 ? 'linear-gradient(90deg,#ef4444,#dc2626)' : 'linear-gradient(90deg,#ffd23f,#ff6b35)';
+}
+
+function addCommentary(text) {
+  var feed = document.getElementById('commentaryFeed');
+  var div = document.createElement('div'); div.textContent = text;
+  feed.appendChild(div); feed.scrollTop = feed.scrollHeight;
+  while (feed.children.length > 25) feed.removeChild(feed.firstChild);
+}
+
+function triggerIncident() {
+  var type = INCIDENT_TYPES[Math.floor(Math.random()*INCIDENT_TYPES.length)];
+  var inc = generateIncident(type);
+  MATCH.currentIncident = inc;
+  MATCH.varUsedThisIncident = false;
+
+  INCIDENT_HOTSPOT = { x: BALL.x, z: BALL.z };
+  CAM_MODE = 'incident';
+  CAM_ORBIT = 0;
+
+  flashWhistle();
+  addCommentary('⏸️ ' + inc.icon + ' ' + inc.title);
+
+  document.getElementById('incIcon').textContent = inc.icon;
+  document.getElementById('incTitle').textContent = inc.title;
+  document.getElementById('incDesc').textContent = inc.desc;
+
+  document.getElementById('decisionGrid').innerHTML = inc.options.map(function(opt, i) {
+    var d = DECISION_LABELS[opt];
+    return '<button class="dec-btn ' + d.cls + '" onclick="makeDecision(\'' + opt + '\')"><span class="keynum">' + (i+1) + '</span>' + d.label + '</button>';
+  }).join('');
+
+  var varBtn = document.getElementById('varBtn');
+  var canVar = MATCH.tier.hasVar && MATCH.varLeft > 0;
+  varBtn.style.display = canVar ? 'block' : 'none';
+  varBtn.disabled = false;
+
+  document.getElementById('incidentCard').style.display = 'block';
+  document.getElementById('feedbackOverlay').style.display = 'none';
+
+  var baseTime = 10;
+  MATCH.incidentTimeLeft = Math.max(5, Math.round(baseTime * (MATCH.fitness/100*0.5 + 0.5)));
+  document.getElementById('incTimer').textContent = MATCH.incidentTimeLeft;
+  clearInterval(MATCH.incidentTimerInterval);
+  MATCH.incidentTimerInterval = setInterval(function() {
+    MATCH.incidentTimeLeft--;
+    document.getElementById('incTimer').textContent = Math.max(0, MATCH.incidentTimeLeft);
+    if (MATCH.incidentTimeLeft <= 0) { clearInterval(MATCH.incidentTimerInterval); makeDecision('play_on'); }
+  }, 1000);
+}
+
+function flashWhistle() {
+  var fl = document.getElementById('whistleFlash');
+  fl.classList.add('flash');
+  setTimeout(function(){ fl.classList.remove('flash'); }, 120);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VAR REVIEW
+// ═══════════════════════════════════════════════════════════════
+function openVAR() {
+  if (!MATCH.currentIncident || MATCH.varLeft <= 0) return;
+  clearInterval(MATCH.incidentTimerInterval);
+  MATCH.varLeft--;
+  MATCH.varUsedThisIncident = true;
+  MATCH.authority = Math.max(0, MATCH.authority - 3);
+  updateMatchTopbar();
+  CAM_MODE = 'var'; CAM_ORBIT = 0;
+
+  var inc = MATCH.currentIncident;
+  var modal = document.createElement('div');
+  modal.id = 'varOverlay'; modal.style.display = 'flex';
+  modal.innerHTML = '<div class="var-box">'
+    + '<div class="var-title">📺 VAR REVIEW</div>'
+    + '<div class="var-clue">🔍 <b>Key Evidence:</b> ' + escH(inc.varClue) + '</div>'
+    + '<button class="fb-next" style="width:100%" onclick="closeVAR()">Return to Pitch</button>'
+    + '</div>';
+  document.body.appendChild(modal);
+}
+function closeVAR() {
+  var modal = document.getElementById('varOverlay');
+  if (modal) modal.parentNode.removeChild(modal);
+  CAM_MODE = 'incident'; CAM_ORBIT = 0;
+  if (MATCH.currentIncident) {
+    MATCH.incidentTimeLeft = Math.max(6, MATCH.incidentTimeLeft);
+    document.getElementById('incTimer').textContent = MATCH.incidentTimeLeft;
+    clearInterval(MATCH.incidentTimerInterval);
+    MATCH.incidentTimerInterval = setInterval(function() {
+      MATCH.incidentTimeLeft--;
+      document.getElementById('incTimer').textContent = Math.max(0, MATCH.incidentTimeLeft);
+      if (MATCH.incidentTimeLeft <= 0) { clearInterval(MATCH.incidentTimerInterval); makeDecision('play_on'); }
+    }, 1000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DECISION SCORING
+// ═══════════════════════════════════════════════════════════════
+function makeDecision(choice) {
+  clearInterval(MATCH.incidentTimerInterval);
+  var inc = MATCH.currentIncident;
+  if (!inc) return;
+  document.getElementById('incidentCard').style.display = 'none';
+
+  var correct = getCorrectDecision(inc);
+  var isCorrect = choice === correct;
+  var minorError = !isCorrect && ((choice==='play_on'&&correct==='foul') || (choice==='foul'&&correct==='play_on') || (choice==='foul'&&correct==='yellow'));
+
+  MATCH.decisions++;
+  if (isCorrect) MATCH.correct++;
+
+  if (choice === 'yellow') MATCH.yellowCards++;
+  if (choice === 'red') MATCH.redCards++;
+  if (choice === 'penalty' && isCorrect && Math.random() < 0.78) { if (Math.random()<0.5) MATCH.homeScore++; else MATCH.awayScore++; }
+  if (choice === 'goal_stands' && correct === 'goal_stands') { if (Math.random()<0.5) MATCH.homeScore++; else MATCH.awayScore++; }
+
+  if (isCorrect) MATCH.authority = Math.min(100, MATCH.authority + 3);
+  else if (minorError) MATCH.authority = Math.max(0, MATCH.authority - 6);
+  else MATCH.authority = Math.max(0, MATCH.authority - 14);
+
+  updateMatchTopbar();
+  addCommentary(isCorrect ? '✅ Correct call! Play continues.' : '❌ Questionable decision — the crowd are unhappy!');
+
+  var fb = document.getElementById('feedbackOverlay');
+  fb.className = isCorrect ? 'correct' : 'wrong';
+  fb.style.display = 'block';
+  document.getElementById('fbTitle').className = 'fb-title ' + (isCorrect ? 'correct' : 'wrong');
+  document.getElementById('fbTitle').textContent = isCorrect ? '✅ CORRECT CALL!' : (minorError ? '⚠️ CLOSE, BUT NOT QUITE' : '❌ WRONG CALL!');
+  document.getElementById('fbDesc').textContent = inc.truthDesc;
+
+  if (choice === 'red' && isCorrect) { var a1 = unlockAchievement('first_red'); if (a1) showAchievementToast(a1); }
+  if (MATCH.varUsedThisIncident && isCorrect) { var a2 = unlockAchievement('var_save'); if (a2) showAchievementToast(a2); }
+
+  MATCH.currentIncident = null;
+  CAM_MODE = 'follow';
+}
+
+function nextPhase() {
+  document.getElementById('feedbackOverlay').style.display = 'none';
+  if (MATCH.minute >= 90) endMatch();
+}
+
+function showAchievementToast(ach) {
+  var toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;top:14px;right:14px;background:rgba(14,14,30,.92);backdrop-filter:blur(8px);border:2px solid var(--a2);border-radius:12px;padding:12px 16px;z-index:600;box-shadow:0 0 20px rgba(255,210,63,.3);max-width:220px;';
+  toast.innerHTML = '<div style="font-size:1.4rem;text-align:center">'+ach.icon+'</div><div style="font-family:Bangers,cursive;font-size:.8rem;color:var(--a2);text-align:center;letter-spacing:1px;">ACHIEVEMENT</div><div style="font-size:.68rem;font-weight:700;text-align:center;">'+ach.name+'</div>';
+  document.body.appendChild(toast);
+  setTimeout(function(){ if (toast.parentNode) toast.parentNode.removeChild(toast); }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// END OF MATCH
+// ═══════════════════════════════════════════════════════════════
+function endMatch() {
+  if (MATCH.finished) return;
+  MATCH.finished = true;
+  clearInterval(MATCH_INTERVAL);
+  clearInterval(MATCH.incidentTimerInterval);
+  CAM_MODE = 'follow';
+
+  var accuracy = MATCH.decisions ? Math.round(MATCH.correct/MATCH.decisions*100) : 100;
+  var rating = Math.min(10, Math.max(1, Math.round(((accuracy/100)*7 + (MATCH.authority/100)*2 + (MATCH.fitness/100)*1)*10)/10));
+  var repChange = Math.round((rating - 5.5) * 2.2);
+  var oldTierIdx = getCurrentTier().idx;
+  CAREER.reputation = Math.max(0, Math.min(100, CAREER.reputation + repChange));
+  CAREER.matches++; CAREER.totalDecisions += MATCH.decisions; CAREER.correctDecisions += MATCH.correct;
+  CAREER.reds += MATCH.redCards;
+  if (rating > CAREER.bestRating) CAREER.bestRating = rating;
+
+  var newAch = null;
+  if (accuracy === 100 && MATCH.decisions > 0) newAch = unlockAchievement('perfect') || newAch;
+  if (MATCH.fitness > 50) newAch = unlockAchievement('survivor') || newAch;
+  var newTierIdx = getCurrentTier().idx;
+  if (newTierIdx > oldTierIdx) newAch = unlockAchievement('promoted') || newAch;
+  if (newTierIdx === TIERS.length-1) newAch = unlockAchievement('top_tier') || newAch;
+
+  saveCareer();
+  showReport(accuracy, rating, repChange, newAch);
+}
+
+function showReport(accuracy, rating, repChange, newAch) {
+  document.getElementById('matchTopHud').style.display = 'none';
+  document.getElementById('commentaryFeed').style.display = 'none';
+  document.getElementById('modelStatusPanel').style.display = 'none';
+  document.getElementById('speedControls').style.display = 'none';
+  document.getElementById('reportScreen').classList.remove('hidden');
+
+  var emoji = rating>=8.5?'🏆':rating>=7?'🎉':rating>=5.5?'👍':rating>=4?'😬':'🤬';
+  var title = rating>=8.5?'OUTSTANDING!':rating>=7?'SOLID PERFORMANCE':rating>=5.5?'AVERAGE GAME':rating>=4?'TOUGH AFTERNOON':'DISASTER CLASS';
+  document.getElementById('reportEmoji').textContent = emoji;
+  document.getElementById('reportTitle').textContent = title;
+  var starCount = Math.max(1, Math.round(rating/2));
+  document.getElementById('reportStars').textContent = '⭐'.repeat(starCount) + '☆'.repeat(5-starCount);
+  document.getElementById('rptAccuracy').textContent = accuracy + '%';
+  document.getElementById('rptRating').textContent = rating.toFixed(1);
+  document.getElementById('rptRepChange').textContent = (repChange>=0?'+':'') + repChange;
+  document.getElementById('rptRepChange').style.color = repChange>=0 ? 'var(--a3)' : 'var(--red)';
+  document.getElementById('rptCards').textContent = MATCH.yellowCards+'🟨 '+MATCH.redCards+'🟥';
+
+  var quotes = [];
+  if (rating>=7) quotes.push({team:MATCH.home, text:'Credit to the referee today — let the game flow and made the big calls correctly.'});
+  else if (rating<5) quotes.push({team:MATCH.away, text:'Not blaming the result on the official, but some of those decisions were baffling.'});
+  else quotes.push({team:MATCH.home, text:'A few decisions could have gone either way. That is football I suppose.'});
+  document.getElementById('managerQuotes').innerHTML = quotes.map(function(q){
+    return '<div class="manager-quote">"'+escH(q.text)+'" — <b>'+escH(q.team)+' manager</b></div>';
+  }).join('');
+
+  var achEl = document.getElementById('newAchievement');
+  if (newAch) {
+    achEl.classList.remove('hidden');
+    achEl.innerHTML = '<div style="font-size:1.8rem">'+newAch.icon+'</div><div style="font-family:Bangers,cursive;color:var(--a2);letter-spacing:2px;">ACHIEVEMENT UNLOCKED</div><div style="font-weight:800;font-size:.82rem;">'+newAch.name+'</div>';
+  } else achEl.classList.add('hidden');
+
+  if (rating >= 7) boom();
+}
+
+function returnHome() {
+  document.getElementById('reportScreen').classList.add('hidden');
+  document.getElementById('homeScreen').style.display = 'block';
+  renderHome();
+}
+
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function boom() {
+  var cols = ['#ff6b35','#ffd23f','#06ffa5','#a855f7','#3b82f6','#ec4899'];
+  for (var i=0;i<50;i++){
+    var p=document.createElement('div'); p.className='cfp';
+    var sz=Math.random()*9+4;
+    p.style.cssText='left:'+Math.random()*100+'vw;background:'+cols[Math.floor(Math.random()*cols.length)]+';width:'+sz+'px;height:'+sz+'px;border-radius:'+(Math.random()>.5?'50%':'2px')+';animation:cff '+(Math.random()*2+1)+'s linear '+(Math.random()*.4)+'s forwards;';
+    document.body.appendChild(p);
+    p.addEventListener('animationend',function(){ if(p.parentNode) p.parentNode.removeChild(p); });
+  }
+}
+
+renderHome();
+animate();
+setTimeout(function(){ document.getElementById('loadingScreen').style.display = 'none'; }, 1000);
+</script>
+</body>
+</html>

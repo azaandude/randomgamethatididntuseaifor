@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — International Tournament</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="database.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.15);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+.hidden{display:none!important;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(255,210,63,.09),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(59,130,246,.07),transparent 55%);}
+
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a2),var(--a5));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(255,255,255,.09);
+  color:var(--text);text-decoration:none;transition:all .18s;font-weight:700;}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+
+.wrap{max-width:1000px;margin:0 auto;padding:18px 14px 50px;position:relative;z-index:1;}
+.hero{text-align:center;padding:12px 0 18px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(1.9rem,6vw,3rem);letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a2),var(--a5));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.hero-sub{font-size:.8rem;font-weight:700;color:var(--muted);}
+
+.gcard{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;}
+.size-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.size-btn{flex:1;min-width:100px;padding:14px;border-radius:12px;border:1.5px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;text-align:center;font-weight:700;}
+.size-btn.active{background:rgba(255,210,63,.15);border-color:rgba(255,210,63,.5);color:var(--a2);}
+.size-btn-num{font-family:'Bangers',cursive;font-size:1.5rem;display:block;}
+.size-btn-lbl{font-size:.62rem;font-weight:800;color:var(--muted);}
+.mode-row{display:flex;gap:8px;margin-bottom:14px;}
+.mode-btn{flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;font-weight:700;font-size:.78rem;}
+.mode-btn.active{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.5);color:var(--a5);}
+.bigbtn{width:100%;padding:14px;font-family:'Bangers',cursive;font-size:1.2rem;letter-spacing:2px;
+  border:none;border-radius:12px;cursor:pointer;transition:all .2s;background:linear-gradient(135deg,var(--a2),var(--a1));color:#1a0800;}
+.bigbtn:hover{transform:translateY(-2px);}
+
+/* BRACKET */
+#bracketScreen{display:none;}
+.bracket-controls{display:flex;gap:8px;margin-bottom:14px;}
+.bc-btn{flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border);
+  background:rgba(255,255,255,.08);color:var(--text);cursor:pointer;font-family:'Fredoka One',cursive;font-size:.8rem;}
+.bc-btn.primary{background:linear-gradient(135deg,var(--a3),var(--a5));color:#000;border:none;}
+.round-title{font-family:'Bangers',cursive;font-size:1.1rem;color:var(--a2);text-align:center;margin:16px 0 10px;letter-spacing:1px;}
+.bracket-scroll{overflow-x:auto;padding-bottom:8px;}
+.bracket-rounds{display:flex;gap:20px;min-width:max-content;padding:4px;}
+.bracket-round{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-width:200px;}
+.match-box{background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:10px;padding:8px;}
+.match-team{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;font-size:.72rem;font-weight:700;}
+.match-team.winner{background:rgba(6,255,165,.12);color:var(--a3);}
+.match-team.loser{opacity:.45;text-decoration:line-through;}
+.match-team.pending{opacity:.6;}
+.match-score{margin-left:auto;font-family:'Bangers',cursive;}
+.match-vs{text-align:center;font-size:.55rem;color:var(--muted);font-weight:800;padding:2px 0;}
+
+/* CHAMPION */
+#championScreen{display:none;text-align:center;}
+.trophy-emoji{font-size:5rem;margin-bottom:10px;}
+.champ-flag{font-size:4rem;margin-bottom:6px;}
+.champ-name{font-family:'Bangers',cursive;font-size:2.2rem;letter-spacing:2px;color:var(--a2);margin-bottom:6px;}
+.champ-sub{font-size:.85rem;font-weight:700;color:var(--muted);margin-bottom:18px;}
+.champ-path{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+.path-chip{font-size:.68rem;font-weight:800;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid var(--border);}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .3s ease both;}
+@keyframes revealPop{0%{transform:scale(.9);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.match-box.revealed{animation:revealPop .3s ease both;}
+.cfp{position:fixed;pointer-events:none;border-radius:2px;top:-20px;z-index:999;}
+@keyframes cff{0%{transform:translateY(0) rotate(0);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+
+/* nom-upgrade: mobile */
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  img,canvas,video,svg{max-width:100%;height:auto}
+  nav{flex-wrap:wrap;height:auto;min-height:54px;padding:8px 10px;gap:6px}
+  nav .nbtn{font-size:.7rem;padding:5px 8px}
+  .nom-hub{bottom:8px}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🏆 WORLD TOURNAMENT</div>
+  <div class="ml" style="display:flex;gap:7px">
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero fadein">
+    <div class="hero-title">🏆 INTERNATIONAL TOURNAMENT</div>
+    <div class="hero-sub">Simulate a full knockout tournament with 71 real national teams — from France and Brazil to Croatia and Japan.</div>
+  </div>
+
+  <div id="setupScreen">
+    <div class="gcard fadein">
+      <div style="font-size:.62rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Tournament Size</div>
+      <div class="size-row">
+        <div class="size-btn active" data-size="8" onclick="setSize(8,this)"><span class="size-btn-num">8</span><span class="size-btn-lbl">Quick Cup</span></div>
+        <div class="size-btn" data-size="16" onclick="setSize(16,this)"><span class="size-btn-num">16</span><span class="size-btn-lbl">Continental</span></div>
+        <div class="size-btn" data-size="32" onclick="setSize(32,this)"><span class="size-btn-num">32</span><span class="size-btn-lbl">World Cup</span></div>
+      </div>
+      <div style="font-size:.62rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Team Selection</div>
+      <div class="mode-row">
+        <div class="mode-btn active" data-mode="top" onclick="setMode('top',this)">⭐ Top Ranked</div>
+        <div class="mode-btn" data-mode="random" onclick="setMode('random',this)">🎲 Random Draw</div>
+      </div>
+      <button class="bigbtn" onclick="startTournament()">▶ START TOURNAMENT</button>
+    </div>
+  </div>
+
+  <div id="bracketScreen">
+    <div class="bracket-controls">
+      <button class="bc-btn primary" id="simRoundBtn" onclick="simulateRound()">⚽ Simulate Next Round</button>
+      <button class="bc-btn" onclick="simulateAll()">⏩ Simulate to Final</button>
+      <button class="bc-btn" onclick="returnToSetup()">🔄 New Tournament</button>
+    </div>
+    <div class="bracket-scroll">
+      <div class="bracket-rounds" id="bracketRounds"></div>
+    </div>
+  </div>
+
+  <div id="championScreen">
+    <div class="gcard fadein">
+      <div class="trophy-emoji">🏆</div>
+      <div class="champ-flag" id="champFlag">🏴</div>
+      <div class="champ-name" id="champName">Champion</div>
+      <div class="champ-sub" id="champSub">Tournament Winners</div>
+      <div class="champ-path" id="champPath"></div>
+      <button class="bigbtn" onclick="returnToSetup()">🔄 New Tournament</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var SIZE = 8, MODE = 'top';
+function setSize(n, btn) { SIZE = n; document.querySelectorAll('.size-btn').forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); }
+function setMode(m, btn) { MODE = m; document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); }
+
+var BRACKET = null; // array of rounds, each round = array of {a, b, scoreA, scoreB, winner, done}
+
+function pickNations() {
+  if (!window.NOMDB) return [];
+  var pool = window.NOMDB.nations.slice();
+  if (MODE === 'top') {
+    pool.sort(function(a,b){ return b.rating - a.rating; });
+    return pool.slice(0, SIZE);
+  } else {
+    pool.sort(function(){ return Math.random()-0.5; });
+    return pool.slice(0, SIZE);
+  }
+}
+
+function seedBracket(nations) {
+  // Standard tournament seeding: 1 vs N, 2 vs N-1, etc. to keep top seeds apart
+  var n = nations.length;
+  var seeded = nations.slice().sort(function(a,b){ return b.rating - a.rating; });
+  var pairs = [];
+  for (var i = 0; i < n/2; i++) {
+    pairs.push([seeded[i], seeded[n-1-i]]);
+  }
+  // Shuffle pair order for visual variety (seeding logic still keeps top teams apart)
+  pairs.sort(function(){ return Math.random()-0.5; });
+  return pairs.map(function(p){ return { a:p[0], b:p[1], scoreA:null, scoreB:null, winner:null, done:false }; });
+}
+
+function startTournament() {
+  var nations = pickNations();
+  if (nations.length < SIZE) { alert('Not enough nations in the database for this size!'); return; }
+  var firstRound = seedBracket(nations);
+  BRACKET = [firstRound];
+  var numRounds = Math.log2(SIZE);
+  for (var r = 1; r < numRounds; r++) {
+    var matchCount = SIZE / Math.pow(2, r+1);
+    var round = [];
+    for (var m = 0; m < matchCount; m++) round.push({ a:null, b:null, scoreA:null, scoreB:null, winner:null, done:false });
+    BRACKET.push(round);
+  }
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('championScreen').style.display = 'none';
+  document.getElementById('bracketScreen').style.display = 'block';
+  document.getElementById('simRoundBtn').disabled = false;
+  document.getElementById('simRoundBtn').style.opacity = '1';
+  renderBracket();
+}
+
+var ROUND_NAMES = { 32:'Round of 32', 16:'Round of 16', 8:'Quarterfinals', 4:'Semifinals', 2:'Final' };
+function roundLabel(matchCount) {
+  var teamsInRound = matchCount * 2;
+  return ROUND_NAMES[teamsInRound] || (teamsInRound + '-Team Round');
+}
+
+function renderBracket() {
+  var container = document.getElementById('bracketRounds');
+  container.innerHTML = BRACKET.map(function(round, ri) {
+    var label = roundLabel(round.length);
+    var matchesHtml = round.map(function(match) {
+      if (!match.a || !match.b) {
+        return '<div class="match-box"><div class="match-team pending">? TBD</div><div class="match-vs">vs</div><div class="match-team pending">? TBD</div></div>';
+      }
+      var aCls = match.done ? (match.winner === match.a.name ? 'winner' : 'loser') : '';
+      var bCls = match.done ? (match.winner === match.b.name ? 'winner' : 'loser') : '';
+      return '<div class="match-box'+(match.done?' revealed':'')+'">'
+        + '<div class="match-team '+aCls+'">'+match.a.flag+' '+esc(match.a.name)+(match.done?'<span class="match-score">'+match.scoreA+'</span>':'')+'</div>'
+        + '<div class="match-vs">vs</div>'
+        + '<div class="match-team '+bCls+'">'+match.b.flag+' '+esc(match.b.name)+(match.done?'<span class="match-score">'+match.scoreB+'</span>':'')+'</div>'
+        + '</div>';
+    }).join('');
+    return '<div class="bracket-round"><div class="round-title">'+label+'</div>'+matchesHtml+'</div>';
+  }).join('');
+}
+
+function simulateMatch(a, b) {
+  var diff = a.rating - b.rating;
+  var aWinProb = 0.5 + diff*0.012;
+  aWinProb = Math.max(0.15, Math.min(0.85, aWinProb));
+  var scoreA = Math.floor(Math.random() * 3) + (Math.random() < aWinProb ? 1 : 0);
+  var scoreB = Math.floor(Math.random() * 3) + (Math.random() < (1-aWinProb) ? 1 : 0);
+  if (scoreA === scoreB) {
+    // Penalty shootout — knockout can't draw
+    if (Math.random() < aWinProb) scoreA++; else scoreB++;
+  }
+  return { scoreA: scoreA, scoreB: scoreB, winnerName: scoreA > scoreB ? a.name : b.name };
+}
+
+function simulateRound() {
+  var currentRoundIdx = BRACKET.findIndex(function(round){ return round.some(function(m){ return !m.done && m.a && m.b; }); });
+  if (currentRoundIdx === -1) return;
+  var round = BRACKET[currentRoundIdx];
+  round.forEach(function(match) {
+    if (match.done || !match.a || !match.b) return;
+    var result = simulateMatch(match.a, match.b);
+    match.scoreA = result.scoreA; match.scoreB = result.scoreB;
+    match.winner = result.winnerName;
+    match.done = true;
+  });
+  // Advance winners to next round
+  if (currentRoundIdx + 1 < BRACKET.length) {
+    var nextRound = BRACKET[currentRoundIdx+1];
+    round.forEach(function(match, i) {
+      var winnerObj = match.winner === match.a.name ? match.a : match.b;
+      var nextMatchIdx = Math.floor(i/2);
+      if (i % 2 === 0) nextRound[nextMatchIdx].a = winnerObj;
+      else nextRound[nextMatchIdx].b = winnerObj;
+    });
+  }
+  renderBracket();
+
+  var allDone = BRACKET[BRACKET.length-1].every(function(m){ return m.done; });
+  if (allDone) {
+    document.getElementById('simRoundBtn').disabled = true;
+    document.getElementById('simRoundBtn').style.opacity = '.4';
+    setTimeout(showChampion, 900);
+  }
+}
+
+function simulateAll() {
+  var guard = 0;
+  while (!BRACKET[BRACKET.length-1].every(function(m){ return m.done; }) && guard < 20) {
+    simulateRound();
+    guard++;
+  }
+}
+
+function showChampion() {
+  var final = BRACKET[BRACKET.length-1][0];
+  var champ = final.winner === final.a.name ? final.a : final.b;
+  document.getElementById('bracketScreen').style.display = 'none';
+  document.getElementById('championScreen').style.display = 'block';
+  document.getElementById('champFlag').textContent = champ.flag;
+  document.getElementById('champName').textContent = champ.name;
+  document.getElementById('champSub').textContent = champ.style + ' · Managed by ' + champ.manager;
+  var pathHtml = BRACKET.map(function(round){
+    var lbl = roundLabel(round.length);
+    return '<span class="path-chip">✅ Won the ' + lbl + '</span>';
+  }).join('');
+  document.getElementById('champPath').innerHTML = pathHtml;
+  boom();
+}
+
+function returnToSetup() {
+  document.getElementById('bracketScreen').style.display = 'none';
+  document.getElementById('championScreen').style.display = 'none';
+  document.getElementById('setupScreen').classList.remove('hidden');
+  BRACKET = null;
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function boom() {
+  var cols = ['#ffd23f','#ff6b35','#06ffa5','#a855f7','#3b82f6'];
+  for (var i=0;i<50;i++){
+    var p=document.createElement('div'); p.className='cfp';
+    var sz=Math.random()*9+4;
+    p.style.cssText='left:'+Math.random()*100+'vw;background:'+cols[Math.floor(Math.random()*cols.length)]+';width:'+sz+'px;height:'+sz+'px;border-radius:'+(Math.random()>.5?'50%':'2px')+';animation:cff '+(Math.random()*2+1)+'s linear forwards;';
+    document.body.appendChild(p);
+    p.addEventListener('animationend',function(){ if(p.parentNode) p.parentNode.removeChild(p); });
+  }
+}
+</script>
+</body>
+</html>

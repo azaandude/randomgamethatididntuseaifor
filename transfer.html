@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Transfer Market</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.15);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;--bad:#ff4d6d;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(6,255,165,.08),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 85% 100%,rgba(59,130,246,.09),transparent 55%);}
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a3),var(--a5));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;cursor:pointer;
+  border:1.5px solid var(--border);background:rgba(255,255,255,.09);color:var(--text);text-decoration:none;transition:all .18s;}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+.wrap{max-width:1050px;margin:0 auto;padding:16px 14px 60px;position:relative;z-index:1;}
+
+.btn{font-family:'Fredoka One',cursive;font-size:.8rem;padding:8px 16px;border-radius:10px;cursor:pointer;border:none;
+  color:#07070f;background:linear-gradient(135deg,var(--a3),#05c98a);transition:all .15s;}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn.sm{font-size:.68rem;padding:5px 10px;border-radius:8px;}
+.btn.alt{background:linear-gradient(135deg,var(--a2),var(--a1));}
+.btn.ghost{background:rgba(255,255,255,.08);color:var(--text);border:1.5px solid var(--border);}
+.btn.red{background:linear-gradient(135deg,var(--bad),#c9184a);color:#fff;}
+input,select{font-family:'Nunito',sans-serif;font-weight:800;font-size:.78rem;background:rgba(255,255,255,.07);
+  border:1.5px solid var(--border);color:var(--text);padding:7px 10px;border-radius:9px;outline:none;}
+select option{background:#14142a;color:var(--text);}
+input:focus,select:focus{border-color:var(--a3);}
+input[type=range]{padding:0;accent-color:var(--a3);width:100%;}
+
+.hud{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-bottom:12px;}
+.hud-box{background:var(--card);border:1.5px solid var(--border);border-radius:13px;padding:10px 12px;text-align:center;}
+.hud-val{font-family:'Bangers',cursive;font-size:1.45rem;letter-spacing:1px;}
+.hud-lbl{font-size:.55rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1.4px;}
+.ticker{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:8px 12px;
+  font-size:.72rem;font-weight:800;color:var(--a2);margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ticker b{color:var(--muted);margin-right:6px;}
+.daybar{height:8px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden;margin-bottom:12px;}
+.daybar > div{height:100%;background:linear-gradient(90deg,var(--a3),var(--a2),var(--a1));transition:width .4s;}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.tab{font-family:'Fredoka One',cursive;font-size:.76rem;padding:8px 14px;border-radius:10px;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1.5px solid var(--border);color:var(--muted);}
+.tab.on{background:rgba(6,255,165,.14);border-color:var(--a3);color:var(--a3);}
+.tab .cnt{background:var(--a1);color:#fff;border-radius:9px;padding:0 6px;margin-left:5px;font-size:.62rem;}
+
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;}
+.card h3{font-family:'Bangers',cursive;letter-spacing:1.5px;font-size:1.1rem;margin-bottom:10px;}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.filters label{font-size:.66rem;font-weight:900;color:var(--muted);display:flex;align-items:center;gap:5px;}
+
+table{width:100%;border-collapse:collapse;font-size:.76rem;}
+th{font-size:.58rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;text-align:left;padding:6px 6px;border-bottom:1.5px solid var(--border);}
+td{padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.05);font-weight:800;vertical-align:middle;}
+tr:hover td{background:rgba(255,255,255,.03);}
+.ovr{font-family:'Bangers',cursive;font-size:1.05rem;border-radius:7px;padding:1px 7px;display:inline-block;min-width:30px;text-align:center;color:#07070f;}
+.pos{font-size:.62rem;font-weight:900;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.09);}
+.muted{color:var(--muted);}
+.good{color:var(--a3);}.bad{color:var(--bad);}.gold{color:var(--a2);}
+.rowbtns{display:flex;gap:5px;justify-content:flex-end;flex-wrap:nowrap;}
+.scroll-x{overflow-x:auto;}
+
+.setup{max-width:560px;margin:30px auto;text-align:center;}
+.setup h1{font-family:'Bangers',cursive;font-size:clamp(2rem,6vw,3rem);letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a3),var(--a5));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.setup p{color:var(--muted);font-size:.8rem;font-weight:700;margin-bottom:16px;line-height:1.5;}
+.setup .row{display:flex;gap:8px;margin-bottom:10px;}
+.setup .row select{flex:1;}
+
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px;}
+.grp{background:rgba(255,255,255,.05);border-radius:10px;padding:8px;text-align:center;font-size:.64rem;font-weight:900;color:var(--muted);}
+.grp b{display:block;font-family:'Bangers',cursive;font-size:1.15rem;letter-spacing:1px;color:var(--text);}
+.grp.warn b{color:var(--bad);}.grp.ok b{color:var(--a3);}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:300;display:none;align-items:center;justify-content:center;padding:14px;}
+.overlay.on{display:flex;}
+.modal{background:#12122a;border:2px solid var(--border);border-radius:18px;max-width:520px;width:100%;max-height:92vh;overflow-y:auto;padding:20px;}
+.modal h2{font-family:'Bangers',cursive;letter-spacing:2px;font-size:1.5rem;margin-bottom:2px;}
+.modal .sub{font-size:.72rem;font-weight:800;color:var(--muted);margin-bottom:12px;}
+.statrow{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:.7rem;font-weight:900;}
+.statrow span.l{width:34px;color:var(--muted);}
+.statrow .bar{flex:1;height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.statrow .bar > div{height:100%;border-radius:4px;}
+.statrow span.v{width:26px;text-align:right;}
+.msg{padding:9px 12px;border-radius:10px;font-size:.76rem;font-weight:800;margin:10px 0;line-height:1.45;}
+.msg.ok{background:rgba(6,255,165,.12);border:1px solid rgba(6,255,165,.35);color:var(--a3);}
+.msg.no{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.35);color:var(--bad);}
+.msg.info{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);color:#8fb8ff;}
+.field{margin:10px 0;}
+.field label{display:flex;justify-content:space-between;font-size:.68rem;font-weight:900;color:var(--muted);margin-bottom:4px;}
+.field label b{color:var(--text);}
+.mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;}
+
+.log-row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.74rem;font-weight:700;}
+.log-row .d{width:48px;color:var(--muted);font-weight:900;flex-shrink:0;}
+.offer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.offer .info{flex:1;min-width:200px;font-size:.78rem;font-weight:800;}
+.empty{text-align:center;padding:26px 10px;color:var(--muted);font-weight:800;font-size:.8rem;}
+.grade{font-family:'Bangers',cursive;font-size:4.5rem;line-height:1;letter-spacing:3px;}
+.disclaimer{font-size:.62rem;color:var(--muted);font-weight:700;text-align:center;margin-top:20px;line-height:1.5;}
+@media(max-width:640px){.hide-s{display:none;}}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+<nav>
+  <div class="logo">TRANSFER MARKET</div>
+  <a class="nbtn ml" href="index.html">Hub</a>
+  <a class="nbtn" href="trophy.html">Trophies</a>
+</nav>
+<div class="wrap" id="root"></div>
+
+<div class="overlay" id="ov"><div class="modal" id="modal"></div></div>
+
+<script src="database.js"></script>
+<script>
+// =====================================================================
+// TRANSFER MARKET  -  ES5 only, no backend, state in localStorage
+// =====================================================================
+var KEY = 'nom_transfer_market';
+var WINDOW_DAYS = 20;
+var DB = window.NOMDB;
+var ALL = [];          // flat index of every player in the database
+var BYKEY = {};        // key -> player record
+var CLUBS = [];        // playable clubs (11+ players)
+var S = null;          // game state
+var ui = { tab: 'market', page: 1, q: '', lg: 'all', grp: 'all', maxAge: 45, minOvr: 62, maxPrice: 0, sort: 'ovr', afford: false };
+
+var GROUPS = { GK: 'GK', CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'MID', CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID', LW: 'ATT', RW: 'ATT', ST: 'ATT', CF: 'ATT' };
+var NEEDS = { GK: [2, 3], DEF: [6, 8], MID: [5, 8], ATT: [4, 6] };
+
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function $(id) { return document.getElementById(id); }
+function rnd() { return Math.random(); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function hash(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 16777619) >>> 0; } return h; }
+function seeded(str) { return (hash(str) % 10000) / 10000; }
+
+function fmtM(m) {
+  if (m >= 100) { return '£' + m.toFixed(0) + 'M'; }
+  if (m >= 10) { return '£' + m.toFixed(1) + 'M'; }
+  if (m >= 1) { return '£' + m.toFixed(2) + 'M'; }
+  return '£' + Math.round(m * 1000) + 'k';
+}
+function fmtK(k) { return '£' + Math.round(k) + 'k/w'; }
+function ovrColor(o) { return o >= 85 ? '#06ffa5' : o >= 78 ? '#8be04e' : o >= 72 ? '#ffd23f' : o >= 66 ? '#ff9f43' : '#ff6b6b'; }
+function grpOf(p) { return GROUPS[p.pos] || 'MID'; }
+
+// ---------------------------------------------------------------------
+// Valuation model (estimate only - NOT real market values)
+// ---------------------------------------------------------------------
+function ageFactor(a) {
+  if (a <= 19) { return 1.5; } if (a <= 21) { return 1.35; } if (a <= 24) { return 1.15; }
+  if (a <= 28) { return 1.0; } if (a <= 30) { return 0.75; } if (a <= 32) { return 0.48; }
+  if (a <= 34) { return 0.28; } return 0.15;
+}
+function posFactor(p) { return p.pos === 'GK' ? 0.62 : (p.pos === 'CB' || p.pos === 'CDM') ? 0.92 : (p.pos === 'ST' || p.pos === 'LW' || p.pos === 'RW') ? 1.1 : 1.0; }
+function valueOf(p) {
+  var v = 2 * Math.exp(0.115 * (p.ovr - 55)) * ageFactor(p.age) * posFactor(p);
+  v = clamp(v, 0.2, 220);
+  return v >= 20 ? Math.round(v) : v >= 5 ? Math.round(v * 2) / 2 : Math.round(v * 10) / 10;
+}
+function potentialOf(p) { var up = p.age < 26 ? (26 - p.age) * 1.1 : 0; return clamp(Math.round(p.ovr + up), p.ovr, 95); }
+function wageDemand(p) { return Math.max(4, Math.round(8 * Math.exp(0.095 * (p.ovr - 55)) * (p.age > 31 ? 0.8 : 1))); }
+function askingPrice(p) {
+  var mult = 0.97 + seeded(p.key + 'ask') * 0.28;
+  if (p.keyPlayer) { mult += 0.18; }
+  var v = valueOf(p) * mult;
+  return v >= 20 ? Math.round(v) : v >= 5 ? Math.round(v * 2) / 2 : Math.round(v * 10) / 10;
+}
+
+// ---------------------------------------------------------------------
+// Build index
+// ---------------------------------------------------------------------
+function buildIndex() {
+  ALL = []; BYKEY = {}; CLUBS = [];
+  if (!DB || !DB.leagues) { return false; }
+  DB.leagues.forEach(function (lg) {
+    lg.clubs.forEach(function (c) {
+      if (!c.players || c.players.length < 11) { return; }
+      CLUBS.push({ name: c.name, emoji: c.emoji, leagueId: lg.id, leagueName: lg.name, rating: c.rating, color: c.color, n: c.players.length });
+      var sorted = c.players.slice().sort(function (a, b) { return b.ovr - a.ovr; });
+      sorted.forEach(function (p, idx) {
+        var rec = { key: p.name + '|' + c.name, name: p.name, pos: p.pos, nat: p.nat, age: p.age, ovr: p.ovr,
+          pac: p.pac, sho: p.sho, pas: p.pas, dri: p.dri, def: p.def, phy: p.phy,
+          club: c.name, emoji: c.emoji, leagueId: lg.id, leagueName: lg.name, keyPlayer: idx < 3 };
+        ALL.push(rec); BYKEY[rec.key] = rec;
+      });
+    });
+  });
+  return ALL.length > 0;
+}
+function findClub(name) { for (var i = 0; i < CLUBS.length; i++) { if (CLUBS[i].name === name) { return CLUBS[i]; } } return null; }
+
+// ---------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------
+function load() { try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && s.clubName) { return s; } } catch (e) {} return null; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+function baseBudget(club) { return clamp(Math.round((club.rating - 52) * 4.2), 12, 260); }
+
+function startGame(clubName) {
+  var club = findClub(clubName);
+  if (!club) { return; }
+  var own = ALL.filter(function (p) { return p.club === clubName; }).map(function (p) { return p.key; });
+  var wages = 0;
+  own.forEach(function (k) { wages += wageDemand(BYKEY[k]) * 0.85; });
+  var old = load();
+  S = {
+    clubName: club.name, clubEmoji: club.emoji, leagueId: club.leagueId, leagueName: club.leagueName, clubRating: club.rating,
+    budget: baseBudget(club), startBudget: baseBudget(club), wageBill: Math.round(wages), wageCap: Math.round(wages * 1.12),
+    day: 1, windowNo: 1, squad: own, contracts: {}, gone: {}, shortlist: [], offers: [], nego: {}, log: [], news: [],
+    listed: {}, spent: 0, earned: 0, signings: 0, sales: 0, startRating: 0, closed: false, summary: null,
+    history: (old && old.history) ? old.history : [], career: (old && old.career) ? old.career : { windows: 0, signings: 0, sales: 0, bestGrade: '-', totalSpent: 0, totalEarned: 0, biggest: null }
+  };
+  S.startRating = teamRating();
+  addLog('Window 1 opens. Budget ' + fmtM(S.budget) + '. Squad rating ' + S.startRating + '.');
+  save();
+}
+
+function addLog(t) { S.log.unshift({ d: S.day, t: t }); if (S.log.length > 120) { S.log.pop(); } }
+function addNews(t) { S.news.unshift({ d: S.day, t: t }); if (S.news.length > 40) { S.news.pop(); } }
+
+function mySquad() { var out = []; S.squad.forEach(function (k) { if (BYKEY[k]) { out.push(BYKEY[k]); } }); return out; }
+function teamRating() {
+  var sq = mySquad().slice().sort(function (a, b) { return b.ovr - a.ovr; });
+  var need = { GK: 1, DEF: 4, MID: 3, ATT: 3 }, tot = 0, n = 0;
+  sq.forEach(function (p) { var g = grpOf(p); if (need[g] > 0) { need[g]--; tot += p.ovr; n++; } });
+  return n ? Math.round((tot / n) * 10) / 10 : 0;
+}
+function groupCounts() { var c = { GK: 0, DEF: 0, MID: 0, ATT: 0 }; mySquad().forEach(function (p) { c[grpOf(p)]++; }); return c; }
+function wageOf(key) { return S.contracts[key] ? S.contracts[key].wage : Math.round(wageDemand(BYKEY[key]) * 0.85); }
+
+// ---------------------------------------------------------------------
+// Market list
+// ---------------------------------------------------------------------
+function marketList() {
+  var q = ui.q.toLowerCase();
+  var list = ALL.filter(function (p) {
+    if (S.squad.indexOf(p.key) !== -1) { return false; }
+    if (S.gone[p.key]) { return false; }
+    if (p.club === S.clubName) { return false; }
+    if (ui.lg !== 'all' && p.leagueId !== ui.lg) { return false; }
+    if (ui.grp !== 'all' && grpOf(p) !== ui.grp) { return false; }
+    if (p.age > ui.maxAge || p.ovr < ui.minOvr) { return false; }
+    if (q && (p.name.toLowerCase().indexOf(q) === -1 && p.club.toLowerCase().indexOf(q) === -1)) { return false; }
+    if (ui.maxPrice > 0 && askingPrice(p) > ui.maxPrice) { return false; }
+    if (ui.afford && askingPrice(p) > S.budget) { return false; }
+    return true;
+  });
+  list.sort(function (a, b) {
+    if (ui.sort === 'ovr') { return b.ovr - a.ovr; }
+    if (ui.sort === 'price_asc') { return askingPrice(a) - askingPrice(b); }
+    if (ui.sort === 'price_desc') { return askingPrice(b) - askingPrice(a); }
+    if (ui.sort === 'age') { return a.age - b.age; }
+    if (ui.sort === 'pot') { return potentialOf(b) - potentialOf(a); }
+    if (ui.sort === 'value') { return (b.ovr / Math.max(1, askingPrice(b))) - (a.ovr / Math.max(1, askingPrice(a))); }
+    return 0;
+  });
+  return list;
+}
+
+// ---------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------
+function render() {
+  if (!DB || !DB.leagues) { $('root').innerHTML = '<div class="empty">Database failed to load. Serve this folder over HTTP (not file://) so database.js can load.</div>'; return; }
+  if (!S) { renderSetup(); return; }
+  var h = '';
+  var rating = teamRating();
+  var delta = Math.round((rating - S.startRating) * 10) / 10;
+  var bill = 0; S.squad.forEach(function (k) { if (BYKEY[k]) { bill += wageOf(k); } });
+  S.wageBill = Math.round(bill);
+  h += '<div class="hud">'
+    + '<div class="hud-box"><div class="hud-val">' + S.clubEmoji + '</div><div class="hud-lbl">' + esc(S.clubName) + '</div></div>'
+    + '<div class="hud-box"><div class="hud-val good">' + fmtM(S.budget) + '</div><div class="hud-lbl">Transfer budget</div></div>'
+    + '<div class="hud-box"><div class="hud-val ' + (S.wageBill > S.wageCap ? 'bad' : 'gold') + '">' + S.wageBill + 'k</div><div class="hud-lbl">Wage bill / ' + S.wageCap + 'k cap</div></div>'
+    + '<div class="hud-box"><div class="hud-val">' + rating + '</div><div class="hud-lbl">Best XI rating ' + (delta >= 0 ? '+' : '') + delta + '</div></div>'
+    + '<div class="hud-box"><div class="hud-val">' + (S.closed ? 'CLOSED' : 'Day ' + S.day + '/' + WINDOW_DAYS) + '</div><div class="hud-lbl">Window ' + S.windowNo + '</div></div>'
+    + '</div>';
+  h += '<div class="daybar"><div style="width:' + Math.min(100, ((S.day - 1) / WINDOW_DAYS) * 100) + '%"></div></div>';
+  var latest = S.news.length ? S.news[0] : null;
+  h += '<div class="ticker"><b>SIM NEWS</b>' + (latest ? 'Day ' + latest.d + ' — ' + esc(latest.t) : 'Window open. Scout targets, make bids, and watch the clock.') + '</div>';
+
+  var tabs = [['market', '🔎 Market'], ['squad', '👕 My Squad'], ['inbox', '📬 Offers'], ['short', '⭐ Shortlist'], ['log', '📜 Log'], ['sum', '🏁 Summary']];
+  h += '<div class="tabs">';
+  tabs.forEach(function (t) {
+    var cnt = '';
+    if (t[0] === 'inbox' && S.offers.length) { cnt = '<span class="cnt">' + S.offers.length + '</span>'; }
+    if (t[0] === 'short' && S.shortlist.length) { cnt = '<span class="cnt">' + S.shortlist.length + '</span>'; }
+    h += '<div class="tab' + (ui.tab === t[0] ? ' on' : '') + '" data-act="tab" data-v="' + t[0] + '">' + t[1] + cnt + '</div>';
+  });
+  h += '<div style="margin-left:auto;display:flex;gap:6px">'
+    + (S.closed ? '<button class="btn alt sm" data-act="newwin">Open next window</button>'
+      : '<button class="btn sm" data-act="advance">Advance day ▶</button><button class="btn alt sm" data-act="deadline">Skip to deadline ⏭</button>')
+    + '</div></div>';
+
+  if (ui.tab === 'market') { h += renderMarket(); }
+  else if (ui.tab === 'squad') { h += renderSquad(); }
+  else if (ui.tab === 'inbox') { h += renderInbox(); }
+  else if (ui.tab === 'short') { h += renderShort(); }
+  else if (ui.tab === 'log') { h += renderLog(); }
+  else { h += renderSummary(); }
+
+  h += '<div class="disclaimer">All values, wages, asking prices, potentials and news are simulated estimates generated by this game from squad ratings — they are not real market values, contract figures or transfer reports.</div>';
+  $('root').innerHTML = h;
+  bindFilters();
+}
+
+function renderSetup() {
+  var lgs = {};
+  CLUBS.forEach(function (c) { lgs[c.leagueId] = c.leagueName; });
+  var h = '<div class="setup"><h1>TRANSFER MARKET</h1>'
+    + '<p>Pick a club, get a budget based on its stature, and run a 20-day transfer window across every squad in the database. Negotiate fees, agree wages, fend off rivals, and sell surplus players before deadline day. You are graded on how much stronger you finish.</p>';
+  var mgr = null; try { mgr = JSON.parse(localStorage.getItem('nom_manager_mode')); } catch (e) {}
+  if (mgr && mgr.clubName && findClub(mgr.clubName)) {
+    h += '<div class="card"><h3>Your Manager Mode club</h3><div style="margin-bottom:10px;font-weight:800">' + esc(mgr.clubEmoji || '') + ' ' + esc(mgr.clubName) + '</div>'
+      + '<button class="btn alt" data-act="start" data-v="' + esc(mgr.clubName) + '">Run their transfer window</button></div>';
+  }
+  h += '<div class="card"><h3>Choose any club</h3><div class="row"><select id="sLeague">';
+  Object.keys(lgs).forEach(function (id) { h += '<option value="' + esc(id) + '">' + esc(lgs[id]) + '</option>'; });
+  h += '</select></div><div class="row"><select id="sClub"></select></div><div id="sPreview" class="msg info"></div>'
+    + '<button class="btn" data-act="startsel">Open the window</button></div></div>';
+  $('root').innerHTML = h;
+  $('sLeague').addEventListener('change', fillClubSelect);
+  $('sClub').addEventListener('change', previewClub);
+  fillClubSelect();
+}
+function fillClubSelect() {
+  var id = $('sLeague').value;
+  var h = '';
+  CLUBS.filter(function (c) { return c.leagueId === id; }).sort(function (a, b) { return b.rating - a.rating; }).forEach(function (c) {
+    h += '<option value="' + esc(c.name) + '">' + esc(c.emoji + ' ' + c.name) + '</option>';
+  });
+  $('sClub').innerHTML = h; previewClub();
+}
+function previewClub() {
+  var c = findClub($('sClub').value);
+  if (!c) { return; }
+  $('sPreview').innerHTML = 'Club rating <b>' + c.rating + '</b> · Starting budget <b>' + fmtM(baseBudget(c)) + '</b> · Squad of <b>' + c.n + '</b> players';
+}
+
+function ovrChip(o) { return '<span class="ovr" style="background:' + ovrColor(o) + '">' + o + '</span>'; }
+
+function renderMarket() {
+  var list = marketList();
+  var lgOpts = '<option value="all">All leagues</option>';
+  var seen = {};
+  CLUBS.forEach(function (c) { if (!seen[c.leagueId]) { seen[c.leagueId] = 1; lgOpts += '<option value="' + esc(c.leagueId) + '"' + (ui.lg === c.leagueId ? ' selected' : '') + '>' + esc(c.leagueName) + '</option>'; } });
+  var h = '<div class="card"><div class="filters">'
+    + '<input id="fQ" placeholder="Search player or club" value="' + esc(ui.q) + '" style="min-width:170px">'
+    + '<select id="fLg">' + lgOpts + '</select>'
+    + '<select id="fGrp">' + ['all', 'GK', 'DEF', 'MID', 'ATT'].map(function (g) { return '<option value="' + g + '"' + (ui.grp === g ? ' selected' : '') + '>' + (g === 'all' ? 'All positions' : g) + '</option>'; }).join('') + '</select>'
+    + '<select id="fSort">' + [['ovr', 'Rating'], ['value', 'Best value'], ['pot', 'Potential'], ['price_asc', 'Price low'], ['price_desc', 'Price high'], ['age', 'Youngest']].map(function (o) { return '<option value="' + o[0] + '"' + (ui.sort === o[0] ? ' selected' : '') + '>Sort: ' + o[1] + '</option>'; }).join('') + '</select>'
+    + '<label>Min OVR <input id="fOvr" type="number" min="60" max="95" value="' + ui.minOvr + '" style="width:60px"></label>'
+    + '<label>Max age <input id="fAge" type="number" min="17" max="45" value="' + ui.maxAge + '" style="width:60px"></label>'
+    + '<label>Max £M <input id="fPrice" type="number" min="0" value="' + (ui.maxPrice || '') + '" placeholder="any" style="width:70px"></label>'
+    + '<label><input id="fAff" type="checkbox"' + (ui.afford ? ' checked' : '') + '> Affordable</label>'
+    + '</div><div class="muted" style="font-size:.7rem;font-weight:800;margin-bottom:8px">' + list.length + ' players match</div>';
+  if (!list.length) { return h + '<div class="empty">No players match those filters.</div></div>'; }
+  var shown = list.slice(0, ui.page * 40);
+  h += '<div class="scroll-x"><table><tr><th>Player</th><th>Pos</th><th>Age</th><th>OVR</th><th class="hide-s">POT</th><th>Club</th><th>Asking</th><th></th></tr>';
+  shown.forEach(function (p) {
+    var star = S.shortlist.indexOf(p.key) !== -1;
+    h += '<tr><td>' + esc(p.nat) + ' ' + esc(p.name) + '</td><td><span class="pos">' + p.pos + '</span></td><td>' + p.age + '</td><td>' + ovrChip(p.ovr) + '</td>'
+      + '<td class="hide-s muted">' + potentialOf(p) + '</td><td>' + esc(p.emoji) + ' ' + esc(p.club) + '</td>'
+      + '<td class="gold">' + fmtM(askingPrice(p)) + '</td>'
+      + '<td><div class="rowbtns"><button class="btn ghost sm" data-act="info" data-v="' + esc(p.key) + '">Scout</button>'
+      + '<button class="btn ghost sm" data-act="star" data-v="' + esc(p.key) + '">' + (star ? '★' : '☆') + '</button>'
+      + '<button class="btn sm" data-act="bid" data-v="' + esc(p.key) + '"' + (S.closed ? ' disabled' : '') + '>Bid</button></div></td></tr>';
+  });
+  h += '</table></div>';
+  if (shown.length < list.length) { h += '<div style="text-align:center;margin-top:10px"><button class="btn ghost sm" data-act="more">Show more (' + (list.length - shown.length) + ' left)</button></div>'; }
+  return h + '</div>';
+}
+
+function renderSquad() {
+  var c = groupCounts();
+  var h = '<div class="groups">';
+  ['GK', 'DEF', 'MID', 'ATT'].forEach(function (g) {
+    var n = c[g], need = NEEDS[g];
+    var cls = n < need[0] ? 'warn' : n > need[1] ? '' : 'ok';
+    h += '<div class="grp ' + cls + '"><b>' + n + '</b>' + g + ' (want ' + need[0] + '-' + need[1] + ')</div>';
+  });
+  h += '</div><div class="card"><h3>Squad (' + S.squad.length + ')</h3><div class="scroll-x"><table><tr><th>Player</th><th>Pos</th><th>Age</th><th>OVR</th><th>Value</th><th class="hide-s">Wage</th><th></th></tr>';
+  var sq = mySquad().sort(function (a, b) { return b.ovr - a.ovr; });
+  sq.forEach(function (p) {
+    var listed = S.listed[p.key];
+    h += '<tr><td>' + esc(p.nat) + ' ' + esc(p.name) + (listed ? ' <span class="pos gold">LISTED</span>' : '') + '</td><td><span class="pos">' + p.pos + '</span></td><td>' + p.age + '</td><td>' + ovrChip(p.ovr) + '</td>'
+      + '<td class="gold">' + fmtM(valueOf(p)) + '</td><td class="hide-s muted">' + fmtK(wageOf(p.key)) + '</td>'
+      + '<td><div class="rowbtns"><button class="btn ghost sm" data-act="info" data-v="' + esc(p.key) + '">Info</button>'
+      + '<button class="btn ghost sm" data-act="list" data-v="' + esc(p.key) + '"' + (S.closed ? ' disabled' : '') + '>' + (listed ? 'Unlist' : 'List') + '</button>'
+      + '<button class="btn red sm" data-act="quick" data-v="' + esc(p.key) + '"' + (S.closed ? ' disabled' : '') + '>Quick sell</button></div></td></tr>';
+  });
+  return h + '</table></div></div>';
+}
+
+function renderInbox() {
+  var h = '<div class="card"><h3>Incoming offers</h3>';
+  if (!S.offers.length) { return h + '<div class="empty">No offers right now. List players on the squad tab to attract bids.</div></div>'; }
+  S.offers.forEach(function (o, i) {
+    var p = BYKEY[o.key]; if (!p) { return; }
+    h += '<div class="offer"><div class="info">' + esc(o.fromEmoji) + ' <b>' + esc(o.from) + '</b> offer <b class="gold">' + fmtM(o.fee) + '</b> for ' + esc(p.name) + ' (' + p.ovr + ' ' + p.pos + ')'
+      + '<div class="muted" style="font-size:.64rem">Value ' + fmtM(valueOf(p)) + ' · expires day ' + o.expires + '</div></div>'
+      + '<button class="btn sm" data-act="accept" data-v="' + i + '"' + (S.closed ? ' disabled' : '') + '>Accept</button>'
+      + '<button class="btn ghost sm" data-act="counter" data-v="' + i + '"' + (S.closed ? ' disabled' : '') + '>Counter +15%</button>'
+      + '<button class="btn red sm" data-act="reject" data-v="' + i + '">Reject</button></div>';
+  });
+  return h + '</div>';
+}
+
+function renderShort() {
+  var h = '<div class="card"><h3>Shortlist</h3>';
+  if (!S.shortlist.length) { return h + '<div class="empty">Star players in the market to track them here. Rivals may snap them up as the window runs.</div></div>'; }
+  h += '<div class="scroll-x"><table><tr><th>Player</th><th>Pos</th><th>Age</th><th>OVR</th><th>Club</th><th>Asking</th><th></th></tr>';
+  S.shortlist.forEach(function (k) {
+    var p = BYKEY[k]; if (!p) { return; }
+    var gone = S.gone[k];
+    h += '<tr><td>' + esc(p.nat) + ' ' + esc(p.name) + (gone ? ' <span class="pos bad">SOLD</span>' : '') + '</td><td><span class="pos">' + p.pos + '</span></td><td>' + p.age + '</td><td>' + ovrChip(p.ovr) + '</td>'
+      + '<td>' + esc(p.emoji) + ' ' + esc(p.club) + '</td><td class="gold">' + fmtM(askingPrice(p)) + '</td>'
+      + '<td><div class="rowbtns"><button class="btn ghost sm" data-act="info" data-v="' + esc(k) + '">Scout</button>'
+      + '<button class="btn sm" data-act="bid" data-v="' + esc(k) + '"' + (gone || S.closed ? ' disabled' : '') + '>Bid</button>'
+      + '<button class="btn ghost sm" data-act="star" data-v="' + esc(k) + '">Remove</button></div></td></tr>';
+  });
+  return h + '</table></div></div>';
+}
+
+function renderLog() {
+  var h = '<div class="card"><h3>Window log</h3>';
+  if (!S.log.length) { return h + '<div class="empty">Nothing yet.</div></div>'; }
+  S.log.forEach(function (l) { h += '<div class="log-row"><div class="d">Day ' + l.d + '</div><div>' + esc(l.t) + '</div></div>'; });
+  h += '</div><div class="card"><h3>Sim news</h3>';
+  if (!S.news.length) { h += '<div class="empty">Quiet so far.</div>'; }
+  S.news.forEach(function (l) { h += '<div class="log-row"><div class="d">Day ' + l.d + '</div><div>' + esc(l.t) + '</div></div>'; });
+  return h + '</div>';
+}
+
+function renderSummary() {
+  var cr = S.career;
+  var h = '';
+  if (S.closed && S.summary) {
+    var sm = S.summary;
+    h += '<div class="card" style="text-align:center"><h3>Window ' + S.windowNo + ' report</h3><div class="grade" style="color:' + sm.color + '">' + sm.grade + '</div>'
+      + '<div class="muted" style="font-weight:800;margin:6px 0 14px">' + esc(sm.verdict) + '</div>'
+      + '<div class="groups">'
+      + '<div class="grp"><b>' + sm.startRating + ' → ' + sm.endRating + '</b>Best XI</div>'
+      + '<div class="grp"><b>' + fmtM(sm.spent) + '</b>Spent</div>'
+      + '<div class="grp"><b>' + fmtM(sm.earned) + '</b>Earned</div>'
+      + '<div class="grp"><b>' + sm.signings + ' / ' + sm.sales + '</b>In / out</div></div>';
+    sm.breakdown.forEach(function (b) { h += '<div class="log-row"><div class="d" style="width:auto;min-width:50px">' + (b[1] >= 0 ? '+' : '') + b[1] + '</div><div>' + esc(b[0]) + '</div></div>'; });
+    h += '</div>';
+  } else {
+    h += '<div class="card"><h3>Window in progress</h3><div class="msg info">Finish the window (advance to day ' + WINDOW_DAYS + ' and beyond, or skip to the deadline) to receive your grade. Grades reward a stronger Best XI, balanced position depth, staying inside the wage cap and not wasting your budget.</div></div>';
+  }
+  h += '<div class="card"><h3>Career totals</h3><div class="groups">'
+    + '<div class="grp"><b>' + cr.windows + '</b>Windows</div><div class="grp"><b>' + cr.signings + '</b>Signings</div><div class="grp"><b>' + cr.sales + '</b>Sales</div>'
+    + '<div class="grp"><b>' + cr.bestGrade + '</b>Best grade</div><div class="grp"><b>' + fmtM(cr.totalSpent) + '</b>Total spent</div><div class="grp"><b>' + fmtM(cr.totalEarned) + '</b>Total earned</div></div>';
+  if (cr.biggest) { h += '<div class="msg ok">Record signing: ' + esc(cr.biggest.name) + ' for ' + fmtM(cr.biggest.fee) + '</div>'; }
+  h += '<div class="mbtns"><button class="btn red sm" data-act="reset">Abandon and restart</button></div></div>';
+  return h;
+}
+
+// ---------------------------------------------------------------------
+// Filters
+// ---------------------------------------------------------------------
+function bindFilters() {
+  var map = { fLg: ['lg', 'change'], fGrp: ['grp', 'change'], fSort: ['sort', 'change'] };
+  Object.keys(map).forEach(function (id) {
+    var el = $(id); if (!el) { return; }
+    el.addEventListener('change', function () { ui[map[id][0]] = el.value; ui.page = 1; render(); });
+  });
+  var q = $('fQ');
+  if (q) {
+    q.addEventListener('keydown', function (e) { if (e.keyCode === 13) { ui.q = q.value; ui.page = 1; render(); } });
+    q.addEventListener('change', function () { ui.q = q.value; ui.page = 1; render(); });
+  }
+  [['fOvr', 'minOvr'], ['fAge', 'maxAge'], ['fPrice', 'maxPrice']].forEach(function (m) {
+    var el = $(m[0]); if (!el) { return; }
+    el.addEventListener('change', function () { ui[m[1]] = parseFloat(el.value) || 0; if (m[1] === 'maxAge' && !ui.maxAge) { ui.maxAge = 45; } ui.page = 1; render(); });
+  });
+  var af = $('fAff');
+  if (af) { af.addEventListener('change', function () { ui.afford = af.checked; ui.page = 1; render(); }); }
+}
+
+// ---------------------------------------------------------------------
+// Modals
+// ---------------------------------------------------------------------
+function openModal(html) { $('modal').innerHTML = html; $('ov').className = 'overlay on'; }
+function closeModal() { $('ov').className = 'overlay'; }
+
+function statBars(p) {
+  var h = '';
+  [['PAC', p.pac], ['SHO', p.sho], ['PAS', p.pas], ['DRI', p.dri], ['DEF', p.def], ['PHY', p.phy]].forEach(function (s) {
+    h += '<div class="statrow"><span class="l">' + s[0] + '</span><div class="bar"><div style="width:' + s[1] + '%;background:' + ovrColor(s[1]) + '"></div></div><span class="v">' + s[1] + '</span></div>';
+  });
+  return h;
+}
+
+function fitReport(p) {
+  var g = grpOf(p);
+  var mine = mySquad().filter(function (m) { return m.key !== p.key && grpOf(m) === g && m.pos === p.pos; }).sort(function (a, b) { return b.ovr - a.ovr; });
+  if (!mine.length) { mine = mySquad().filter(function (m) { return m.key !== p.key && grpOf(m) === g; }).sort(function (a, b) { return b.ovr - a.ovr; }); }
+  if (!mine.length) { return '<div class="msg ok">You have nobody in this position group — an immediate starter.</div>'; }
+  var best = mine[0], diff = p.ovr - best.ovr;
+  if (diff > 0) { return '<div class="msg ok">Upgrade of <b>+' + diff + '</b> on your best option, ' + esc(best.name) + ' (' + best.ovr + ').</div>'; }
+  if (diff > -4) { return '<div class="msg info">Competes with ' + esc(best.name) + ' (' + best.ovr + ') for a starting place.</div>'; }
+  return '<div class="msg no">Would sit behind ' + esc(best.name) + ' (' + best.ovr + ') — squad depth only.</div>';
+}
+
+function showInfo(key) {
+  var p = BYKEY[key]; if (!p) { return; }
+  var mine = S.squad.indexOf(key) !== -1;
+  var top = [['pace', p.pac], ['shooting', p.sho], ['passing', p.pas], ['dribbling', p.dri], ['defending', p.def], ['physical', p.phy]].sort(function (a, b) { return b[1] - a[1]; });
+  var h = '<h2>' + esc(p.nat) + ' ' + esc(p.name) + '</h2><div class="sub">' + esc(p.pos) + ' · age ' + p.age + ' · ' + esc(p.emoji) + ' ' + esc(p.club) + ' · ' + esc(p.leagueName) + '</div>'
+    + '<div style="display:flex;gap:14px;margin-bottom:12px;align-items:center">' + ovrChip(p.ovr)
+    + '<div class="muted" style="font-size:.7rem;font-weight:900">Est. potential <b style="color:var(--text)">' + potentialOf(p) + '</b> · Value <b class="gold">' + fmtM(valueOf(p)) + '</b>' + (mine ? '' : ' · Asking <b class="gold">' + fmtM(askingPrice(p)) + '</b>') + ' · Wage demand <b style="color:var(--text)">' + fmtK(wageDemand(p)) + '</b></div></div>'
+    + statBars(p)
+    + '<div class="msg info">Scout report: strongest in <b>' + top[0][0] + '</b> and <b>' + top[1][0] + '</b>; weakest in <b>' + top[5][0] + '</b>.' + (p.keyPlayer && !mine ? ' Key player at his club, so expect a premium.' : '') + '</div>'
+    + (mine ? '' : fitReport(p))
+    + '<div class="mbtns"><button class="btn ghost" data-act="close">Close</button>'
+    + (mine ? '' : '<button class="btn" data-act="bid" data-v="' + esc(key) + '"' + (S.closed ? ' disabled' : '') + '>Make a bid</button>') + '</div>';
+  openModal(h);
+}
+
+var nego = null; // current negotiation
+function openBid(key) {
+  var p = BYKEY[key]; if (!p) { return; }
+  if (S.closed) { return; }
+  if (S.gone[key]) { openModal('<h2>Unavailable</h2><div class="msg no">That player has already moved on.</div><div class="mbtns"><button class="btn ghost" data-act="close">Close</button></div>'); return; }
+  var st = S.nego[key] || {};
+  if (st.lockUntil && S.day < st.lockUntil) {
+    openModal('<h2>Talks suspended</h2><div class="msg no">' + esc(p.club) + ' refuse to talk until day ' + st.lockUntil + ' after your last offer was an insult.</div><div class="mbtns"><button class="btn ghost" data-act="close">Close</button></div>');
+    return;
+  }
+  var ask = askingPrice(p);
+  nego = { key: key, ask: ask, stage: 'fee', rounds: st.rounds || 0, fee: st.counter || ask };
+  renderBid('');
+}
+
+function renderBid(msg) {
+  var p = BYKEY[nego.key];
+  var step = nego.ask >= 20 ? 1 : 0.1;
+  var minFee = Math.max(0.1, Math.round(nego.ask * 0.4 * 10) / 10);
+  var max = Math.max(minFee + step, Math.floor(Math.min(nego.ask * 1.6, S.budget)));
+  if (nego.fee > max) { nego.fee = max; }
+  if (nego.ask > S.budget && !msg) { msg = '<div class="msg no">Their asking price of ' + fmtM(nego.ask) + ' is above your budget of ' + fmtM(S.budget) + '. You can only table a lower offer, or sell players first.</div>'; }
+  var h = '<h2>Bid for ' + esc(p.name) + '</h2><div class="sub">' + esc(p.emoji) + ' ' + esc(p.club) + ' · ' + p.pos + ' · ' + p.ovr + ' OVR · asking ' + fmtM(nego.ask) + '</div>';
+  if (msg) { h += msg; }
+  if (nego.stage === 'fee') {
+    h += '<div class="field"><label><span>Transfer fee</span><b id="feeLbl">' + fmtM(nego.fee) + '</b></label>'
+      + '<input id="feeIn" type="range" min="' + minFee + '" max="' + max + '" step="' + step + '" value="' + nego.fee + '"></div>'
+      + '<div class="muted" style="font-size:.68rem;font-weight:800">Budget left after this: <span id="leftLbl"></span></div>'
+      + '<div class="mbtns"><button class="btn ghost" data-act="close">Walk away</button><button class="btn" data-act="submitfee">Submit offer</button></div>';
+  } else {
+    var dem = wageDemand(p);
+    h += '<div class="msg ok">' + esc(p.club) + ' have agreed a fee of <b>' + fmtM(nego.fee) + '</b>. Now agree personal terms.</div>'
+      + '<div class="field"><label><span>Weekly wage (demand ' + fmtK(dem) + ')</span><b id="wageLbl"></b></label><input id="wageIn" type="range" min="' + Math.round(dem * 0.7) + '" max="' + Math.round(dem * 1.6) + '" step="1" value="' + dem + '"></div>'
+      + '<div class="field"><label><span>Contract length</span><b id="yrLbl"></b></label><input id="yrIn" type="range" min="1" max="5" step="1" value="3"></div>'
+      + '<div class="muted" style="font-size:.68rem;font-weight:800">Wage bill after: <span id="billLbl"></span> · Player interest: <b id="intLbl"></b></div>'
+      + '<div class="mbtns"><button class="btn ghost" data-act="close">Walk away</button><button class="btn" data-act="submitwage">Offer contract</button></div>';
+  }
+  openModal(h);
+  var fi = $('feeIn');
+  if (fi) {
+    var upd = function () { nego.fee = parseFloat(fi.value); $('feeLbl').textContent = fmtM(nego.fee); var left = S.budget - nego.fee; $('leftLbl').textContent = fmtM(Math.abs(left)) + (left < 0 ? ' OVER budget' : ''); $('leftLbl').className = left < 0 ? 'bad' : 'good'; };
+    fi.addEventListener('input', upd); upd();
+  }
+  var wi = $('wageIn');
+  if (wi) {
+    var upd2 = function () {
+      var w = parseInt(wi.value, 10), y = parseInt($('yrIn').value, 10);
+      $('wageLbl').textContent = fmtK(w); $('yrLbl').textContent = y + (y === 1 ? ' year' : ' years');
+      var cur = 0; S.squad.forEach(function (k) { if (BYKEY[k]) { cur += wageOf(k); } });
+      var after = cur + w; $('billLbl').textContent = after + 'k / ' + S.wageCap + 'k'; $('billLbl').className = after > S.wageCap ? 'bad' : 'good';
+      var pr = wageAcceptChance(p, w, y);
+      $('intLbl').textContent = pr >= 0.85 ? 'High' : pr >= 0.5 ? 'Medium' : pr > 0.05 ? 'Low' : 'None';
+      $('intLbl').style.color = pr >= 0.85 ? '#06ffa5' : pr >= 0.5 ? '#ffd23f' : '#ff4d6d';
+    };
+    wi.addEventListener('input', upd2); $('yrIn').addEventListener('input', upd2); upd2();
+  }
+}
+
+function wageAcceptChance(p, wage, years) {
+  var dem = wageDemand(p);
+  var ratio = wage / dem;
+  var pr = ratio >= 1 ? 1 : ratio >= 0.85 ? (ratio - 0.85) / 0.15 : 0;
+  // ambition: stepping down to a weaker club is a harder sell for star players
+  var from = findClub(p.club);
+  if (from && p.ovr >= 80 && S.clubRating < from.rating - 4) { pr -= 0.2; }
+  if (p.age >= 31 && years > 2) { pr -= 0.1; }
+  if (p.age <= 22 && years >= 4) { pr += 0.08; }
+  return clamp(pr, 0, 1);
+}
+
+function submitFee() {
+  var p = BYKEY[nego.key];
+  if (nego.fee > S.budget) { renderBid('<div class="msg no">You cannot afford that fee. Budget: ' + fmtM(S.budget) + '.</div>'); return; }
+  var ratio = nego.fee / nego.ask;
+  var st = S.nego[nego.key] || (S.nego[nego.key] = { rounds: 0 });
+  st.rounds = (st.rounds || 0) + 1;
+  if (ratio >= 1 || (st.counter && nego.fee >= st.counter - 0.001)) { nego.stage = 'wage'; delete st.counter; save(); renderBid(''); return; }
+  if (ratio >= 0.88) {
+    var counter = Math.round(nego.ask * (0.98 + (1 - ratio) * 0.2) * 10) / 10;
+    if (counter > nego.ask) { counter = nego.ask; }
+    if (nego.ask >= 20) { counter = Math.round(counter); }
+    if (counter <= nego.fee) { counter = nego.ask; }
+    st.counter = counter; nego.fee = counter; save();
+    renderBid('<div class="msg info">' + esc(p.club) + ' are close but want <b>' + fmtM(counter) + '</b>. The slider has been moved to their counter-offer.</div>');
+    return;
+  }
+  if (ratio >= 0.65) { save(); renderBid('<div class="msg no">Rejected. ' + esc(p.club) + ' say the offer is well short of their valuation.</div>'); return; }
+  st.lockUntil = S.day + 2; save();
+  addLog(p.club + ' refused to continue talks for ' + p.name + ' after a low-ball offer.');
+  openModal('<h2>Insulted</h2><div class="msg no">' + esc(p.club) + ' are offended and will not talk about ' + esc(p.name) + ' until day ' + st.lockUntil + '.</div><div class="mbtns"><button class="btn ghost" data-act="close">Close</button></div>');
+  render();
+}
+
+function submitWage() {
+  var p = BYKEY[nego.key];
+  var w = parseInt($('wageIn').value, 10), y = parseInt($('yrIn').value, 10);
+  var pr = wageAcceptChance(p, w, y);
+  if (rnd() <= pr) {
+    completeSigning(p, nego.fee, w, y);
+    return;
+  }
+  renderBid('<div class="msg no">' + esc(p.name) + ' rejected the contract. ' + (pr <= 0.05 ? 'The wage is nowhere near his demands.' : 'Try a bit more money or a different length.') + '</div>');
+}
+
+function completeSigning(p, fee, wage, years) {
+  S.budget = Math.round((S.budget - fee) * 100) / 100;
+  S.spent += fee; S.signings++;
+  S.squad.push(p.key);
+  S.gone[p.key] = 'me';
+  S.contracts[p.key] = { wage: wage, years: years };
+  var sl = S.shortlist.indexOf(p.key); if (sl !== -1) { S.shortlist.splice(sl, 1); }
+  delete S.nego[p.key];
+  var cr = S.career; cr.signings++; cr.totalSpent += fee;
+  if (!cr.biggest || fee > cr.biggest.fee) { cr.biggest = { name: p.name, fee: fee }; }
+  addLog('SIGNED ' + p.name + ' (' + p.ovr + ' ' + p.pos + ') from ' + p.club + ' for ' + fmtM(fee) + ', ' + fmtK(wage) + ' to ' + years + 'y.');
+  addNews(p.name + ' completes a move to ' + S.clubName + ' for ' + fmtM(fee) + '.');
+  save();
+  openModal('<h2>Deal done!</h2><div class="sub">' + esc(p.name) + ' joins ' + esc(S.clubName) + '</div>'
+    + '<div class="msg ok">' + fmtM(fee) + ' fee · ' + fmtK(wage) + ' · ' + years + '-year contract.</div>' + fitReport(p)
+    + '<div class="mbtns"><button class="btn" data-act="close">Brilliant</button></div>');
+  render();
+}
+
+// ---------------------------------------------------------------------
+// Selling
+// ---------------------------------------------------------------------
+function otherClubs() { return CLUBS.filter(function (c) { return c.name !== S.clubName; }); }
+
+function sellPlayer(key, fee, toName) {
+  var p = BYKEY[key];
+  var i = S.squad.indexOf(key); if (i === -1) { return; }
+  S.squad.splice(i, 1);
+  delete S.contracts[key]; delete S.listed[key];
+  S.gone[key] = 'sold';
+  S.budget = Math.round((S.budget + fee) * 100) / 100;
+  S.earned += fee; S.sales++; S.career.sales++; S.career.totalEarned += fee;
+  addLog('SOLD ' + p.name + ' (' + p.ovr + ' ' + p.pos + ') to ' + toName + ' for ' + fmtM(fee) + '.');
+  addNews(p.name + ' leaves ' + S.clubName + ' for ' + toName + '.');
+  save();
+}
+
+function genOffers() {
+  if (S.squad.length <= 16) { return; }
+  var pool = mySquad();
+  var weights = pool.map(function (p) { return (S.listed[p.key] ? 6 : 1) * (p.keyPlayer ? 0.7 : 1); });
+  var chance = 0.35; var listedAny = false;
+  Object.keys(S.listed).forEach(function (k) { if (S.listed[k]) { listedAny = true; } });
+  if (listedAny) { chance = 0.7; }
+  if (rnd() > chance) { return; }
+  var total = 0; weights.forEach(function (w) { total += w; });
+  var r = rnd() * total, idx = 0;
+  for (var i = 0; i < weights.length; i++) { r -= weights[i]; if (r <= 0) { idx = i; break; } }
+  var p = pool[idx];
+  if (S.offers.some(function (o) { return o.key === p.key; })) { return; }
+  var clubs = otherClubs();
+  var buyer = clubs[Math.floor(rnd() * clubs.length)];
+  var fee = valueOf(p) * (0.72 + rnd() * 0.5) * (S.listed[p.key] ? 0.95 : 1);
+  fee = fee >= 20 ? Math.round(fee) : fee >= 5 ? Math.round(fee * 2) / 2 : Math.round(fee * 10) / 10;
+  if (fee < 0.2) { return; }
+  S.offers.push({ key: p.key, from: buyer.name, fromEmoji: buyer.emoji, fee: fee, expires: S.day + 3 });
+  addNews(buyer.name + ' make a ' + fmtM(fee) + ' bid for ' + p.name + ' (simulated interest).');
+}
+
+// ---------------------------------------------------------------------
+// Day loop
+// ---------------------------------------------------------------------
+function advanceDay() {
+  if (S.closed) { return; }
+  S.day++;
+  // expire offers
+  S.offers = S.offers.filter(function (o) { return o.expires >= S.day && S.squad.indexOf(o.key) !== -1; });
+  // rivals snap up shortlisted targets
+  var snapped = [];
+  S.shortlist.forEach(function (k) {
+    if (S.gone[k]) { return; }
+    var p = BYKEY[k]; if (!p) { return; }
+    var chance = 0.045 + (p.ovr >= 82 ? 0.02 : 0) + (S.day >= WINDOW_DAYS - 3 ? 0.04 : 0);
+    if (rnd() < chance) {
+      var clubs = otherClubs().filter(function (c) { return c.name !== p.club; });
+      var b = clubs[Math.floor(rnd() * clubs.length)];
+      S.gone[k] = 'rival'; snapped.push(p.name);
+      addNews(b.name + ' sign ' + p.name + ' from ' + p.club + ' before you could act (simulated).');
+      addLog('RIVAL SNAP: ' + p.name + ' joined ' + b.name + '.');
+    }
+  });
+  genOffers();
+  if (S.day === WINDOW_DAYS - 2) { addNews('Two days to the deadline. Prices harden and rivals get aggressive.'); }
+  if (S.day === WINDOW_DAYS) { addNews('DEADLINE DAY. Last chance to buy and sell.'); }
+  if (S.day > WINDOW_DAYS) { closeWindow(); return; }
+  save(); render();
+}
+
+function toDeadline() {
+  if (S.closed) { return; }
+  var guard = 0;
+  while (S.day < WINDOW_DAYS && guard < 40) { advanceDay(); guard++; if (S.closed) { return; } }
+}
+
+function closeWindow() {
+  var rating = teamRating();
+  var c = groupCounts();
+  var bd = [];
+  var score = 0;
+  var dRating = Math.round((rating - S.startRating) * 10) / 10;
+  var pts = clamp(Math.round(dRating * 9), -20, 40);
+  bd.push(['Best XI rating change (' + (dRating >= 0 ? '+' : '') + dRating + ')', pts]); score += pts;
+  var depthOk = true;
+  ['GK', 'DEF', 'MID', 'ATT'].forEach(function (g) { if (c[g] < NEEDS[g][0]) { depthOk = false; } });
+  bd.push([depthOk ? 'Squad has cover in every position group' : 'Thin in at least one position group', depthOk ? 15 : -15]); score += depthOk ? 15 : -15;
+  var bill = 0; S.squad.forEach(function (k) { if (BYKEY[k]) { bill += wageOf(k); } });
+  var wageOk = bill <= S.wageCap;
+  bd.push([wageOk ? 'Wage bill inside the cap' : 'Wage bill breaks the cap (' + Math.round(bill) + 'k vs ' + S.wageCap + 'k)', wageOk ? 10 : -15]); score += wageOk ? 10 : -15;
+  var net = S.earned - S.spent;
+  var fin = net >= 0 ? 10 : (S.budget >= 0 ? 4 : -10);
+  bd.push([net >= 0 ? 'Net profit on the window' : 'Net spend on the window', fin]); score += fin;
+  var unused = S.budget / Math.max(1, S.startBudget);
+  if (unused > 0.7 && dRating < 1) { bd.push(['Sat on unused budget without improving the team', -10]); score -= 10; }
+  var sz = S.squad.length;
+  if (sz < 20 || sz > 30) { bd.push(['Squad size ' + sz + ' is outside the 20-30 range', -8]); score -= 8; }
+  var grade = score >= 55 ? 'S' : score >= 38 ? 'A' : score >= 22 ? 'B' : score >= 8 ? 'C' : score >= -5 ? 'D' : 'E';
+  var col = { S: '#ffd23f', A: '#06ffa5', B: '#8be04e', C: '#ff9f43', D: '#ff6b6b', E: '#ff4d6d' }[grade];
+  var verdict = { S: 'A masterclass. Directors will be queueing up to shake your hand.', A: 'A strong window. The squad is clearly better.', B: 'Solid business with room to push harder.', C: 'Average. Some good moves, some missed chances.', D: 'A poor window. The fans are restless.', E: 'A disaster. Expect questions from the board.' }[grade];
+  S.summary = { grade: grade, color: col, verdict: verdict, startRating: S.startRating, endRating: rating, spent: S.spent, earned: S.earned, signings: S.signings, sales: S.sales, breakdown: bd, score: score };
+  S.closed = true;
+  S.day = WINDOW_DAYS;
+  var order = ['-', 'E', 'D', 'C', 'B', 'A', 'S'];
+  S.career.windows++;
+  if (order.indexOf(grade) > order.indexOf(S.career.bestGrade)) { S.career.bestGrade = grade; }
+  S.history.push({ window: S.windowNo, club: S.clubName, grade: grade, startRating: S.startRating, endRating: rating, spent: Math.round(S.spent * 10) / 10, earned: Math.round(S.earned * 10) / 10 });
+  addLog('Window closed. Grade ' + grade + '.');
+  addNews('The window slams shut. ' + S.clubName + ' finish with a grade of ' + grade + '.');
+  ui.tab = 'sum';
+  save(); render();
+}
+
+function nextWindow() {
+  var club = findClub(S.clubName);
+  var income = Math.round(baseBudget(club) * 0.55);
+  S.windowNo++;
+  S.day = 1; S.closed = false; S.summary = null;
+  S.offers = []; S.nego = {}; S.news = []; S.listed = {};
+  S.spent = 0; S.earned = 0; S.signings = 0; S.sales = 0;
+  // players age one year
+  mySquad().forEach(function (p) { /* ratings are not re-simulated; the sim keeps squads static between windows */ });
+  S.budget = Math.round((S.budget + income) * 10) / 10;
+  S.startBudget = S.budget;
+  S.startRating = teamRating();
+  addLog('Window ' + S.windowNo + ' opens. Carry-over plus new income gives a budget of ' + fmtM(S.budget) + '.');
+  ui.tab = 'market';
+  save(); render();
+}
+
+// ---------------------------------------------------------------------
+// Click handling
+// ---------------------------------------------------------------------
+document.addEventListener('click', function (e) {
+  var t = e.target;
+  while (t && t !== document && !(t.getAttribute && t.getAttribute('data-act'))) { t = t.parentNode; }
+  if (!t || t === document) { if (e.target === $('ov')) { closeModal(); } return; }
+  var act = t.getAttribute('data-act'), v = t.getAttribute('data-v');
+  if (act === 'tab') { ui.tab = v; render(); }
+  else if (act === 'start') { startGame(v); render(); }
+  else if (act === 'startsel') { startGame($('sClub').value); render(); }
+  else if (act === 'more') { ui.page++; render(); }
+  else if (act === 'info') { showInfo(v); }
+  else if (act === 'close') { closeModal(); }
+  else if (act === 'bid') { openBid(v); }
+  else if (act === 'submitfee') { submitFee(); }
+  else if (act === 'submitwage') { submitWage(); }
+  else if (act === 'star') {
+    var i = S.shortlist.indexOf(v);
+    if (i === -1) { S.shortlist.push(v); } else { S.shortlist.splice(i, 1); }
+    save(); render();
+  }
+  else if (act === 'list') { if (S.listed[v]) { delete S.listed[v]; } else { S.listed[v] = true; addLog('Listed ' + BYKEY[v].name + ' for sale.'); } save(); render(); }
+  else if (act === 'quick') {
+    var p = BYKEY[v]; var fee = Math.round(valueOf(p) * 0.65 * 10) / 10; if (fee >= 20) { fee = Math.round(fee); }
+    if (S.squad.length <= 14) { openModal('<h2>Squad too thin</h2><div class="msg no">You need at least 14 players. Buy before you sell.</div><div class="mbtns"><button class="btn ghost" data-act="close">Close</button></div>'); return; }
+    openModal('<h2>Quick sell ' + esc(p.name) + '?</h2><div class="msg info">A fast sale to a bottom-half club at 65% of value: <b>' + fmtM(fee) + '</b>. Wait for offers for a better price.</div>'
+      + '<div class="mbtns"><button class="btn ghost" data-act="close">Cancel</button><button class="btn red" data-act="quickgo" data-v="' + esc(v) + '" data-fee="' + fee + '">Sell now</button></div>');
+  }
+  else if (act === 'quickgo') {
+    var buyers = otherClubs().sort(function (a, b) { return a.rating - b.rating; });
+    var bc = buyers[Math.floor(rnd() * Math.min(12, buyers.length))];
+    sellPlayer(v, parseFloat(t.getAttribute('data-fee')), bc.name); closeModal(); render();
+  }
+  else if (act === 'accept') {
+    var o = S.offers[parseInt(v, 10)]; if (!o) { return; }
+    if (S.squad.length <= 14) { openModal('<h2>Squad too thin</h2><div class="msg no">You need at least 14 players. Buy before you sell.</div><div class="mbtns"><button class="btn ghost" data-act="close">Close</button></div>'); return; }
+    sellPlayer(o.key, o.fee, o.from);
+    S.offers = S.offers.filter(function (x) { return x.key !== o.key; }); save(); render();
+  }
+  else if (act === 'counter') {
+    var o2 = S.offers[parseInt(v, 10)]; if (!o2) { return; }
+    var want = o2.fee * 1.15;
+    var p2 = BYKEY[o2.key];
+    var ok = want <= valueOf(p2) * 1.18 ? rnd() < 0.65 : rnd() < 0.2;
+    if (ok) { o2.fee = want >= 20 ? Math.round(want) : Math.round(want * 10) / 10; o2.expires = S.day + 2; addLog(o2.from + ' improved their offer for ' + p2.name + ' to ' + fmtM(o2.fee) + '.'); }
+    else { S.offers.splice(parseInt(v, 10), 1); addLog(o2.from + ' pulled out of the deal for ' + p2.name + ' after you pushed for more.'); }
+    save(); render();
+  }
+  else if (act === 'reject') { S.offers.splice(parseInt(v, 10), 1); save(); render(); }
+  else if (act === 'advance') { advanceDay(); }
+  else if (act === 'deadline') { toDeadline(); }
+  else if (act === 'newwin') { nextWindow(); }
+  else if (act === 'reset') {
+    openModal('<h2>Abandon this window?</h2><div class="msg no">Your squad changes will be wiped. Career history is kept.</div><div class="mbtns"><button class="btn ghost" data-act="close">Cancel</button><button class="btn red" data-act="resetgo">Restart</button></div>');
+  }
+  else if (act === 'resetgo') {
+    var keep = { history: S.history, career: S.career };
+    try { localStorage.setItem(KEY, JSON.stringify({ clubName: 'x', history: keep.history, career: keep.career })); } catch (e2) {}
+    S = null; closeModal(); render();
+  }
+});
+
+// ---------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------
+(function init() {
+  if (!buildIndex()) { render(); return; }
+  var s = load();
+  if (s && s.squad && s.day) { S = s; if (!S.career) { S.career = { windows: 0, signings: 0, sales: 0, bestGrade: '-', totalSpent: 0, totalEarned: 0, biggest: null }; } if (!S.history) { S.history = []; } }
+  render();
+})();
+</script>
+</body>
+</html>

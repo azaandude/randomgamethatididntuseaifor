@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Daily Baller</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="database.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.15);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;
+  --green:#06ffa5;--yellow:#ffd23f;--gray:rgba(255,255,255,.08);}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+.hidden{display:none!important;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(6,255,165,.08),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(168,85,247,.07),transparent 55%);}
+
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a3),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(255,255,255,.09);
+  color:var(--text);text-decoration:none;transition:all .18s;font-weight:700;}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+
+.wrap{max-width:640px;margin:0 auto;padding:18px 14px 50px;position:relative;z-index:1;}
+.hero{text-align:center;padding:10px 0 16px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(2rem,6vw,3rem);letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a3),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.puzzle-num{font-size:.72rem;font-weight:800;color:var(--muted);}
+
+.stats-row{display:flex;gap:8px;margin-bottom:14px;}
+.stat-mini{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:8px;text-align:center;}
+.stat-mini-val{font-family:'Bangers',cursive;font-size:1.15rem;color:var(--a3);}
+.stat-mini-lbl{font-size:.5rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+.search-wrap{position:relative;margin-bottom:14px;}
+.search-input{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:12px;
+  padding:13px 16px;color:var(--text);font-weight:800;font-size:.9rem;outline:none;}
+.search-input:focus{border-color:var(--a3);box-shadow:0 0 0 3px rgba(6,255,165,.12);}
+.autocomplete{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);
+  border:1.5px solid var(--border);border-radius:12px;max-height:280px;overflow-y:auto;z-index:50;
+  box-shadow:0 12px 30px rgba(0,0,0,.5);display:none;}
+.ac-item{padding:10px 14px;cursor:pointer;font-size:.82rem;font-weight:700;display:flex;
+  align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.05);}
+.ac-item:hover,.ac-item.hl{background:rgba(6,255,165,.1);}
+.ac-club{font-size:.66rem;color:var(--muted);margin-left:auto;font-weight:700;}
+
+.guess-table{width:100%;border-collapse:separate;border-spacing:0 6px;margin-bottom:14px;}
+.guess-table th{font-size:.55rem;font-weight:900;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;padding-bottom:4px;text-align:center;}
+.guess-row td{text-align:center;padding:10px 4px;font-size:.72rem;font-weight:800;
+  border-top:2px solid rgba(0,0,0,.3);border-bottom:2px solid rgba(0,0,0,.3);}
+.guess-row td:first-child{border-left:2px solid rgba(0,0,0,.3);border-radius:8px 0 0 8px;
+  text-align:left;padding-left:10px;font-size:.76rem;}
+.guess-row td:last-child{border-right:2px solid rgba(0,0,0,.3);border-radius:0 8px 8px 0;}
+.cell-green{background:rgba(6,255,165,.25);color:#06ffa5;}
+.cell-yellow{background:rgba(255,210,63,.2);color:#ffd23f;}
+.cell-gray{background:rgba(255,255,255,.06);color:var(--muted);}
+.arrow{font-size:.9rem;}
+
+.gcard{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;}
+.hint-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;}
+.hint-chip{font-size:.6rem;font-weight:800;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--muted);}
+
+.reveal-card{text-align:center;padding:20px;}
+.reveal-emoji{font-size:3rem;margin-bottom:8px;}
+.reveal-name{font-family:'Bangers',cursive;font-size:1.6rem;letter-spacing:1px;margin-bottom:4px;}
+.reveal-detail{font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:14px;}
+.win-title{font-family:'Bangers',cursive;font-size:1.3rem;color:var(--a3);letter-spacing:2px;margin-bottom:6px;}
+.lose-title{font-family:'Bangers',cursive;font-size:1.3rem;color:#ef4444;letter-spacing:2px;margin-bottom:6px;}
+
+.bigbtn{width:100%;padding:13px;font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;
+  border:none;border-radius:12px;cursor:pointer;transition:all .2s;}
+.bigbtn:hover{transform:translateY(-2px);}
+.btn-share{background:linear-gradient(135deg,#06ffa5,#3b82f6);color:#000;}
+.countdown{font-size:.7rem;font-weight:800;color:var(--muted);text-align:center;margin-top:10px;}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .3s ease both;}
+@keyframes flipIn{from{transform:rotateX(90deg);opacity:0;}to{transform:rotateX(0);opacity:1;}}
+.guess-row{animation:flipIn .35s ease both;}
+.cfp{position:fixed;pointer-events:none;border-radius:2px;top:-20px;z-index:999;}
+@keyframes cff{0%{transform:translateY(0) rotate(0);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+
+/* nom-upgrade: mobile */
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  img,canvas,video,svg{max-width:100%;height:auto}
+  nav{flex-wrap:wrap;height:auto;min-height:54px;padding:8px 10px;gap:6px}
+  nav .nbtn{font-size:.7rem;padding:5px 8px}
+  .nom-hub{bottom:8px}
+}
+</style>
+<script>
+/* nom-upgrade: safe storage read */
+function nomGet(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}}
+</script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🔮 DAILY BALLER</div>
+  <div class="ml" style="display:flex;gap:7px">
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero fadein">
+    <div class="hero-title">🔮 DAILY BALLER</div>
+    <div class="puzzle-num" id="puzzleNum">Puzzle #1</div>
+  </div>
+
+  <div class="stats-row fadein">
+    <div class="stat-mini"><div class="stat-mini-val" id="statPlayed">0</div><div class="stat-mini-lbl">Played</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="statWinPct">0%</div><div class="stat-mini-lbl">Win Rate</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="statStreak">0</div><div class="stat-mini-lbl">Streak</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="statMax">0</div><div class="stat-mini-lbl">Best Streak</div></div>
+  </div>
+
+  <div class="gcard fadein" id="guessSection">
+    <div class="hint-row">
+      <span class="hint-chip">🟩 Exact</span>
+      <span class="hint-chip">🟨 Close</span>
+      <span class="hint-chip">⬜ No match</span>
+      <span class="hint-chip">⬆️⬇️ Higher/Lower</span>
+    </div>
+    <div class="search-wrap">
+      <input class="search-input" id="searchInput" placeholder="🔍 Type a player name to guess..." autocomplete="off" oninput="handleSearch()" onkeydown="handleKeydown(event)">
+      <div class="autocomplete" id="autocomplete"></div>
+    </div>
+    <table class="guess-table" id="guessTable">
+      <thead><tr><th>Player</th><th>Nation</th><th>League</th><th>Pos</th><th>Age</th><th>OVR</th></tr></thead>
+      <tbody id="guessBody"></tbody>
+    </table>
+    <div style="text-align:center;font-size:.7rem;font-weight:800;color:var(--muted)" id="guessesLeft">8 guesses remaining</div>
+  </div>
+
+  <div class="gcard fadein hidden" id="resultCard">
+    <div class="reveal-card">
+      <div id="resultTitle"></div>
+      <div class="reveal-emoji" id="resultEmoji">⚽</div>
+      <div class="reveal-name" id="resultName">Player Name</div>
+      <div class="reveal-detail" id="resultDetail">Club · League</div>
+      <button class="bigbtn btn-share" onclick="shareResult()">📋 SHARE RESULT</button>
+      <div class="countdown" id="countdownText"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// BUILD PLAYER POOL
+// ═══════════════════════════════════════════════════════════════
+var ALL_PLAYERS = [];
+function buildPool() {
+  if (!window.NOMDB) return;
+  window.NOMDB.leagues.forEach(function(lg) {
+    lg.clubs.forEach(function(club) {
+      club.players.forEach(function(p) {
+        ALL_PLAYERS.push({ name:p.name, pos:p.pos, nat:p.nat, age:p.age, ovr:p.ovr,
+          club:club.name, clubEmoji:club.emoji, league:lg.name });
+      });
+    });
+  });
+}
+buildPool();
+// Puzzle pool: only reasonably well-known players (OVR 75+) so the daily target is guessable
+var PUZZLE_POOL = ALL_PLAYERS.filter(function(p){ return p.ovr >= 75; });
+
+function bucketPos(pos) {
+  if (pos === 'GK') return 'GK';
+  if (['CB','LB','RB'].indexOf(pos) !== -1) return 'DEF';
+  if (['ST','CF','LW','RW'].indexOf(pos) !== -1) return 'FWD';
+  return 'MID';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DETERMINISTIC DAILY PUZZLE (same for everyone, same day)
+// ═══════════════════════════════════════════════════════════════
+function todayKey() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function seededHash(str) {
+  var h = 0;
+  for (var i = 0; i < str.length; i++) { h = (h*31 + str.charCodeAt(i)) >>> 0; }
+  return h;
+}
+var EPOCH = new Date('2026-01-01');
+function puzzleNumber() {
+  var now = new Date();
+  var diff = Math.floor((now - EPOCH) / 86400000);
+  return Math.max(1, diff + 1);
+}
+var TARGET = PUZZLE_POOL.length ? PUZZLE_POOL[seededHash(todayKey()) % PUZZLE_POOL.length] : null;
+
+// ═══════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════
+var STATE = loadState();
+function defaultState() {
+  return { lastPlayedKey: null, guesses: [], finished: false, won: false,
+           played: 0, wins: 0, streak: 0, maxStreak: 0 };
+}
+function loadState() {
+  try {
+    var s = nomGet('nom_daily_baller',null);
+    if (s) {
+      if (s.lastPlayedKey !== todayKey()) {
+        // New day — reset today's guesses but keep stats
+        s.guesses = []; s.finished = false; s.won = false; s.lastPlayedKey = todayKey();
+      }
+      return s;
+    }
+  } catch(e) {}
+  var fresh = defaultState();
+  fresh.lastPlayedKey = todayKey();
+  return fresh;
+}
+function saveState() { localStorage.setItem('nom_daily_baller', JSON.stringify(STATE)); }
+
+// ═══════════════════════════════════════════════════════════════
+// SEARCH / AUTOCOMPLETE
+// ═══════════════════════════════════════════════════════════════
+var AC_INDEX = -1, AC_RESULTS = [];
+function handleSearch() {
+  var q = document.getElementById('searchInput').value.trim().toLowerCase();
+  var ac = document.getElementById('autocomplete');
+  if (q.length < 2) { ac.style.display = 'none'; return; }
+  var guessedNames = STATE.guesses.map(function(g){ return g.name; });
+  AC_RESULTS = ALL_PLAYERS.filter(function(p){
+    return p.name.toLowerCase().indexOf(q) !== -1 && guessedNames.indexOf(p.name) === -1;
+  }).slice(0, 8);
+  AC_INDEX = -1;
+  if (!AC_RESULTS.length) { ac.style.display = 'none'; return; }
+  ac.innerHTML = AC_RESULTS.map(function(p, i){
+    return '<div class="ac-item" data-i="'+i+'" onclick="pickPlayer('+i+')">'+p.nat+' '+escH(p.name)+'<span class="ac-club">'+escH(p.club)+'</span></div>';
+  }).join('');
+  ac.style.display = 'block';
+}
+function handleKeydown(e) {
+  if (e.key === 'ArrowDown') { AC_INDEX = Math.min(AC_RESULTS.length-1, AC_INDEX+1); highlightAc(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { AC_INDEX = Math.max(0, AC_INDEX-1); highlightAc(); e.preventDefault(); }
+  else if (e.key === 'Enter') { if (AC_INDEX >= 0) pickPlayer(AC_INDEX); }
+}
+function highlightAc() {
+  document.querySelectorAll('.ac-item').forEach(function(el,i){ el.classList.toggle('hl', i===AC_INDEX); });
+}
+function pickPlayer(i) {
+  var p = AC_RESULTS[i];
+  if (!p) return;
+  document.getElementById('autocomplete').style.display = 'none';
+  document.getElementById('searchInput').value = '';
+  submitGuess(p);
+}
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.search-wrap')) document.getElementById('autocomplete').style.display = 'none';
+});
+
+// ═══════════════════════════════════════════════════════════════
+// GUESS LOGIC
+// ═══════════════════════════════════════════════════════════════
+function submitGuess(p) {
+  if (STATE.finished || !TARGET) return;
+  var isWin = p.name === TARGET.name;
+  STATE.guesses.push({ name:p.name, nat:p.nat, league:p.league, pos:p.pos, age:p.age, ovr:p.ovr, club:p.club });
+  if (isWin) { STATE.finished = true; STATE.won = true; endGame(true); }
+  else if (STATE.guesses.length >= 8) { STATE.finished = true; STATE.won = false; endGame(false); }
+  saveState();
+  renderGuesses();
+}
+
+function feedbackNat(g) { return g.nat === TARGET.nat ? 'green' : 'gray'; }
+function feedbackLeague(g) { return g.league === TARGET.league ? 'green' : 'gray'; }
+function feedbackPos(g) {
+  if (g.pos === TARGET.pos) return 'green';
+  if (bucketPos(g.pos) === bucketPos(TARGET.pos)) return 'yellow';
+  return 'gray';
+}
+function feedbackAge(g) {
+  if (g.age === TARGET.age) return { cls:'green', arrow:'' };
+  return { cls:'gray', arrow: g.age < TARGET.age ? '⬆️' : '⬇️' };
+}
+function feedbackOvr(g) {
+  if (g.ovr === TARGET.ovr) return { cls:'green', arrow:'' };
+  return { cls:'gray', arrow: g.ovr < TARGET.ovr ? '⬆️' : '⬇️' };
+}
+
+function renderGuesses() {
+  var body = document.getElementById('guessBody');
+  body.innerHTML = STATE.guesses.map(function(g) {
+    var natFb = feedbackNat(g), leagueFb = feedbackLeague(g), posFb = feedbackPos(g);
+    var ageFb = feedbackAge(g), ovrFb = feedbackOvr(g);
+    return '<tr class="guess-row">'
+      + '<td>'+escH(g.name)+'</td>'
+      + '<td class="cell-'+natFb+'">'+g.nat+'</td>'
+      + '<td class="cell-'+leagueFb+'">'+escH(shortLeague(g.league))+'</td>'
+      + '<td class="cell-'+posFb+'">'+g.pos+'</td>'
+      + '<td class="cell-'+ageFb.cls+'">'+g.age+' <span class="arrow">'+ageFb.arrow+'</span></td>'
+      + '<td class="cell-'+ovrFb.cls+'">'+g.ovr+' <span class="arrow">'+ovrFb.arrow+'</span></td>'
+      + '</tr>';
+  }).join('');
+  var left = 8 - STATE.guesses.length;
+  document.getElementById('guessesLeft').textContent = STATE.finished ? '' : left + ' guess' + (left===1?'':'es') + ' remaining';
+}
+function shortLeague(l) {
+  var map = { 'Premier League':'EPL','La Liga':'La Liga','Bundesliga':'Bund.','Serie A':'Serie A','Ligue 1':'Ligue 1',
+    'EFL Championship':'Champ.','Eredivisie':'Ered.','Primeira Liga':'Prim.','Scottish Premiership':'Scot.',
+    'Brasileirão Série A':'Bras.','Liga Profesional':'Arg.','Liga MX':'MX','MLS':'MLS','Saudi Pro League':'KSA','J1 League':'J1' };
+  return map[l] || l.slice(0,8);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// END GAME
+// ═══════════════════════════════════════════════════════════════
+function endGame(won) {
+  STATE.played++;
+  if (won) { STATE.wins++; STATE.streak++; STATE.maxStreak = Math.max(STATE.maxStreak, STATE.streak); }
+  else { STATE.streak = 0; }
+  saveState();
+  showResult();
+  if (won) confettiBoom();
+}
+
+function showResult() {
+  document.getElementById('resultCard').classList.remove('hidden');
+  document.getElementById('resultTitle').innerHTML = STATE.won
+    ? '<div class="win-title">🎉 SOLVED IN ' + STATE.guesses.length + '!</div>'
+    : '<div class="lose-title">😔 OUT OF GUESSES</div>';
+  document.getElementById('resultEmoji').textContent = TARGET.nat;
+  document.getElementById('resultName').textContent = TARGET.name;
+  document.getElementById('resultDetail').textContent = TARGET.clubEmoji + ' ' + TARGET.club + ' · ' + TARGET.league + ' · OVR ' + TARGET.ovr;
+  updateCountdown();
+  setInterval(updateCountdown, 60000);
+}
+
+function updateCountdown() {
+  var now = new Date();
+  var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
+  var diff = tomorrow - now;
+  var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
+  document.getElementById('countdownText').textContent = '⏱️ Next puzzle in ' + h + 'h ' + m + 'm';
+}
+
+function shareResult() {
+  var grid = STATE.guesses.map(function(g) {
+    var nat = feedbackNat(g)==='green'?'🟩':'⬜';
+    var lg = feedbackLeague(g)==='green'?'🟩':'⬜';
+    var posFb = feedbackPos(g); var pos = posFb==='green'?'🟩':posFb==='yellow'?'🟨':'⬜';
+    var age = feedbackAge(g).cls==='green'?'🟩':'⬜';
+    var ovr = feedbackOvr(g).cls==='green'?'🟩':'⬜';
+    return nat+lg+pos+age+ovr;
+  }).join('\n');
+  var text = 'Daily Baller #' + puzzleNumber() + ' ' + (STATE.won ? STATE.guesses.length+'/8' : 'X/8') + '\n\n' + grid + '\n\nPlay at NAME-O-MATIC 9000';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){
+      var btn = document.querySelector('.btn-share');
+      var orig = btn.textContent;
+      btn.textContent = '✅ COPIED!';
+      setTimeout(function(){ btn.textContent = orig; }, 1500);
+    });
+  } else {
+    alert(text);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATS DISPLAY
+// ═══════════════════════════════════════════════════════════════
+function renderStats() {
+  document.getElementById('puzzleNum').textContent = 'Puzzle #' + puzzleNumber() + ' · ' + todayKey();
+  document.getElementById('statPlayed').textContent = STATE.played;
+  document.getElementById('statWinPct').textContent = STATE.played ? Math.round(STATE.wins/STATE.played*100)+'%' : '0%';
+  document.getElementById('statStreak').textContent = STATE.streak;
+  document.getElementById('statMax').textContent = STATE.maxStreak;
+}
+
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function confettiBoom() {
+  var cols = ['#06ffa5','#ffd23f','#ff6b35','#a855f7','#3b82f6'];
+  for (var i=0;i<44;i++){
+    var p=document.createElement('div'); p.className='cfp';
+    var sz=Math.random()*8+4;
+    p.style.cssText='left:'+Math.random()*100+'vw;background:'+cols[Math.floor(Math.random()*cols.length)]+';width:'+sz+'px;height:'+sz+'px;border-radius:'+(Math.random()>.5?'50%':'2px')+';animation:cff '+(Math.random()*1.8+.8)+'s linear forwards;';
+    document.body.appendChild(p);
+    p.addEventListener('animationend',function(){ if(p.parentNode) p.parentNode.removeChild(p); });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+if (!window.NOMDB) {
+  document.getElementById('guessSection').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">⚠️ Database not loaded — make sure database.js is in the same folder.</div>';
+} else {
+  renderStats();
+  renderGuesses();
+  if (STATE.finished) { showResult(); document.getElementById('guessSection').classList.add('hidden'); }
+}
+</script>
+</body>
+</html>

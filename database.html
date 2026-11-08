@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Football Database</title>
+<script src="database.js"></script>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.08);--text:#eeeeff;--muted:#55558a;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(168,85,247,.08),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(6,255,165,.06),transparent 55%);}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+nav{background:rgba(7,7,15,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 20px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:4px;
+  background:linear-gradient(135deg,var(--a1),var(--a2),var(--a3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.75rem;padding:6px 13px;border-radius:8px;
+  cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.05);
+  color:var(--text);text-decoration:none;display:inline-block;transition:all .2s;}
+.nbtn:hover{background:rgba(255,255,255,.12);}
+
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 80px;position:relative;z-index:1;}
+
+.hero{text-align:center;padding:24px 0 32px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(2.2rem,6vw,4rem);letter-spacing:6px;
+  background:linear-gradient(135deg,var(--a2),var(--a3),var(--a5));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.hero-sub{font-size:.84rem;font-weight:700;color:var(--muted);}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:20px;}
+.search-wrap input{width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.22);
+  border-radius:12px;padding:13px 20px 13px 46px;font-family:'Nunito',sans-serif;font-size:.9rem;
+  font-weight:700;color:var(--text);outline:none;transition:all .2s;}
+.search-wrap input:focus{border-color:var(--a3);background:rgba(6,255,165,.04);box-shadow:0 0 0 3px rgba(6,255,165,.08);}
+.search-wrap input::placeholder{color:var(--muted);}
+.search-wrap::before{content:'🔍';position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:.9rem;}
+#searchClear{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;
+  cursor:pointer;color:var(--muted);font-size:1rem;display:none;}
+
+/* TABS */
+.tab-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:18px;}
+.dtab{font-family:'Fredoka One',cursive;font-size:.78rem;padding:8px 16px;border-radius:9px;
+  cursor:pointer;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);
+  color:var(--muted);transition:all .2s;}
+.dtab:hover{color:var(--text);background:rgba(255,255,255,.08);}
+.dtab.active{background:rgba(255,210,63,.15);border-color:rgba(255,210,63,.35);color:var(--a2);}
+
+/* STATS BAR */
+.stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+.stat-pill{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;
+  padding:6px 14px;font-size:.7rem;font-weight:800;color:var(--muted);}
+.stat-pill b{color:var(--a2);}
+
+/* LEAGUE CARD */
+.league-header{background:var(--card);border:1.5px solid rgba(255,255,255,.18);border-radius:14px;
+  padding:16px 18px;margin-bottom:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:14px;}
+.league-header:hover{border-color:rgba(255,255,255,.35);transform:translateX(4px);background:rgba(255,255,255,.04);}
+.league-header.open{border-color:rgba(255,210,63,.5);background:rgba(255,210,63,.07);box-shadow:0 0 14px rgba(255,210,63,.1);}
+.league-flag{font-size:1.8rem;flex-shrink:0;}
+.league-info{flex:1;}
+.league-name{font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;color:var(--text);}
+.league-meta{font-size:.66rem;font-weight:700;color:var(--muted);margin-top:2px;}
+.league-badge{font-size:.58rem;font-weight:900;padding:2px 9px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;}
+.lb-top{background:rgba(255,210,63,.15);color:var(--a2);}
+.lb-elite{background:rgba(168,85,247,.15);color:var(--a4);}
+.lb-structural{background:rgba(255,255,255,.08);color:var(--muted);}
+.league-arrow{color:var(--muted);font-size:.9rem;transition:transform .2s;}
+.league-header.open .league-arrow{transform:rotate(90deg);}
+.league-clubs{display:none;padding:0 4px 12px;}
+.league-header.open+.league-clubs{display:block;}
+
+/* CLUB CARDS */
+.clubs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:10px;}
+.club-card{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;
+  padding:12px;cursor:pointer;transition:all .2s;text-align:center;}
+.club-card:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.38);transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.3);}
+.club-card.selected{border-color:rgba(255,210,63,.4);background:rgba(255,210,63,.06);}
+.club-emoji{font-size:2rem;display:block;margin-bottom:6px;}
+.club-name{font-family:'Fredoka One',cursive;font-size:.8rem;color:var(--text);margin-bottom:2px;}
+.club-meta{font-size:.6rem;font-weight:700;color:var(--muted);}
+.club-rating{font-family:'Bangers',cursive;font-size:1rem;color:var(--a2);margin-top:4px;}
+
+/* PLAYER TABLE */
+.player-table{width:100%;border-collapse:collapse;margin-top:10px;}
+.player-table th{font-size:.58rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.player-table td{padding:9px 10px;font-size:.78rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,.04);}
+.player-table tr:hover td{background:rgba(255,255,255,.07);}
+.pos-badge{font-size:.55rem;font-weight:900;padding:2px 7px;border-radius:6px;letter-spacing:1px;}
+.pos-gk{background:rgba(255,210,63,.2);color:var(--a2);}
+.pos-def{background:rgba(6,255,165,.15);color:var(--a3);}
+.pos-mid{background:rgba(59,130,246,.15);color:var(--a5);}
+.pos-fwd{background:rgba(255,107,53,.2);color:var(--a1);}
+.stat-bar{display:flex;align-items:center;gap:6px;}
+.sbar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);flex:1;overflow:hidden;}
+.sbar-fill{height:100%;border-radius:3px;}
+
+/* NATIONAL TEAM CARDS */
+.nations-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;}
+.nation-card{background:var(--card);border:1.5px solid rgba(255,255,255,.18);border-radius:11px;padding:13px 10px;
+  text-align:center;cursor:pointer;transition:all .2s;}
+.nation-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.4);box-shadow:0 10px 28px rgba(0,0,0,.35);}
+.nation-card.selected{border-color:rgba(168,85,247,.4);background:rgba(168,85,247,.07);}
+.nation-flag{font-size:2.2rem;display:block;margin-bottom:6px;}
+.nation-name{font-family:'Fredoka One',cursive;font-size:.78rem;color:var(--text);margin-bottom:3px;}
+.nation-rank{font-family:'Bangers',cursive;font-size:.85rem;color:var(--a2);}
+.nation-conf{font-size:.55rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+/* DETAIL PANEL */
+#detailPanel{background:var(--card);border:2px solid rgba(168,85,247,.45);border-radius:16px;
+  padding:20px;margin-bottom:18px;display:none;}
+#detailPanel.show{display:block;animation:fadein .3s ease;}
+.dp-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.dp-icon{font-size:3rem;}
+.dp-title{font-family:'Bangers',cursive;font-size:1.6rem;letter-spacing:3px;color:var(--text);}
+.dp-sub{font-size:.7rem;font-weight:700;color:var(--muted);}
+.dp-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:14px;}
+.dp-stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px;text-align:center;}
+.dp-stat-val{font-family:'Bangers',cursive;font-size:1.3rem;color:var(--a2);}
+.dp-stat-lbl{font-size:.55rem;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .35s ease both;}
+@media(max-width:640px){.clubs-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
+  .nations-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}}
+
+/* PHRASE BANK */
+.phrase-cat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;}
+.phrase-cat-head{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.phrase-cat-icon{font-size:1.4rem;}
+.phrase-cat-name{font-family:'Fredoka One',cursive;font-size:.95rem;color:var(--text);flex:1;}
+.phrase-cat-count{font-size:.62rem;font-weight:900;background:rgba(168,85,247,.15);color:var(--a4);padding:2px 9px;border-radius:10px;}
+.phrase-list{margin-top:12px;display:none;}
+.phrase-cat.open .phrase-list{display:block;}
+.phrase-item{font-size:.76rem;font-weight:600;color:var(--muted);padding:8px 12px;background:rgba(255,255,255,.03);
+  border-radius:8px;margin-bottom:5px;line-height:1.6;border-left:2px solid rgba(168,85,247,.25);}
+.phrase-item b{color:var(--a2);font-weight:800;}
+.phrase-token{color:var(--a3);font-weight:800;}
+
+/* ── GLOBAL POLISH ── */
+*{-webkit-tap-highlight-color:rgba(168,85,247,.2);}
+a{-webkit-tap-highlight-color:rgba(168,85,247,.15);}
+
+/* Bigger, more visible nav buttons */
+.nbtn,.hbtn,.tbtn{
+  font-family:'Fredoka One',cursive;font-size:.8rem;
+  padding:8px 16px;border-radius:9px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.09);
+  color:#eeeeff;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:all .18s ease;font-weight:700;
+  letter-spacing:.3px;white-space:nowrap;
+}
+.nbtn:hover,.hbtn:hover,.tbtn:hover{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.4);
+  color:#fff;transform:translateY(-1px);
+}
+
+/* Bigger action tabs */
+.dtab{
+  font-family:'Fredoka One',cursive;font-size:.82rem;
+  padding:9px 18px;border-radius:10px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);color:#aaaacc;
+  transition:all .18s ease;font-weight:700;
+}
+.dtab:hover{background:rgba(255,255,255,.15);color:#fff;transform:translateY(-1px);}
+.dtab.active{
+  background:rgba(255,210,63,.18);
+  border-color:rgba(255,210,63,.5);
+  color:#ffd23f;font-weight:900;
+  box-shadow:0 0 12px rgba(255,210,63,.15);
+}
+
+/* smBtn used in multiplayer/community/etc */
+.smBtn{
+  background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.22);
+  border-radius:8px;padding:8px 16px;font-size:.78rem;font-weight:800;
+  color:#aaaacc;cursor:pointer;transition:all .18s ease;
+  font-family:'Nunito',sans-serif;white-space:nowrap;
+}
+.smBtn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);color:#fff;transform:translateY(-1px);}
+.smBtn.active{background:rgba(6,255,165,.18);border-color:rgba(6,255,165,.45);color:#06ffa5;box-shadow:0 0 10px rgba(6,255,165,.15);}
+.smBtn.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+.smBtn.danger:hover{background:rgba(239,68,68,.2);}
+
+/* bigbtn polish */
+.bigbtn{transition:all .18s ease;}
+.bigbtn:hover{transform:translateY(-3px);filter:brightness(1.1);}
+.bigbtn:active{transform:scale(.97);}
+
+/* Card hover glow */
+.card{transition:border-color .2s ease;}
+.card:hover{border-color:rgba(255,255,255,.13);}
+
+/* Input polish */
+input,select,textarea{
+  color:#eeeeff!important;
+  border:1.5px solid rgba(255,255,255,.18)!important;
+  transition:all .18s ease!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#a855f7!important;
+  box-shadow:0 0 0 3px rgba(168,85,247,.15)!important;
+}
+input::placeholder,textarea::placeholder{color:#55558a!important;}
+
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">⚽ DATABASE</div>
+  <div class="ml" style="display:flex;gap:7px">
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+    <a href="multiplayer.html" class="nbtn">⚔️ Multi</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero fadein">
+    <div class="hero-title">⚽ FOOTBALL DATABASE</div>
+    <div class="hero-sub">20 Leagues Across 4 Continents · Full UK Pyramid · 70+ National Teams · 1,300+ Players</div>
+    <div style="text-align:center;font-size:.62rem;font-weight:800;color:var(--muted);margin-top:6px;" id="freshnessNote"></div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-wrap fadein">
+    <input id="searchInput" placeholder="Search clubs, players, nations..." oninput="doSearch(this.value)">
+    <button id="searchClear" onclick="clearSearch()">✕</button>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar fadein">
+    <div class="stat-pill"><b id="countLeagues">10</b> Leagues</div>
+    <div class="stat-pill"><b id="countClubs">200</b> Clubs</div>
+    <div class="stat-pill"><b id="countPlayers">500+</b> Players</div>
+    <div class="stat-pill"><b id="countNations">70</b> Nations</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-row fadein">
+    <div class="dtab active" onclick="showTab('leagues',this)">🏟️ Leagues & Clubs</div>
+    <div class="dtab" onclick="showTab('nations',this)">🌍 National Teams</div>
+    <div class="dtab" onclick="showTab('players',this)">⭐ Top Players</div>
+    <div class="dtab" onclick="showTab('search',this)">🔍 Search Results</div>
+    <div class="dtab" onclick="showTab('phrases',this)">🎙️ Phrase Bank</div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div id="detailPanel"></div>
+
+  <!-- LEAGUES PANE -->
+  <div id="pane-leagues" class="fadein"></div>
+
+  <!-- NATIONS PANE -->
+  <div id="pane-nations" class="hidden fadein"></div>
+
+  <!-- PLAYERS PANE -->
+  <div id="pane-players" class="hidden fadein"></div>
+
+  <!-- SEARCH PANE -->
+  <div id="pane-search" class="hidden fadein"></div>
+
+  <!-- PHRASE BANK PANE -->
+  <div id="pane-phrases" class="hidden fadein"></div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// THE DATABASE
+// ══════════════════════════════════════════════════════════════
+
+var DB = window.NOMDB; // loaded from database.js
+
+// DB already exposed as window.NOMDB by database.js
+
+// ══════════════════════════════════════════════════════════════
+// UI
+// ══════════════════════════════════════════════════════════════
+var CURRENT_TAB = 'leagues';
+var SELECTED = null;
+
+function showTab(tab, btn) {
+  CURRENT_TAB = tab;
+  ['leagues','nations','players','search','phrases'].forEach(function(t){
+    document.getElementById('pane-'+t).classList.add('hidden');
+  });
+  document.getElementById('pane-'+tab).classList.remove('hidden');
+  document.querySelectorAll('.dtab').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  hideDetail();
+}
+
+function hideDetail() {
+  document.getElementById('detailPanel').classList.remove('show');
+  document.getElementById('detailPanel').style.display='none';
+}
+
+// ── RENDER LEAGUES ────────────────────────────────────────────
+function renderLeagues(leagues) {
+  var el = document.getElementById('pane-leagues');
+  el.innerHTML = leagues.map(function(lg) {
+    var clubsHtml = '<div class="league-clubs"><div class="clubs-grid">'
+      + lg.clubs.map(function(cl) {
+          return '<div class="club-card" onclick="showClub(\''+lg.id+'\',\''+escH(cl.name)+'\')">'+
+            '<span class="club-emoji">'+cl.emoji+'</span>'+
+            '<div class="club-name">'+escH(cl.name)+'</div>'+
+            '<div class="club-meta">'+escH(cl.city)+' · '+cl.cap.toLocaleString()+'</div>'+
+            '<div class="club-rating">⭐ '+cl.rating+'</div></div>';
+        }).join('') +
+      '</div></div>';
+    return '<div class="league-header" onclick="toggleLeague(this)">'
+      +'<span class="league-flag">'+lg.flag+'</span>'
+      +'<div class="league-info"><div class="league-name">'+lg.name+'</div>'
+      +'<div class="league-meta">'+lg.country+' · '+lg.teams+' teams · Founded '+lg.founded+'</div></div>'
+      +'<span class="league-badge '+(lg.badge==='elite'?'lb-elite':lg.badge==='structural'?'lb-structural':'lb-top')+'">'+(lg.badge==='elite'?'ELITE':lg.badge==='structural'?'CLUB DIRECTORY':'TOP LEAGUE')+'</span>'
+      +'<span class="league-arrow">▶</span>'
+      +'</div>'
+      + clubsHtml;
+  }).join('');
+}
+
+function toggleLeague(header) {
+  header.classList.toggle('open');
+}
+
+function showClub(leagueId, clubName) {
+  var league = DB.leagues.find(function(l){return l.id===leagueId;});
+  if(!league) return;
+  var club = league.clubs.find(function(c){return c.name===clubName;});
+  if(!club) return;
+  var dp = document.getElementById('detailPanel');
+  var statsHtml = '<div class="dp-stats">'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+club.rating+'</div><div class="dp-stat-lbl">OVR Rating</div></div>'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+club.cap.toLocaleString()+'</div><div class="dp-stat-lbl">Capacity</div></div>'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+club.founded+'</div><div class="dp-stat-lbl">Founded</div></div>'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+club.players.length+'</div><div class="dp-stat-lbl">Players</div></div>'
+    +'</div>';
+  var playersHtml = '';
+  if(club.players.length) {
+    playersHtml = '<div style="overflow-x:auto"><table class="player-table">'
+      +'<thead><tr><th>Player</th><th>Pos</th><th>Nat</th><th>Age</th><th>OVR</th><th>PAC</th><th>SHO</th><th>PAS</th><th>DRI</th><th>DEF</th><th>PHY</th></tr></thead><tbody>'
+      + club.players.map(function(p){
+          var posClass = p.pos==='GK'?'pos-gk':p.pos.indexOf('B')!==-1||p.pos==='CB'?'pos-def':p.pos==='ST'||p.pos==='CF'||p.pos.indexOf('W')!==-1?'pos-fwd':'pos-mid';
+          var statBar = function(v){ return '<div class="stat-bar"><div class="sbar"><div class="sbar-fill" style="width:'+v+'%;background:'+(v>=85?'#06ffa5':v>=70?'#ffd23f':v>=55?'#ff6b35':'#ef4444')+'"></div></div><span style="font-size:.65rem;font-weight:900;min-width:22px">'+v+'</span></div>'; };
+          return '<tr><td style="font-weight:900">'+escH(p.name)+'</td>'
+            +'<td><span class="pos-badge '+posClass+'">'+p.pos+'</span></td>'
+            +'<td>'+p.nat+'</td><td>'+p.age+'</td>'
+            +'<td style="font-family:Bangers,cursive;font-size:1rem;color:var(--a2)">'+p.ovr+'</td>'
+            +'<td>'+statBar(p.pac)+'</td><td>'+statBar(p.sho)+'</td><td>'+statBar(p.pas)+'</td>'
+            +'<td>'+statBar(p.dri)+'</td><td>'+statBar(p.def)+'</td><td>'+statBar(p.phy)+'</td></tr>';
+        }).join('')
+      +'</tbody></table></div>';
+  } else {
+    playersHtml = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:.8rem;font-weight:700;background:rgba(255,255,255,.03);border-radius:10px;margin-top:10px">📋 Full squad data coming soon for this club — stadium and club info confirmed above.</div>';
+  }
+  dp.innerHTML = '<div class="dp-header">'
+    +'<span class="dp-icon">'+club.emoji+'</span>'
+    +'<div><div class="dp-title">'+escH(club.name)+'</div>'
+    +'<div class="dp-sub">'+escH(club.city)+' · '+league.name+' · '+escH(club.stadium)+' · Cap: '+club.cap.toLocaleString()+'</div></div>'
+    +'<button onclick="hideDetail()" style="margin-left:auto;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--muted);cursor:pointer;font-size:.75rem">✕</button>'
+    +'</div>'
+    +statsHtml + playersHtml;
+  dp.style.display='block';
+  dp.classList.add('show');
+  dp.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── RENDER NATIONS ────────────────────────────────────────────
+function renderNations() {
+  var confs = {UEFA:[],CONMEBOL:[],CONCACAF:[],CAF:[],AFC:[],OFC:[]};
+  DB.nations.forEach(function(n){ if(confs[n.conf]) confs[n.conf].push(n); });
+  var el = document.getElementById('pane-nations');
+  el.innerHTML = Object.keys(confs).filter(function(c){return confs[c].length>0;}).map(function(conf){
+    return '<div style="margin-bottom:24px">'
+      +'<div class="slabel">'+conf+'</div>'
+      +'<div class="nations-grid">'
+      + confs[conf].sort(function(a,b){return a.rank-b.rank;}).map(function(n){
+          return '<div class="nation-card" onclick="showNation(\''+escH(n.name)+'\')">'+
+            '<span class="nation-flag">'+n.flag+'</span>'+
+            '<div class="nation-name">'+escH(n.name)+'</div>'+
+            '<div class="nation-rank">Rank #'+n.rank+'</div>'+
+            '<div class="nation-conf">⭐ '+n.rating+' · '+conf+'</div></div>';
+        }).join('')
+      +'</div></div>';
+  }).join('');
+}
+
+function showNation(name) {
+  var n = DB.nations.find(function(x){return x.name===name;});
+  if(!n) return;
+  var dp = document.getElementById('detailPanel');
+  dp.innerHTML = '<div class="dp-header">'
+    +'<span class="dp-icon" style="font-size:2.5rem">'+n.flag+'</span>'
+    +'<div><div class="dp-title">'+escH(n.name)+'</div>'
+    +'<div class="dp-sub">'+n.conf+' · Manager: '+escH(n.manager||'TBC')+'</div></div>'
+    +'<button onclick="hideDetail()" style="margin-left:auto;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--muted);cursor:pointer;font-size:.75rem">✕</button>'
+    +'</div>'
+    +'<div class="dp-stats">'
+    +'<div class="dp-stat"><div class="dp-stat-val">#'+n.rank+'</div><div class="dp-stat-lbl">FIFA Rank</div></div>'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+n.rating+'</div><div class="dp-stat-lbl">OVR Rating</div></div>'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+n.wc+'</div><div class="dp-stat-lbl">World Cups</div></div>'
+    +'<div class="dp-stat" style="'+(n.euros>0?'':'opacity:.4')+'">'
+    +'<div class="dp-stat-val">'+n.euros+'</div><div class="dp-stat-lbl">'+n.conf+' Titles</div></div>'
+    +'</div>'
+    +'<div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:10px;line-height:1.7">🎯 Style: <b style="color:var(--text)">'+escH(n.style||'')+'</b></div>'
+    +(n.stars&&n.stars.length?'<div style="font-size:.78rem;font-weight:700;color:var(--muted)">⭐ Key Players: <b style="color:var(--a2)">'+n.stars.join(', ')+'</b></div>':'');
+  dp.style.display='block';
+  dp.classList.add('show');
+  dp.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── TOP PLAYERS ───────────────────────────────────────────────
+function renderTopPlayers() {
+  var all = [];
+  DB.leagues.forEach(function(lg){
+    lg.clubs.forEach(function(cl){
+      cl.players.forEach(function(p){
+        all.push(Object.assign({club:cl.name,clubEmoji:cl.emoji,league:lg.name},p));
+      });
+    });
+  });
+  all.sort(function(a,b){return b.ovr-a.ovr;});
+  var el = document.getElementById('pane-players');
+  var posClass = function(pos){ return pos==='GK'?'pos-gk':pos.indexOf('B')!==-1||pos==='CB'?'pos-def':pos==='ST'||pos==='CF'||pos.indexOf('W')!==-1?'pos-fwd':'pos-mid'; };
+  var statBar = function(v){ return '<div class="sbar" style="width:60px"><div class="sbar-fill" style="width:'+v+'%;background:'+(v>=85?'#06ffa5':v>=70?'#ffd23f':'#ff6b35')+'"></div></div>'; };
+  el.innerHTML = '<div style="overflow-x:auto"><table class="player-table"><thead><tr>'
+    +'<th>#</th><th>Player</th><th>Club</th><th>Pos</th><th>Nat</th><th>Age</th><th>OVR</th>'
+    +'<th>PAC</th><th>SHO</th><th>PAS</th><th>DRI</th><th>DEF</th><th>PHY</th></tr></thead><tbody>'
+    + all.slice(0,100).map(function(p,i){
+        return '<tr><td style="color:var(--muted);font-weight:900">'+(i+1)+'</td>'
+          +'<td style="font-weight:900;white-space:nowrap">'+escH(p.name)+'</td>'
+          +'<td style="white-space:nowrap">'+p.clubEmoji+' '+escH(p.club)+'</td>'
+          +'<td><span class="pos-badge '+posClass(p.pos)+'">'+p.pos+'</span></td>'
+          +'<td>'+p.nat+'</td><td>'+p.age+'</td>'
+          +'<td style="font-family:Bangers,cursive;font-size:1.1rem;color:var(--a2)">'+p.ovr+'</td>'
+          +'<td>'+statBar(p.pac)+'</td><td>'+statBar(p.sho)+'</td><td>'+statBar(p.pas)+'</td>'
+          +'<td>'+statBar(p.dri)+'</td><td>'+statBar(p.def)+'</td><td>'+statBar(p.phy)+'</td></tr>';
+      }).join('')
+    +'</tbody></table></div>';
+}
+
+// ── SEARCH ────────────────────────────────────────────────────
+var SEARCH_TIMEOUT = null;
+function doSearch(q) {
+  q = q.trim();
+  var clearBtn = document.getElementById('searchClear');
+  if(clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+  if(!q) return;
+  if(!DB) { alert('Database not loaded — make sure database.js is uploaded alongside this file.'); return; }
+  clearTimeout(SEARCH_TIMEOUT);
+  SEARCH_TIMEOUT = setTimeout(function(){
+    showTab('search', document.querySelector('.dtab:nth-child(4)'));
+    var results = [];
+    // Search clubs
+    DB.leagues.forEach(function(lg){
+      lg.clubs.forEach(function(cl){
+        if(cl.name.toLowerCase().includes(q.toLowerCase())||cl.city.toLowerCase().includes(q.toLowerCase())){
+          results.push({type:'club',data:cl,league:lg});
+        }
+        cl.players.forEach(function(p){
+          if(p.name.toLowerCase().includes(q.toLowerCase())){
+            results.push({type:'player',data:Object.assign({club:cl.name,league:lg.name},p)});
+          }
+        });
+      });
+    });
+    DB.nations.forEach(function(n){
+      if(n.name.toLowerCase().includes(q.toLowerCase())||(n.stars&&n.stars.some(function(s){return s.toLowerCase().includes(q.toLowerCase());}))){
+        results.push({type:'nation',data:n});
+      }
+    });
+    renderSearchResults(results, q);
+  }, 300);
+}
+
+function clearSearch(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchClear').style.display='none';
+  showTab('leagues',document.querySelector('.dtab:first-child'));
+}
+
+function renderSearchResults(results, q) {
+  var el = document.getElementById('pane-search');
+  if(!results.length){
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-weight:700">No results for "'+escH(q)+'"</div>';return;
+  }
+  el.innerHTML = '<div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:12px">'+results.length+' results for "'+escH(q)+'"</div>'
+    + results.map(function(r){
+        if(r.type==='club') return '<div class="club-card" style="display:flex;align-items:center;gap:12px;text-align:left;margin-bottom:8px" onclick="showClub(\''+r.league.id+'\',\''+escH(r.data.name)+'\')">'
+          +'<span style="font-size:1.8rem">'+r.data.emoji+'</span>'
+          +'<div><div class="club-name">'+escH(r.data.name)+'</div><div class="club-meta">'+r.league.name+' · '+r.data.city+'</div></div>'
+          +'<div class="club-rating" style="margin-left:auto">⭐ '+r.data.rating+'</div></div>';
+        if(r.type==='player') return '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:12px;margin-bottom:6px;">'
+          +'<span style="font-size:1.4rem">👤</span>'
+          +'<div style="flex:1"><div style="font-weight:900;font-size:.86rem">'+escH(r.data.name)+' '+r.data.nat+'</div>'
+          +'<div style="font-size:.65rem;color:var(--muted);font-weight:700">'+r.data.pos+' · '+escH(r.data.club)+' · '+r.data.league+'</div></div>'
+          +'<div style="font-family:Bangers,cursive;font-size:1.2rem;color:var(--a2)">'+r.data.ovr+'</div></div>';
+        if(r.type==='nation') return '<div class="nation-card" style="display:inline-flex;align-items:center;gap:10px;text-align:left;width:100%;padding:11px 14px;margin-bottom:6px" onclick="showNation(\''+escH(r.data.name)+'\')">'
+          +'<span style="font-size:1.8rem">'+r.data.flag+'</span>'
+          +'<div><div class="nation-name">'+escH(r.data.name)+'</div>'
+          +'<div class="nation-conf">Rank #'+r.data.rank+' · ⭐ '+r.data.rating+'</div></div></div>';
+        return '';
+      }).join('');
+}
+
+function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── RENDER PHRASE BANK ────────────────────────────────────────
+var PHRASE_CAT_META = {
+  winInterview:{icon:'🏆',name:'Win Interview'}, lossInterview:{icon:'😔',name:'Loss Interview'},
+  drawInterview:{icon:'🤝',name:'Draw Interview'}, motmInterview:{icon:'⭐',name:'Man of the Match'},
+  pressConferencePre:{icon:'🎤',name:'Press Conference (Pre-Match)'}, pressConferencePost:{icon:'🎤',name:'Press Conference (Post-Match)'},
+  transferQuotes:{icon:'💰',name:'Transfer Quotes'}, punditPraise:{icon:'👍',name:'Pundit Praise'},
+  punditCritical:{icon:'👎',name:'Pundit Criticism'}, fanReactionPositive:{icon:'🎉',name:'Fan Reaction (Positive)'},
+  fanReactionNegative:{icon:'😡',name:'Fan Reaction (Negative)'}, derbyHype:{icon:'🔥',name:'Derby Hype'},
+  managerRant:{icon:'😤',name:'Manager Rant'}, commentaryGoal:{icon:'⚽',name:'Goal Commentary'},
+  retirementQuotes:{icon:'👋',name:'Retirement Quotes'}, injuryUpdate:{icon:'🏥',name:'Injury Update'}
+};
+
+function renderPhraseBank() {
+  var el = document.getElementById('pane-phrases');
+  if (!window.NOMDB || !window.NOMDB.phrases) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Phrase bank not loaded — check database.js is linked.</div>';
+    return;
+  }
+  var phrases = window.NOMDB.phrases;
+  var intro = '<div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:16px;line-height:1.7">'
+    +'This is the phrase bank that powers <b style="color:var(--a3)">AI Saver Mode</b> in the main app — '
+    +'realistic interview quotes, press conference lines, and pundit takes generated instantly with zero API calls. '
+    +'Tokens like <span class="phrase-token">{player}</span> and <span class="phrase-token">{team}</span> get filled in automatically.</div>';
+  var catsHtml = Object.keys(phrases).map(function(cat) {
+    var meta = PHRASE_CAT_META[cat] || {icon:'💬',name:cat};
+    var list = phrases[cat];
+    var itemsHtml = list.map(function(p) {
+      var highlighted = escH(p).replace(/\{(\w+)\}/g, '<span class="phrase-token">{$1}</span>');
+      return '<div class="phrase-item">'+highlighted+'</div>';
+    }).join('');
+    return '<div class="phrase-cat" id="pc-'+cat+'">'
+      +'<div class="phrase-cat-head" onclick="document.getElementById(\'pc-'+cat+'\').classList.toggle(\'open\')">'
+      +'<span class="phrase-cat-icon">'+meta.icon+'</span>'
+      +'<span class="phrase-cat-name">'+meta.name+'</span>'
+      +'<span class="phrase-cat-count">'+list.length+' phrases</span></div>'
+      +'<div class="phrase-list">'+itemsHtml+'</div></div>';
+  }).join('');
+  el.innerHTML = intro + catsHtml;
+}
+
+// Init
+if (!DB) {
+  document.getElementById('pane-leagues').innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--muted);font-size:.9rem;font-weight:700;">⚠️ Database failed to load.<br><br>Make sure <code style="color:var(--a3);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:6px;">database.js</code> is uploaded in the <b>same folder</b> as this file, then refresh the page.</div>';
+  document.getElementById('countLeagues').textContent = '0';
+  document.getElementById('countClubs').textContent = '0';
+  document.getElementById('countNations').textContent = '0';
+  document.getElementById('countPlayers').textContent = '0';
+} else {
+  renderLeagues(DB.leagues);
+  renderNations();
+  renderTopPlayers();
+  document.getElementById('countLeagues').textContent = DB.leagues.length;
+  document.getElementById('countClubs').textContent = DB.leagues.reduce(function(t,l){return t+l.clubs.length;},0);
+  document.getElementById('countNations').textContent = DB.nations.length;
+  var totalPlayers = DB.leagues.reduce(function(t,l){return t+l.clubs.reduce(function(t2,c){return t2+c.players.length;},0);},0);
+  document.getElementById('countPlayers').textContent = totalPlayers+'+';
+  renderPhraseBank();
+  if (DB.meta) {
+    document.getElementById('freshnessNote').textContent = '📅 Squad data last verified ' + DB.meta.lastFullReview + ' — ask Claude to refresh any league anytime.';
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Player Comparison</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="database.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.15);--text:#eeeeff;--muted:#8888bb;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+.hidden{display:none!important;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(59,130,246,.08),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(255,107,53,.07),transparent 55%);}
+
+nav{background:rgba(7,7,15,.97);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.3rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a5),var(--a1));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:7px 14px;border-radius:9px;
+  cursor:pointer;border:1.5px solid var(--border);background:rgba(255,255,255,.09);
+  color:var(--text);text-decoration:none;transition:all .18s;font-weight:700;}
+.nbtn:hover{background:rgba(255,255,255,.18);}
+
+.wrap{max-width:760px;margin:0 auto;padding:18px 14px 50px;position:relative;z-index:1;}
+.hero{text-align:center;padding:12px 0 18px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(1.9rem,6vw,3rem);letter-spacing:3px;
+  background:linear-gradient(135deg,var(--a5),var(--a1));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.hero-sub{font-size:.8rem;font-weight:700;color:var(--muted);}
+
+.gcard{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;}
+.picker-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.search-wrap{flex:1;position:relative;}
+.search-input{width:100%;background:rgba(255,255,255,.08);border:1.5px solid var(--border);border-radius:10px;
+  padding:11px 13px;color:var(--text);font-weight:700;font-size:.82rem;outline:none;}
+.search-input.player-a:focus{border-color:var(--a5);}
+.search-input.player-b:focus{border-color:var(--a1);}
+.vs-label{font-family:'Bangers',cursive;font-size:1rem;color:var(--muted);flex-shrink:0;}
+.autocomplete{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);
+  border:1.5px solid var(--border);border-radius:12px;max-height:240px;overflow-y:auto;z-index:50;
+  box-shadow:0 12px 30px rgba(0,0,0,.5);display:none;}
+.ac-item{padding:9px 13px;cursor:pointer;font-size:.78rem;font-weight:700;display:flex;
+  align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.05);}
+.ac-item:hover{background:rgba(255,255,255,.08);}
+.ac-club{font-size:.62rem;color:var(--muted);margin-left:auto;font-weight:700;}
+.random-btn{width:100%;margin-top:8px;padding:10px;font-family:'Fredoka One',cursive;font-size:.78rem;
+  border-radius:10px;border:1.5px solid var(--border);background:rgba(255,255,255,.06);color:var(--muted);cursor:pointer;}
+
+/* PLAYER HEADERS */
+.player-headers{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;}
+.p-header{flex:1;text-align:center;}
+.p-header.a{color:var(--a5);}
+.p-header.b{color:var(--a1);}
+.p-ovr{font-family:'Bangers',cursive;font-size:2.2rem;}
+.p-name{font-family:'Fredoka One',cursive;font-size:.9rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.p-club{font-size:.66rem;color:var(--muted);font-weight:700;}
+.vs-mid{font-family:'Bangers',cursive;font-size:1.3rem;color:var(--muted);flex-shrink:0;}
+
+/* RADAR CHART */
+.radar-wrap{display:flex;justify-content:center;margin-bottom:16px;}
+
+/* STAT BARS */
+.stat-bar-row{margin-bottom:12px;}
+.stat-bar-label{text-align:center;font-size:.62rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.stat-bar-track{display:flex;align-items:center;gap:8px;}
+.stat-bar-val{font-family:'Bangers',cursive;font-size:.95rem;width:34px;text-align:center;}
+.stat-bar-val.a{color:var(--a5);}
+.stat-bar-val.b{color:var(--a1);}
+.stat-bar-mid{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;position:relative;overflow:hidden;display:flex;}
+.stat-bar-fill-a{background:var(--a5);height:100%;}
+.stat-bar-fill-b{background:var(--a1);height:100%;}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-weight:700;font-size:.85rem;}
+
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .3s ease both;}
+
+/* nom-upgrade: mobile */
+@media (max-width:600px){
+  html,body{overflow-x:hidden}
+  img,canvas,video,svg{max-width:100%;height:auto}
+  nav{flex-wrap:wrap;height:auto;min-height:54px;padding:8px 10px;gap:6px}
+  nav .nbtn{font-size:.7rem;padding:5px 8px}
+  .nom-hub{bottom:8px}
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">⚔️ PLAYER COMPARE</div>
+  <div class="ml" style="display:flex;gap:7px">
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero fadein">
+    <div class="hero-title">⚔️ PLAYER COMPARISON</div>
+    <div class="hero-sub">Pick any two real players from the database and see how they stack up, stat for stat.</div>
+  </div>
+
+  <div class="gcard fadein">
+    <div class="picker-row">
+      <div class="search-wrap">
+        <input class="search-input player-a" id="searchA" placeholder="🔵 Search player A..." oninput="handleSearch('A')" autocomplete="off">
+        <div class="autocomplete" id="autoA"></div>
+      </div>
+      <span class="vs-label">VS</span>
+      <div class="search-wrap">
+        <input class="search-input player-b" id="searchB" placeholder="🟠 Search player B..." oninput="handleSearch('B')" autocomplete="off">
+        <div class="autocomplete" id="autoB"></div>
+      </div>
+    </div>
+    <button class="random-btn" onclick="randomMatchup()">🎲 Random Matchup</button>
+  </div>
+
+  <div id="comparisonArea"></div>
+</div>
+
+<script>
+var ALL_PLAYERS = [];
+function buildPool() {
+  if (!window.NOMDB) return;
+  window.NOMDB.leagues.forEach(function(lg) {
+    lg.clubs.forEach(function(club) {
+      club.players.forEach(function(p) {
+        ALL_PLAYERS.push(Object.assign({}, p, { club: club.name, clubEmoji: club.emoji, league: lg.name }));
+      });
+    });
+  });
+}
+buildPool();
+
+var PLAYER_A = null, PLAYER_B = null;
+
+function handleSearch(which) {
+  var q = document.getElementById('search'+which).value.trim().toLowerCase();
+  var ac = document.getElementById('auto'+which);
+  if (q.length < 2) { ac.style.display = 'none'; return; }
+  var results = ALL_PLAYERS.filter(function(p){ return p.name.toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+  if (!results.length) { ac.style.display = 'none'; return; }
+  ac.innerHTML = results.map(function(p, i){
+    return '<div class="ac-item" data-which="'+which+'" data-idx="'+i+'">'+p.nat+' '+escH(p.name)+'<span class="ac-club">'+escH(p.club)+'</span></div>';
+  }).join('');
+  ac.querySelectorAll('.ac-item').forEach(function(el){
+    el.addEventListener('click', function(){ pickPlayer(el.getAttribute('data-which'), parseInt(el.getAttribute('data-idx'))); });
+  });
+  ac._results = results;
+  ac.style.display = 'block';
+}
+function pickPlayer(which, i) {
+  var ac = document.getElementById('auto'+which);
+  var p = ac._results[i];
+  if (!p) return;
+  if (which === 'A') PLAYER_A = p; else PLAYER_B = p;
+  document.getElementById('search'+which).value = p.name;
+  ac.style.display = 'none';
+  renderComparison();
+}
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.search-wrap')) {
+    document.getElementById('autoA').style.display = 'none';
+    document.getElementById('autoB').style.display = 'none';
+  }
+});
+
+function randomMatchup() {
+  var pool = ALL_PLAYERS.filter(function(p){ return p.ovr >= 75; });
+  PLAYER_A = pool[Math.floor(Math.random()*pool.length)];
+  do { PLAYER_B = pool[Math.floor(Math.random()*pool.length)]; } while (PLAYER_B.name === PLAYER_A.name);
+  document.getElementById('searchA').value = PLAYER_A.name;
+  document.getElementById('searchB').value = PLAYER_B.name;
+  renderComparison();
+}
+
+var ATTRS = [
+  { key:'pac', label:'PAC' }, { key:'sho', label:'SHO' }, { key:'pas', label:'PAS' },
+  { key:'dri', label:'DRI' }, { key:'def', label:'DEF' }, { key:'phy', label:'PHY' }
+];
+
+function buildRadarSVG(a, b) {
+  var cx = 150, cy = 150, R = 115;
+  var n = ATTRS.length;
+  function pt(i, value) {
+    var angle = -Math.PI/2 + i * (2*Math.PI/n);
+    var r = (value/99) * R;
+    return [cx + r*Math.cos(angle), cy + r*Math.sin(angle)];
+  }
+  function polygon(values, color, opacity) {
+    var pts = values.map(function(v,i){ return pt(i,v).join(','); }).join(' ');
+    return '<polygon points="'+pts+'" fill="'+color+'" fill-opacity="'+opacity+'" stroke="'+color+'" stroke-width="2"/>';
+  }
+  var gridRings = [25,50,75,99].map(function(v){
+    var pts = ATTRS.map(function(_,i){ return pt(i,v).join(','); }).join(' ');
+    return '<polygon points="'+pts+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1"/>';
+  }).join('');
+  var axisLines = ATTRS.map(function(_,i){
+    var p = pt(i, 99);
+    return '<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0]+'" y2="'+p[1]+'" stroke="rgba(255,255,255,.12)" stroke-width="1"/>';
+  }).join('');
+  var labels = ATTRS.map(function(attr,i){
+    var p = pt(i, 99+18);
+    return '<text x="'+p[0]+'" y="'+p[1]+'" fill="#8888bb" font-size="11" font-weight="900" text-anchor="middle" dominant-baseline="middle">'+attr.label+'</text>';
+  }).join('');
+
+  var aVals = ATTRS.map(function(attr){ return a[attr.key]; });
+  var bVals = ATTRS.map(function(attr){ return b[attr.key]; });
+
+  return '<svg viewBox="0 0 300 300" width="300" height="300">'
+    + gridRings + axisLines
+    + polygon(aVals, '#3b82f6', 0.22)
+    + polygon(bVals, '#ff6b35', 0.22)
+    + labels
+    + '</svg>';
+}
+
+function renderComparison() {
+  var area = document.getElementById('comparisonArea');
+  if (!PLAYER_A || !PLAYER_B) {
+    area.innerHTML = '<div class="gcard fadein"><div class="empty-state">🔍 Pick two players above to compare them</div></div>';
+    return;
+  }
+  var a = PLAYER_A, b = PLAYER_B;
+  var html = '<div class="gcard fadein">';
+
+  html += '<div class="player-headers">'
+    + '<div class="p-header a"><div class="p-ovr">'+a.ovr+'</div><div class="p-name">'+a.nat+' '+escH(a.name)+'</div><div class="p-club">'+escH(a.club)+'</div></div>'
+    + '<div class="vs-mid">VS</div>'
+    + '<div class="p-header b"><div class="p-ovr">'+b.ovr+'</div><div class="p-name">'+b.nat+' '+escH(b.name)+'</div><div class="p-club">'+escH(b.club)+'</div></div>'
+    + '</div>';
+
+  html += '<div class="radar-wrap">' + buildRadarSVG(a, b) + '</div>';
+
+  html += ATTRS.map(function(attr) {
+    var av = a[attr.key], bv = b[attr.key];
+    var total = av + bv || 1;
+    var aPct = (av/total)*100, bPct = (bv/total)*100;
+    return '<div class="stat-bar-row">'
+      + '<div class="stat-bar-label">'+attr.label+'</div>'
+      + '<div class="stat-bar-track">'
+      + '<div class="stat-bar-val a">'+av+'</div>'
+      + '<div class="stat-bar-mid"><div class="stat-bar-fill-a" style="width:'+aPct+'%"></div><div class="stat-bar-fill-b" style="width:'+bPct+'%"></div></div>'
+      + '<div class="stat-bar-val b">'+bv+'</div>'
+      + '</div></div>';
+  }).join('');
+
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+renderComparison();
+</script>
+</body>
+</html>

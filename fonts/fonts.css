@@ -1,0 +1,8 @@
+/* Fonts bundled locally (SIL Open Font License) so the site renders offline. */
+@font-face{font-family:'Bangers';src:url(bangers.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:'Fredoka One';src:url(fredoka-one.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:'Nunito';src:url(nunito-400.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:'Nunito';src:url(nunito-600.woff2) format('woff2');font-weight:600;font-style:normal;font-display:swap;}
+@font-face{font-family:'Nunito';src:url(nunito-700.woff2) format('woff2');font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:'Nunito';src:url(nunito-800.woff2) format('woff2');font-weight:800;font-style:normal;font-display:swap;}
+@font-face{font-family:'Nunito';src:url(nunito-900.woff2) format('woff2');font-weight:900;font-style:normal;font-display:swap;}

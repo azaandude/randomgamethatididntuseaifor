@@ -1,0 +1,8 @@
+{
+  "name": "NAME-O-MATIC 9000",
+  "short_name": "NOM 9000",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#07070f",
+  "theme_color": "#07070f"
+}

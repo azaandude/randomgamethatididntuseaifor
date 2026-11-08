@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Multiplayer</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
+<script src="firebase-config.js" defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.08);--text:#eeeeff;--muted:#55558a;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(168,85,247,.1),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(6,255,165,.07),transparent 55%);}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+/* NAV */
+nav{background:rgba(7,7,15,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 20px;gap:10px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:4px;
+  background:linear-gradient(135deg,var(--a1),var(--a2),var(--a3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.75rem;padding:6px 13px;border-radius:8px;
+  cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.05);
+  color:var(--text);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .2s;}
+.nbtn:hover{background:rgba(255,255,255,.12);}
+#navUserBadge{font-size:.72rem;font-weight:800;color:var(--muted);}
+
+/* WRAP */
+.wrap{max-width:1000px;margin:0 auto;padding:24px 16px 80px;position:relative;z-index:1;}
+
+/* HERO */
+.hero{text-align:center;padding:28px 0 36px;}
+.hero-title{font-family:'Bangers',cursive;font-size:clamp(2.5rem,7vw,4.5rem);letter-spacing:6px;
+  background:linear-gradient(135deg,var(--a4),var(--a6),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:8px;filter:drop-shadow(0 0 20px rgba(168,85,247,.3));}
+.hero-sub{font-size:.86rem;font-weight:700;color:var(--muted);line-height:1.7;}
+
+/* SECTION */
+.slabel{font-family:'Fredoka One',cursive;font-size:.62rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--a3);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.slabel::after{content:'';flex:1;height:1px;background:linear-gradient(to right,rgba(6,255,165,.25),transparent);}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;
+  margin-bottom:14px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.02),transparent);pointer-events:none;}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+@media(max-width:640px){.g2,.g3{grid-template-columns:1fr;}}
+
+/* INPUT */
+.field-label{font-size:.58rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+input,select{width:100%;background:rgba(255,255,255,.05);color:var(--text);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:10px 13px;font-family:'Nunito',sans-serif;font-size:.86rem;font-weight:700;outline:none;transition:all .2s;}
+input:focus,select:focus{border-color:var(--a4);background:rgba(168,85,247,.06);box-shadow:0 0 0 3px rgba(168,85,247,.1);}
+input::placeholder{color:var(--muted);}
+select{appearance:none;cursor:pointer;}
+
+/* BUTTONS */
+.bigbtn{width:100%;padding:13px;font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:4px;
+  border:none;border-radius:12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.bigbtn:hover{transform:translateY(-2px);filter:brightness(1.08);}
+.bigbtn:active{transform:scale(.98);}
+.btn-purple{background:linear-gradient(135deg,var(--a4),var(--a6));color:#fff;box-shadow:0 6px 20px rgba(168,85,247,.3);}
+.btn-green{background:linear-gradient(135deg,var(--a3),var(--a5));color:#000;box-shadow:0 6px 20px rgba(6,255,165,.3);}
+.btn-orange{background:linear-gradient(135deg,var(--a1),var(--a2));color:#1a0800;box-shadow:0 6px 20px rgba(255,107,53,.3);}
+.smBtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;
+  padding:7px 14px;font-size:.76rem;font-weight:800;color:#aaaacc;cursor:pointer;transition:all .2s;font-family:'Nunito',sans-serif;}
+.smBtn:hover{background:rgba(255,255,255,.12);color:var(--text);}
+.smBtn.active{background:rgba(6,255,165,.15);border-color:rgba(6,255,165,.35);color:var(--a3);}
+.smBtn.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#fca5a5;}
+
+/* ALERTS */
+.alert{border-radius:10px;padding:10px 14px;font-size:.78rem;font-weight:700;line-height:1.6;margin-bottom:12px;}
+.alert-ok{background:rgba(6,255,165,.12);border:1.5px solid rgba(6,255,165,.35);color:#6ee7b7;font-weight:800;}
+.alert-warn{background:rgba(255,210,63,.1);border:1.5px solid rgba(255,210,63,.35);color:#fde68a;font-weight:800;}
+.alert-err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;}
+.hidden{display:none;}
+
+/* ROOM CARDS */
+.room-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;
+  padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s;}
+.room-card:hover{background:rgba(255,255,255,.1);border-color:rgba(168,85,247,.4);transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.room-icon{font-size:1.8rem;flex-shrink:0;}
+.room-info{flex:1;}
+.room-name{font-weight:900;font-size:.88rem;margin-bottom:2px;}
+.room-meta{font-size:.65rem;font-weight:700;color:var(--muted);}
+.room-players{font-family:'Bangers',cursive;font-size:1rem;color:var(--a2);letter-spacing:1px;flex-shrink:0;}
+.room-status{font-size:.55rem;font-weight:900;padding:2px 9px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;flex-shrink:0;}
+.rs-waiting{background:rgba(255,210,63,.15);color:var(--a2);}
+.rs-live{background:rgba(6,255,165,.15);color:var(--a3);}
+.rs-full{background:rgba(239,68,68,.12);color:#fca5a5;}
+
+/* LEADERBOARD */
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,.05);
+  border-radius:9px;margin-bottom:5px;transition:all .15s;}
+.lb-row:hover{background:rgba(255,255,255,.06);}
+.lb-rank{font-family:'Bangers',cursive;font-size:1.2rem;color:var(--muted);min-width:28px;}
+.lb-name{flex:1;font-weight:900;font-size:.84rem;}
+.lb-pts{font-family:'Bangers',cursive;font-size:1.1rem;color:var(--a2);}
+.lb-badge{font-size:.55rem;font-weight:900;padding:2px 7px;border-radius:8px;}
+
+/* PREDICTION BATTLE */
+.pred-team-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:12px;text-align:center;}
+.pred-team-name{font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;margin-bottom:8px;}
+.pred-score-input{font-family:'Bangers',cursive;font-size:2rem;letter-spacing:4px;text-align:center;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;
+  padding:8px;color:var(--a2);width:80px;outline:none;}
+
+/* LIVE ROOM */
+.live-room{background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(59,130,246,.06));
+  border:1px solid rgba(168,85,247,.2);border-radius:14px;padding:18px;margin-bottom:14px;}
+.live-score{font-family:'Bangers',cursive;font-size:3rem;letter-spacing:8px;text-align:center;
+  color:var(--a2);margin:10px 0;}
+.live-teams{display:flex;justify-content:space-between;font-family:'Fredoka One',cursive;
+  font-size:.95rem;color:var(--muted);}
+.player-pred{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,.03);
+  border-radius:8px;margin-bottom:5px;font-size:.78rem;font-weight:700;}
+.pred-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* SPINNER */
+.spinner{width:22px;height:22px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--a4);
+  border-radius:50%;animation:spin 1s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .35s ease both;}
+
+/* ── GLOBAL POLISH ── */
+*{-webkit-tap-highlight-color:rgba(168,85,247,.2);}
+a{-webkit-tap-highlight-color:rgba(168,85,247,.15);}
+
+/* Bigger, more visible nav buttons */
+.nbtn,.hbtn,.tbtn{
+  font-family:'Fredoka One',cursive;font-size:.8rem;
+  padding:8px 16px;border-radius:9px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.09);
+  color:#eeeeff;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:all .18s ease;font-weight:700;
+  letter-spacing:.3px;white-space:nowrap;
+}
+.nbtn:hover,.hbtn:hover,.tbtn:hover{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.4);
+  color:#fff;transform:translateY(-1px);
+}
+
+/* Bigger action tabs */
+.dtab{
+  font-family:'Fredoka One',cursive;font-size:.82rem;
+  padding:9px 18px;border-radius:10px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);color:#aaaacc;
+  transition:all .18s ease;font-weight:700;
+}
+.dtab:hover{background:rgba(255,255,255,.15);color:#fff;transform:translateY(-1px);}
+.dtab.active{
+  background:rgba(255,210,63,.18);
+  border-color:rgba(255,210,63,.5);
+  color:#ffd23f;font-weight:900;
+  box-shadow:0 0 12px rgba(255,210,63,.15);
+}
+
+/* smBtn used in multiplayer/community/etc */
+.smBtn{
+  background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.22);
+  border-radius:8px;padding:8px 16px;font-size:.78rem;font-weight:800;
+  color:#aaaacc;cursor:pointer;transition:all .18s ease;
+  font-family:'Nunito',sans-serif;white-space:nowrap;
+}
+.smBtn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);color:#fff;transform:translateY(-1px);}
+.smBtn.active{background:rgba(6,255,165,.18);border-color:rgba(6,255,165,.45);color:#06ffa5;box-shadow:0 0 10px rgba(6,255,165,.15);}
+.smBtn.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+.smBtn.danger:hover{background:rgba(239,68,68,.2);}
+
+/* bigbtn polish */
+.bigbtn{transition:all .18s ease;}
+.bigbtn:hover{transform:translateY(-3px);filter:brightness(1.1);}
+.bigbtn:active{transform:scale(.97);}
+
+/* Card hover glow */
+.card{transition:border-color .2s ease;}
+.card:hover{border-color:rgba(255,255,255,.13);}
+
+/* Input polish */
+input,select,textarea{
+  color:#eeeeff!important;
+  border:1.5px solid rgba(255,255,255,.18)!important;
+  transition:all .18s ease!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#a855f7!important;
+  box-shadow:0 0 0 3px rgba(168,85,247,.15)!important;
+}
+input::placeholder,textarea::placeholder{color:#55558a!important;}
+
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body data-online-only>
+
+<nav>
+  <div class="logo">⚔️ MULTIPLAYER</div>
+  <div class="ml" style="display:flex;gap:8px;align-items:center">
+    <span id="navUserBadge"></span>
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="hero fadein">
+    <div class="hero-title">⚔️ MULTIPLAYER HUB</div>
+    <div class="hero-sub">Prediction battles · Live match rooms · Global leaderboard · Invite friends · All free</div>
+  </div>
+
+  <!-- AUTH WARNING -->
+  <div id="authWarn" class="alert alert-warn hidden">
+    ⚠️ You need to <a href="login.html" style="color:var(--a2)">sign in</a> to use multiplayer features. Your account syncs your scores across devices.
+  </div>
+  <div id="authOk" class="alert alert-ok hidden">
+    ✅ Signed in as <b id="authName"></b> — all scores sync to your account
+  </div>
+
+  <!-- MODE TABS -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px">
+    <button class="smBtn active" onclick="showMode('predict',this)" id="mode-predict" style="font-size:.84rem;padding:10px 20px;">🔮 Prediction Battle</button>
+    <button class="smBtn" onclick="showMode('rooms',this)" id="mode-rooms" style="font-size:.84rem;padding:10px 20px;">🏟️ Match Rooms</button>
+    <button class="smBtn" onclick="showMode('leaderboard',this)" id="mode-leaderboard" style="font-size:.84rem;padding:10px 20px;">🏆 Leaderboard</button>
+    <button class="smBtn" onclick="showMode('invite',this)" id="mode-invite" style="font-size:.84rem;padding:10px 20px;">📨 Invite Friends</button>
+  </div>
+
+  <!-- ══ PREDICTION BATTLE ══════════════════════════════════ -->
+  <div id="pane-predict">
+
+    <div class="card fadein">
+      <div class="slabel">⚽ Set Up Your Prediction</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div>
+          <div class="field-label">Home Team</div>
+          <input id="mpHome" placeholder="e.g. Arsenal" value="Arsenal">
+        </div>
+        <div>
+          <div class="field-label">Away Team</div>
+          <input id="mpAway" placeholder="e.g. Man City" value="Man City">
+        </div>
+      </div>
+
+      <!-- Score pickers -->
+      <div style="display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:14px;flex-wrap:wrap">
+        <div class="pred-team-box" style="flex:1;min-width:120px">
+          <div class="pred-team-name" id="homeTeamLabel">Arsenal</div>
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+            <button class="smBtn" onclick="changeScore('home',-1)" style="padding:4px 10px;font-size:1rem">−</button>
+            <input class="pred-score-input" id="mpHomeScore" type="number" min="0" max="20" value="2" oninput="updateTeamLabels()">
+            <button class="smBtn" onclick="changeScore('home',1)" style="padding:4px 10px;font-size:1rem">+</button>
+          </div>
+        </div>
+        <div style="font-family:'Bangers',cursive;font-size:2rem;color:var(--muted)">VS</div>
+        <div class="pred-team-box" style="flex:1;min-width:120px">
+          <div class="pred-team-name" id="awayTeamLabel">Man City</div>
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+            <button class="smBtn" onclick="changeScore('away',-1)" style="padding:4px 10px;font-size:1rem">−</button>
+            <input class="pred-score-input" id="mpAwayScore" type="number" min="0" max="20" value="1" oninput="updateTeamLabels()">
+            <button class="smBtn" onclick="changeScore('away',1)" style="padding:4px 10px;font-size:1rem">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="g3" style="margin-bottom:14px">
+        <div>
+          <div class="field-label">First Goalscorer</div>
+          <input id="mpScorer" placeholder="Player name..." value="Saka">
+        </div>
+        <div>
+          <div class="field-label">Your Name / Username</div>
+          <input id="mpUserName" placeholder="Your name...">
+        </div>
+        <div>
+          <div class="field-label">Room Name (optional)</div>
+          <input id="mpRoomName" placeholder="e.g. Sunday Preds">
+        </div>
+      </div>
+
+      <div class="g2">
+        <button class="bigbtn btn-purple" onclick="createPredRoom()" style="font-size:1.2rem;padding:15px;">⚔️ CREATE BATTLE ROOM</button>
+        <button class="bigbtn btn-green" onclick="joinByCode()" style="font-size:1.2rem;padding:15px;">🔗 JOIN WITH CODE</button>
+      </div>
+    </div>
+
+    <!-- Active room -->
+    <div id="activePredRoom" class="hidden">
+      <div class="live-room fadein">
+        <div class="live-teams">
+          <span id="liveHome">Arsenal</span>
+          <span id="liveAway">Man City</span>
+        </div>
+        <div class="live-score" id="liveScore">2 — 1</div>
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-family:'Bangers',cursive;font-size:.85rem;letter-spacing:2px;color:var(--muted)" id="liveRoomCode"></div>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap">
+            <button class="smBtn active" onclick="copyRoomLink()">📋 Copy Invite Link</button>
+            <button class="smBtn" onclick="shareRoom()">📤 Share</button>
+            <button class="smBtn danger" onclick="revealResult()">🎲 Reveal AI Result</button>
+          </div>
+        </div>
+        <!-- All predictions in this room -->
+        <div class="slabel">👥 Predictions in this room</div>
+        <div id="roomPreds"></div>
+        <!-- Result -->
+        <div id="roomResult" class="hidden" style="margin-top:12px;background:rgba(255,210,63,.1);border:1px solid rgba(255,210,63,.2);border-radius:10px;padding:14px;text-align:center">
+          <div style="font-family:'Bangers',cursive;font-size:.8rem;letter-spacing:2px;color:var(--muted);margin-bottom:4px">AI RESULT</div>
+          <div style="font-family:'Bangers',cursive;font-size:2.5rem;letter-spacing:6px;color:var(--a2)" id="resultScore">2 — 1</div>
+          <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-top:6px" id="resultVerdict"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Join room by code -->
+    <div id="joinPane" class="hidden">
+      <div class="card fadein">
+        <div class="slabel">🔗 Join a Room</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input id="joinCode" placeholder="Paste room code or link..." style="flex:1">
+          <button class="smBtn active" onclick="joinRoom()" style="flex-shrink:0">Join →</button>
+        </div>
+        <div id="joinStatus"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ MATCH ROOMS ════════════════════════════════════════ -->
+  <div id="pane-rooms" class="hidden">
+
+    <div class="card fadein">
+      <div class="slabel">🏟️ Live Match Rooms</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="smBtn active" onclick="createMatchRoom()">➕ Create Room</button>
+        <button class="smBtn" onclick="loadRooms()">🔄 Refresh</button>
+        <input id="roomSearch" placeholder="Search rooms..." style="flex:1;min-width:160px" oninput="filterRooms(this.value)">
+      </div>
+      <div id="roomsList">
+        <div style="text-align:center;padding:24px;color:var(--muted);font-size:.8rem;font-weight:700">
+          <div class="spinner" style="margin:0 auto 10px"></div>
+          Loading rooms...
+        </div>
+      </div>
+    </div>
+
+    <!-- Create room form -->
+    <div id="createRoomForm" class="card hidden fadein">
+      <div class="slabel">➕ Create Match Room</div>
+      <div class="g2" style="margin-bottom:10px">
+        <div><div class="field-label">Room Name</div><input id="newRoomName" placeholder="e.g. Sunday League Preds"></div>
+        <div><div class="field-label">Match</div><input id="newRoomMatch" placeholder="e.g. Arsenal vs City"></div>
+      </div>
+      <div class="g2" style="margin-bottom:12px">
+        <div>
+          <div class="field-label">Max Players</div>
+          <select id="newRoomMax">
+            <option value="4">4 players</option>
+            <option value="8" selected>8 players</option>
+            <option value="16">16 players</option>
+            <option value="32">32 players (tournament)</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">Room Type</div>
+          <select id="newRoomType">
+            <option value="open">🌍 Open — anyone can join</option>
+            <option value="invite">🔒 Invite only (code required)</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <button class="bigbtn btn-purple" onclick="submitCreateRoom()" style="font-size:1.1rem">🏟️ CREATE ROOM</button>
+        <button class="bigbtn" onclick="hideCreateRoom()" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);font-size:1.1rem">Cancel</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ LEADERBOARD ════════════════════════════════════════ -->
+  <div id="pane-leaderboard" class="hidden">
+    <div class="card fadein">
+      <div class="slabel">🏆 Global Leaderboard</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="smBtn active" onclick="loadLeaderboard('alltime',this)">All Time</button>
+        <button class="smBtn" onclick="loadLeaderboard('weekly',this)">This Week</button>
+        <button class="smBtn" onclick="loadLeaderboard('monthly',this)">This Month</button>
+      </div>
+      <div id="leaderboardList">
+        <div style="text-align:center;padding:24px;color:var(--muted);font-size:.8rem;font-weight:700">
+          <div class="spinner" style="margin:0 auto 10px"></div>Loading scores...
+        </div>
+      </div>
+    </div>
+    <!-- Your stats -->
+    <div class="card fadein" id="myStatsCard">
+      <div class="slabel">📊 Your Stats</div>
+      <div class="g3">
+        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:10px;padding:12px">
+          <div style="font-family:'Bangers',cursive;font-size:1.8rem;color:var(--a2)" id="myPts">0</div>
+          <div style="font-size:.6rem;font-weight:900;letter-spacing:2px;color:var(--muted);text-transform:uppercase">Total Pts</div>
+        </div>
+        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:10px;padding:12px">
+          <div style="font-family:'Bangers',cursive;font-size:1.8rem;color:var(--a3)" id="myExact">0</div>
+          <div style="font-size:.6rem;font-weight:900;letter-spacing:2px;color:var(--muted);text-transform:uppercase">Exact Scores</div>
+        </div>
+        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:10px;padding:12px">
+          <div style="font-family:'Bangers',cursive;font-size:1.8rem;color:var(--a4)" id="myRank">#—</div>
+          <div style="font-size:.6rem;font-weight:900;letter-spacing:2px;color:var(--muted);text-transform:uppercase">Global Rank</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INVITE ════════════════════════════════════════════ -->
+  <div id="pane-invite" class="hidden">
+    <div class="card fadein">
+      <div class="slabel">📨 Invite Friends</div>
+      <div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:14px;line-height:1.7">
+        Share the link below with friends — they click it, sign up for free, and join your prediction room or match.
+      </div>
+      <div style="background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:9px;
+        padding:11px 14px;font-family:'Courier New',monospace;font-size:.76rem;color:var(--a3);
+        word-break:break-all;margin-bottom:10px" id="inviteLink"></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="smBtn active" onclick="copyInvite()">📋 Copy Link</button>
+        <button class="smBtn" onclick="shareInvite()">📤 Share</button>
+      </div>
+
+      <!-- Share via message -->
+      <div class="slabel">💬 Share via Message</div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;
+        padding:13px;font-size:.78rem;font-weight:700;color:var(--muted);line-height:1.7;margin-bottom:10px" id="shareMsg"></div>
+      <button class="smBtn" onclick="copyShareMsg()">📋 Copy Message</button>
+    </div>
+
+    <!-- Pending invites -->
+    <div class="card fadein">
+      <div class="slabel">📬 Pending Invites to You</div>
+      <div id="pendingInvites">
+        <div style="font-size:.76rem;color:var(--muted);font-weight:700;text-align:center;padding:16px">
+          No pending invites. Ask friends to invite you to their rooms!
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end wrap -->
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+var db, auth, ME = null;
+var CURRENT_ROOM = null;
+var ALL_ROOMS = [];
+var UNSUB_ROOM = null;
+
+var AVATARS = ['🦁','🐯','🦊','🐺','🦅','🦋','⚽','🏆','⚡','🔥','💎','🌟'];
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+function initMP(n) {
+  if (typeof firebase==='undefined'||typeof FIREBASE_CONFIG==='undefined') {
+    if(n>0) { setTimeout(function(){initMP(n-1);},200); return; }
+    document.getElementById('authWarn').classList.remove('hidden');
+    return;
+  }
+  try{firebase.initializeApp(FIREBASE_CONFIG);}catch(e){}
+  auth=firebase.auth(); db=firebase.firestore();
+  auth.onAuthStateChanged(function(user){
+    if(user){
+      ME={uid:user.uid,name:user.displayName||'Player',email:user.email};
+      document.getElementById('authOk').classList.remove('hidden');
+      document.getElementById('authWarn').classList.add('hidden');
+      document.getElementById('authName').textContent=ME.name;
+      document.getElementById('navUserBadge').textContent='👤 '+ME.name.split(' ')[0];
+      document.getElementById('mpUserName').value=ME.name;
+      setInviteLink();
+      loadRooms();
+      loadLeaderboard('alltime',null);
+      loadMyStats();
+      checkUrlRoom();
+    } else {
+      document.getElementById('authWarn').classList.remove('hidden');
+      document.getElementById('authOk').classList.add('hidden');
+      setInviteLink();
+      loadRooms();
+      loadLeaderboard('alltime',null);
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+// MODE SWITCHING
+// ══════════════════════════════════════════
+function showMode(mode, btn) {
+  ['predict','rooms','leaderboard','invite'].forEach(function(m){
+    document.getElementById('pane-'+m).classList.add('hidden');
+    document.getElementById('mode-'+m).classList.remove('active');
+  });
+  document.getElementById('pane-'+mode).classList.remove('hidden');
+  if(btn) btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// PREDICTION BATTLE
+// ══════════════════════════════════════════
+function updateTeamLabels(){
+  var h=(document.getElementById('mpHome').value||'Home').trim();
+  var a=(document.getElementById('mpAway').value||'Away').trim();
+  document.getElementById('homeTeamLabel').textContent=h;
+  document.getElementById('awayTeamLabel').textContent=a;
+}
+
+function changeScore(team,delta){
+  var id=team==='home'?'mpHomeScore':'mpAwayScore';
+  var inp=document.getElementById(id);
+  inp.value=Math.max(0,Math.min(20,(parseInt(inp.value)||0)+delta));
+}
+
+document.getElementById('mpHome').addEventListener('input',updateTeamLabels);
+document.getElementById('mpAway').addEventListener('input',updateTeamLabels);
+
+function createPredRoom(){
+  var home=(document.getElementById('mpHome').value||'').trim()||'Home';
+  var away=(document.getElementById('mpAway').value||'').trim()||'Away';
+  var hs=parseInt(document.getElementById('mpHomeScore').value)||0;
+  var as=parseInt(document.getElementById('mpAwayScore').value)||0;
+  var scorer=(document.getElementById('mpScorer').value||'').trim();
+  var uname=(document.getElementById('mpUserName').value||ME&&ME.name||'Player').trim();
+  var rname=(document.getElementById('mpRoomName').value||home+' vs '+away).trim();
+
+  var code=Math.random().toString(36).slice(2,8).toUpperCase();
+  var roomData={
+    code:code, name:rname, home:home, away:away,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+    createdBy:ME?ME.uid:'guest',
+    status:'waiting',
+    predictions:{}
+  };
+  var myPred={name:uname,hs:hs,as:as,scorer:scorer,uid:ME?ME.uid:'guest',points:null};
+  roomData.predictions[ME?ME.uid:'p_'+Date.now()]=myPred;
+
+  if(!db){
+    // Offline fallback - just show the room locally
+    CURRENT_ROOM={id:'local_'+code,...roomData};
+    showPredRoom(roomData,code);return;
+  }
+
+  db.collection('mp_rooms').add(roomData).then(function(doc){
+    CURRENT_ROOM={id:doc.id,...roomData};
+    showPredRoom(roomData,code);
+    listenRoom(doc.id);
+    // Log to leaderboard
+    if(ME) updateUserStats(ME.uid,{gamesPlayed:firebase.firestore.FieldValue.increment(1)});
+  }).catch(function(e){
+    // Fallback offline
+    CURRENT_ROOM={id:'local_'+code,...roomData};
+    showPredRoom(roomData,code);
+  });
+}
+
+function showPredRoom(room,code){
+  document.getElementById('activePredRoom').classList.remove('hidden');
+  document.getElementById('joinPane').classList.add('hidden');
+  document.getElementById('liveHome').textContent=room.home;
+  document.getElementById('liveAway').textContent=room.away;
+  document.getElementById('liveScore').textContent=room.predictions[Object.keys(room.predictions)[0]].hs+' — '+room.predictions[Object.keys(room.predictions)[0]].as;
+  document.getElementById('liveRoomCode').textContent='Room Code: '+code+' · Share link to invite friends';
+  renderRoomPreds(room.predictions);
+  // Update invite link with room code
+  var base=window.location.href.split('?')[0];
+  document.getElementById('inviteLink').textContent=base+'?room='+code;
+}
+
+function listenRoom(docId){
+  if(UNSUB_ROOM)UNSUB_ROOM();
+  if(!db)return;
+  UNSUB_ROOM=db.collection('mp_rooms').doc(docId).onSnapshot(function(snap){
+    if(!snap.exists)return;
+    var d=snap.data();
+    renderRoomPreds(d.predictions||{});
+    if(d.actualHS!==undefined){
+      document.getElementById('roomResult').classList.remove('hidden');
+      document.getElementById('resultScore').textContent=d.actualHS+' — '+d.actualAS;
+      document.getElementById('resultVerdict').textContent=d.actualHS>d.actualAS?d.home+' win':d.actualAS>d.actualHS?d.away+' win':'Draw';
+    }
+  });
+}
+
+function renderRoomPreds(preds){
+  var el=document.getElementById('roomPreds');
+  var cols=['#ff6b35','#ffd23f','#06ffa5','#a855f7','#3b82f6','#ec4899'];
+  var html=Object.keys(preds).map(function(k,i){
+    var p=preds[k];
+    var pts=p.points!==null&&p.points!==undefined?' · '+p.points+' pts':'';
+    return '<div class="player-pred">'
+      +'<div class="pred-dot" style="background:'+cols[i%cols.length]+'"></div>'
+      +'<div style="flex:1"><b>'+escH(p.name||'Player')+'</b> predicts <b style="color:var(--a2)">'+p.hs+' — '+p.as+'</b>'
+      +(p.scorer?' · First scorer: '+escH(p.scorer):'')+'</div>'
+      +'<div style="font-family:Bangers,cursive;font-size:.9rem;color:var(--a2)">'+pts+'</div></div>';
+  }).join('');
+  el.innerHTML=html||'<div style="text-align:center;color:var(--muted);font-size:.76rem;padding:12px">Share the room code so friends can join!</div>';
+}
+
+function joinByCode(){
+  document.getElementById('joinPane').classList.toggle('hidden');
+  document.getElementById('activePredRoom').classList.add('hidden');
+}
+
+function joinRoom(){
+  var raw=(document.getElementById('joinCode').value||'').trim();
+  // Extract code from URL or direct code
+  var code=raw.includes('?room=') ? raw.split('?room=')[1] : raw.toUpperCase();
+  var status=document.getElementById('joinStatus');
+  if(!code){status.className='alert alert-warn';status.textContent='Enter a room code!';return;}
+  if(!db){status.className='alert alert-warn';status.textContent='Sign in to join rooms!';return;}
+  status.innerHTML='<span class="spinner"></span> Searching...';
+  db.collection('mp_rooms').where('code','==',code).limit(1).get().then(function(snap){
+    if(snap.empty){status.className='alert alert-err';status.textContent='Room not found. Check the code!';return;}
+    var doc=snap.docs[0];
+    var room=doc.data();
+    // Add my prediction
+    var uname=(document.getElementById('mpUserName').value||ME&&ME.name||'Guest').trim();
+    var hs=parseInt(document.getElementById('mpHomeScore').value)||0;
+    var as=parseInt(document.getElementById('mpAwayScore').value)||0;
+    var scorer=(document.getElementById('mpScorer').value||'').trim();
+    var preds=room.predictions||{};
+    preds[ME?ME.uid:'p_'+Date.now()]={name:uname,hs:hs,as:as,scorer:scorer,uid:ME?ME.uid:'guest',points:null};
+    doc.ref.update({predictions:preds}).then(function(){
+      CURRENT_ROOM={id:doc.id,...room};
+      status.className='alert alert-ok';status.textContent='Joined! Prediction submitted.';
+      document.getElementById('joinPane').classList.add('hidden');
+      showPredRoom(room,code);
+      listenRoom(doc.id);
+    });
+  }).catch(function(e){status.className='alert alert-err';status.textContent='Error: '+e.message;});
+}
+
+function copyRoomLink(){
+  var link=document.getElementById('inviteLink').textContent;
+  try{navigator.clipboard.writeText(link);alert('Link copied! Share it with friends.');}
+  catch(e){alert('Share this link:\n'+link);}
+}
+
+function shareRoom(){
+  var link=document.getElementById('inviteLink').textContent;
+  var room=CURRENT_ROOM||{};
+  var text='Join my prediction battle for '+(room.home||'Home')+' vs '+(room.away||'Away')+'! Can you beat my score?';
+  if(navigator.share){navigator.share({title:'Prediction Battle',text:text,url:link}).catch(function(){});}
+  else copyRoomLink();
+}
+
+function revealResult(){
+  if(!CURRENT_ROOM){alert('Create or join a room first!');return;}
+  // Simple AI simulation
+  var room=CURRENT_ROOM;
+  var hg=Math.floor(Math.random()*4);
+  var ag=Math.floor(Math.random()*3);
+  // Score predictions
+  var preds=room.predictions||{};
+  Object.keys(preds).forEach(function(k){
+    var p=preds[k];
+    var pts=0;
+    if(p.hs===hg&&p.as===ag)pts=5;
+    else if((p.hs>p.as&&hg>ag)||(p.hs<p.as&&hg<ag)||(p.hs===p.as&&hg===ag))pts=2;
+    preds[k].points=pts;
+  });
+  document.getElementById('roomResult').classList.remove('hidden');
+  document.getElementById('resultScore').textContent=hg+' — '+ag;
+  document.getElementById('resultVerdict').textContent=(hg>ag?room.home+' win':ag>hg?room.away+' win':'Draw')+' · 5pts=exact score, 2pts=correct result';
+  renderRoomPreds(preds);
+  // Save to Firestore
+  if(db&&CURRENT_ROOM.id&&!CURRENT_ROOM.id.startsWith('local_')){
+    db.collection('mp_rooms').doc(CURRENT_ROOM.id).update({actualHS:hg,actualAS:ag,predictions:preds,status:'revealed'});
+    // Update leaderboard scores
+    Object.keys(preds).forEach(function(k){
+      var p=preds[k];
+      if(p.uid&&p.uid!=='guest'&&p.points){
+        updateUserStats(p.uid,{totalPoints:firebase.firestore.FieldValue.increment(p.points),gamesPlayed:firebase.firestore.FieldValue.increment(0)});
+      }
+    });
+  }
+  // Confetti if anyone got 5
+  var anyExact=Object.values(preds).some(function(p){return p.points===5;});
+  if(anyExact)boom();
+}
+
+// ══════════════════════════════════════════
+// MATCH ROOMS
+// ══════════════════════════════════════════
+function loadRooms(){
+  var el=document.getElementById('roomsList');
+  if(!db){el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:.76rem;padding:16px">Sign in to see multiplayer rooms</div>';return;}
+  el.innerHTML='<div style="text-align:center;padding:20px"><span class="spinner"></span></div>';
+  db.collection('mp_rooms').orderBy('createdAt','desc').limit(20).get().then(function(snap){
+    ALL_ROOMS=snap.docs.map(function(d){return{id:d.id,...d.data()};});
+    renderRooms(ALL_ROOMS);
+  }).catch(function(){renderRooms([]);});
+}
+
+function renderRooms(rooms){
+  var el=document.getElementById('roomsList');
+  if(!rooms.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:.78rem;padding:24px;font-weight:700">No rooms found. Create one to get started!</div>';return;
+  }
+  el.innerHTML=rooms.map(function(r){
+    var pCount=Object.keys(r.predictions||{}).length;
+    var maxP=parseInt(r.maxPlayers)||8;
+    var status=r.status==='revealed'?'<span class="room-status rs-full">Finished</span>':pCount>=maxP?'<span class="room-status rs-full">Full</span>':'<span class="room-status rs-waiting">Waiting</span>';
+    return '<div class="room-card" onclick="quickJoinRoom(\''+r.id+'\',\''+escH(r.code||'')+'\')">'
+      +'<div class="room-icon">⚔️</div>'
+      +'<div class="room-info"><div class="room-name">'+escH(r.name||r.home+' vs '+r.away)+'</div>'
+      +'<div class="room-meta">'+escH(r.home||'')+(r.away?' vs '+escH(r.away):'')+'&nbsp;·&nbsp;Code: '+(r.code||'—')+'</div></div>'
+      +'<div class="room-players">'+pCount+'/'+maxP+'</div>'
+      +status+'</div>';
+  }).join('');
+}
+
+function filterRooms(q){
+  q=q.toLowerCase();
+  var filtered=ALL_ROOMS.filter(function(r){
+    return (r.name||'').toLowerCase().includes(q)||(r.home||'').toLowerCase().includes(q)||(r.away||'').toLowerCase().includes(q);
+  });
+  renderRooms(filtered);
+}
+
+function createMatchRoom(){
+  document.getElementById('createRoomForm').classList.remove('hidden');
+}
+
+function hideCreateRoom(){
+  document.getElementById('createRoomForm').classList.add('hidden');
+}
+
+function submitCreateRoom(){
+  var name=(document.getElementById('newRoomName').value||'').trim()||'New Room';
+  var match=(document.getElementById('newRoomMatch').value||'').trim()||'Match';
+  var maxP=parseInt(document.getElementById('newRoomMax').value)||8;
+  var type=document.getElementById('newRoomType').value||'open';
+  var code=Math.random().toString(36).slice(2,8).toUpperCase();
+  var room={name:name,match:match,maxPlayers:maxP,type:type,code:code,status:'waiting',
+    createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:ME?ME.uid:'guest',predictions:{}};
+  if(!db){alert('Sign in to create rooms!');return;}
+  db.collection('mp_rooms').add(room).then(function(){
+    hideCreateRoom();loadRooms();
+    alert('Room created! Code: '+code);
+  }).catch(function(e){alert('Error: '+e.message);});
+}
+
+function quickJoinRoom(id, code){
+  document.getElementById('joinCode').value=code;
+  showMode('predict',document.getElementById('mode-predict'));
+  document.getElementById('joinPane').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+// LEADERBOARD
+// ══════════════════════════════════════════
+function loadLeaderboard(period, btn){
+  if(btn){
+    document.querySelectorAll('#pane-leaderboard .smBtn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+  }
+  var el=document.getElementById('leaderboardList');
+  if(!db){renderLocalLeaderboard();return;}
+  el.innerHTML='<div style="text-align:center;padding:20px"><span class="spinner"></span></div>';
+  db.collection('mp_scores').orderBy('totalPoints','desc').limit(50).get().then(function(snap){
+    var rows=snap.docs.map(function(d){return d.data();});
+    renderLeaderboard(rows);
+    // Find my rank
+    if(ME){
+      var myRank=rows.findIndex(function(r){return r.uid===ME.uid;});
+      if(myRank>=0) document.getElementById('myRank').textContent='#'+(myRank+1);
+    }
+  }).catch(function(){renderLocalLeaderboard();});
+}
+
+function renderLocalLeaderboard(){
+  var mockData=[
+    {name:'Azaan',totalPoints:142,exactScores:8,avatar:'⚽'},
+    {name:'FootballKing',totalPoints:98,exactScores:5,avatar:'🏆'},
+    {name:'PredMaster',totalPoints:87,exactScores:4,avatar:'🔮'},
+    {name:'GoalGuru',totalPoints:76,exactScores:3,avatar:'🦁'},
+    {name:'StrikerFan',totalPoints:65,exactScores:2,avatar:'⚡'},
+  ];
+  renderLeaderboard(mockData);
+}
+
+function renderLeaderboard(rows){
+  var el=document.getElementById('leaderboardList');
+  var medals=['🥇','🥈','🥉'];
+  el.innerHTML=rows.slice(0,20).map(function(r,i){
+    var medal=i<3?medals[i]:'<span style="font-family:Bangers,cursive;font-size:1rem;color:var(--muted)">'+(i+1)+'</span>';
+    var isMe=ME&&r.uid===ME.uid;
+    return '<div class="lb-row" style="'+(isMe?'background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2)':'')+'"><span style="font-size:1.3rem">'+medal+'</span>'
+      +(r.avatar?'<span style="font-size:1.2rem">'+r.avatar+'</span>':'')
+      +'<span class="lb-name">'+escH(r.name||'Player')+(isMe?' <span style="font-size:.58rem;color:var(--a4);font-weight:900;border:1px solid rgba(168,85,247,.3);padding:1px 6px;border-radius:8px">YOU</span>':'')+'</span>'
+      +'<span class="lb-pts">'+(r.totalPoints||0)+'pts</span></div>';
+  }).join('');
+}
+
+function loadMyStats(){
+  if(!db||!ME)return;
+  db.collection('mp_scores').doc(ME.uid).get().then(function(doc){
+    if(doc.exists){
+      var d=doc.data();
+      document.getElementById('myPts').textContent=d.totalPoints||0;
+      document.getElementById('myExact').textContent=d.exactScores||0;
+    }
+  }).catch(function(){});
+}
+
+function updateUserStats(uid,updates){
+  if(!db)return;
+  db.collection('mp_scores').doc(uid).set(Object.assign({uid:uid,name:ME?ME.name:'Player'},updates),{merge:true}).catch(function(){});
+}
+
+// ══════════════════════════════════════════
+// INVITE
+// ══════════════════════════════════════════
+function setInviteLink(){
+  var base=window.location.href.split('?')[0];
+  var link=base;
+  document.getElementById('inviteLink').textContent=link;
+  var uname=ME?ME.name:'your friend';
+  var msg='Hey! Join me on NAME-O-MATIC 9000 — the ultimate football AI app. '
+    +uname+' is challenging you to a prediction battle! Sign up free at '+window.location.origin+'/index.html';
+  document.getElementById('shareMsg').textContent=msg;
+}
+
+function copyInvite(){
+  var link=document.getElementById('inviteLink').textContent;
+  try{navigator.clipboard.writeText(link);alert('Invite link copied!');}catch(e){alert('Copy this:\n'+link);}
+}
+
+function shareInvite(){
+  var link=document.getElementById('inviteLink').textContent;
+  var msg=document.getElementById('shareMsg').textContent;
+  if(navigator.share){navigator.share({title:'Join NAME-O-MATIC 9000',text:msg,url:link}).catch(function(){});}
+  else copyInvite();
+}
+
+function copyShareMsg(){
+  var msg=document.getElementById('shareMsg').textContent;
+  try{navigator.clipboard.writeText(msg);alert('Message copied!');}catch(e){alert(msg);}
+}
+
+// ══════════════════════════════════════════
+// URL ROOM CHECK
+// ══════════════════════════════════════════
+function checkUrlRoom(){
+  var params=new URLSearchParams(window.location.search);
+  var roomCode=params.get('room');
+  if(roomCode){
+    document.getElementById('joinCode').value=roomCode;
+    document.getElementById('joinPane').classList.remove('hidden');
+    document.getElementById('activePredRoom').classList.add('hidden');
+  }
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function boom(){
+  var cols=['#ff6b35','#ffd23f','#06ffa5','#a855f7','#3b82f6','#ec4899'];
+  for(var i=0;i<60;i++){
+    var p=document.createElement('div');
+    var sz=Math.random()*9+4;
+    p.style.cssText='position:fixed;top:-20px;left:'+Math.random()*100+'vw;width:'+sz+'px;height:'+sz+'px;background:'+cols[Math.floor(Math.random()*cols.length)]+';border-radius:'+(Math.random()>.5?'50%':'2px')+';animation:cff '+(Math.random()*2+1)+'s linear '+(Math.random()*.4)+'s forwards;pointer-events:none;z-index:999';
+    document.body.appendChild(p);
+    p.addEventListener('animationend',function(){if(p.parentNode)p.parentNode.removeChild(p);});
+  }
+}
+
+// Add confetti keyframe
+var style=document.createElement('style');
+style.textContent='@keyframes cff{0%{transform:translateY(0) rotate(0);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}';
+document.head.appendChild(style);
+
+window.addEventListener('load',function(){initMP(25);updateTeamLabels();});
+</script>
+</body>
+</html>

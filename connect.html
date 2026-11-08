@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NAME-O-MATIC — Connect AI</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
+<script src="firebase-config.js" defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#07070f;--card:#0e0e1e;--border:rgba(255,255,255,.08);--text:#eeeeff;--muted:#55558a;
+  --a1:#ff6b35;--a2:#ffd23f;--a3:#06ffa5;--a4:#a855f7;--a5:#3b82f6;--a6:#ec4899;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(168,85,247,.1),transparent 55%),
+             radial-gradient(ellipse 60% 40% at 85% 90%,rgba(6,255,165,.07),transparent 55%);}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+/* NAV */
+nav{background:rgba(7,7,15,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
+  height:54px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:4px;
+  background:linear-gradient(135deg,var(--a1),var(--a2),var(--a3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ml{margin-left:auto;}
+.nbtn{font-family:'Fredoka One',cursive;font-size:.76rem;padding:6px 14px;border-radius:8px;
+  cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);
+  text-decoration:none;display:inline-block;transition:all .2s;}
+.nbtn:hover{background:rgba(255,255,255,.12);}
+#navUser{font-size:.74rem;font-weight:800;color:var(--muted);}
+
+/* WRAP */
+.wrap{max-width:860px;margin:0 auto;padding:32px 16px 80px;position:relative;z-index:1;}
+
+/* HERO */
+.page-hero{text-align:center;padding:32px 0 40px;}
+.page-title{font-family:'Bangers',cursive;font-size:clamp(2.2rem,6vw,3.8rem);letter-spacing:6px;
+  background:linear-gradient(135deg,var(--a4),var(--a5),var(--a3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:10px;}
+.page-sub{font-size:.88rem;font-weight:700;color:var(--muted);max-width:480px;margin:0 auto;line-height:1.7;}
+
+/* STATUS BAR */
+.status-bar{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.status-icon{font-size:1.5rem;flex-shrink:0;}
+.status-text{flex:1;}
+.status-title{font-weight:900;font-size:.86rem;margin-bottom:2px;}
+.status-sub{font-size:.7rem;font-weight:700;color:var(--muted);}
+.status-badge{font-size:.6rem;font-weight:900;padding:3px 10px;border-radius:10px;
+  letter-spacing:1px;text-transform:uppercase;flex-shrink:0;}
+.sb-ok{background:rgba(6,255,165,.15);color:var(--a3);}
+.sb-warn{background:rgba(255,210,63,.12);color:var(--a2);}
+.sb-err{background:rgba(239,68,68,.1);color:#fca5a5;}
+
+/* AI PROVIDER CARDS */
+.providers{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.providers{grid-template-columns:1fr;}}
+.provider-card{background:var(--card);border:2px solid rgba(255,255,255,.18);border-radius:16px;
+  padding:20px;transition:all .2s;position:relative;overflow:hidden;}
+.provider-card::before{content:'';position:absolute;inset:0;opacity:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.03),transparent);
+  transition:opacity .2s;pointer-events:none;}
+.provider-card:hover::before{opacity:1;}
+.provider-card.connected{border-color:rgba(6,255,165,.5);background:rgba(6,255,165,.07);box-shadow:0 0 16px rgba(6,255,165,.12);}
+.provider-card.error{border-color:rgba(239,68,68,.25);}
+.provider-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.provider-icon{font-size:1.8rem;flex-shrink:0;}
+.provider-name{font-family:'Fredoka One',cursive;font-size:1rem;margin-bottom:2px;}
+.provider-model{font-size:.65rem;font-weight:700;color:var(--muted);}
+.conn-badge{font-size:.55rem;font-weight:900;padding:2px 9px;border-radius:10px;
+  letter-spacing:1px;text-transform:uppercase;margin-left:auto;}
+.cb-conn{background:rgba(6,255,165,.15);color:var(--a3);}
+.cb-free{background:rgba(59,130,246,.15);color:var(--a5);}
+.cb-paid{background:rgba(255,107,53,.12);color:var(--a1);}
+
+/* Steps */
+.steps-list{margin-bottom:14px;}
+.step-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:.76rem;font-weight:700;}
+.step-item:last-child{border:none;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--a4);color:#fff;font-weight:900;box-shadow:0 0 8px rgba(168,85,247,.3);
+  font-size:.62rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-text{color:var(--muted);line-height:1.55;flex:1;}
+.step-text a{color:var(--a3);text-decoration:none;font-weight:900;text-shadow:0 0 8px rgba(6,255,165,.2);}
+.step-text a:hover{text-decoration:underline;}
+.step-text b{color:var(--text);}
+
+/* Key input */
+.key-wrap{position:relative;margin-bottom:10px;}
+.key-input{width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.2);
+  border-radius:9px;padding:10px 42px 10px 13px;font-family:'Nunito',sans-serif;
+  font-size:.82rem;font-weight:700;color:var(--text);outline:none;transition:all .2s;
+  letter-spacing:.5px;}
+.key-input:focus{border-color:var(--a4);background:rgba(168,85,247,.06);
+  box-shadow:0 0 0 3px rgba(168,85,247,.1);}
+.key-input::placeholder{color:var(--muted);letter-spacing:0;}
+.eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;transition:color .2s;}
+.eye-btn:hover{color:var(--a2);}
+
+/* Buttons */
+.btn-row{display:flex;gap:7px;flex-wrap:wrap;}
+.btn{font-family:'Fredoka One',cursive;font-size:.78rem;padding:8px 16px;border-radius:8px;
+  cursor:pointer;border:none;transition:all .2s;white-space:nowrap;}
+.btn:hover{transform:translateY(-1px);}
+.btn:active{transform:scale(.97);}
+.btn-save{background:linear-gradient(135deg,var(--a4),var(--a5));color:#fff;font-size:.82rem;padding:9px 18px;
+  box-shadow:0 3px 12px rgba(168,85,247,.3);}
+.btn-test{background:rgba(255,255,255,.07);border:1px solid var(--border);color:var(--text);}
+.btn-clear{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;}
+.btn-google{background:linear-gradient(135deg,#4285f4,#34a853);color:#fff;width:100%;
+  padding:10px;font-size:.85rem;box-shadow:0 4px 14px rgba(66,133,244,.3);
+  display:flex;align-items:center;justify-content:center;gap:8px;}
+
+/* Status indicator */
+.key-status{font-size:.66rem;font-weight:800;margin-top:5px;min-height:16px;
+  display:flex;align-items:center;gap:5px;}
+.ks-ok{color:var(--a3);}
+.ks-err{color:#fca5a5;}
+.ks-checking{color:var(--muted);}
+
+/* SYNC SECTION */
+.sync-card{background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(59,130,246,.06));
+  border:1px solid rgba(168,85,247,.2);border-radius:16px;padding:20px;margin-top:20px;}
+.sync-title{font-family:'Bangers',cursive;font-size:1.2rem;letter-spacing:3px;color:var(--a4);margin-bottom:8px;}
+.sync-desc{font-size:.78rem;font-weight:700;color:var(--muted);line-height:1.7;margin-bottom:14px;}
+.sync-row{display:flex;gap:10px;flex-wrap:wrap;}
+.sync-btn{font-family:'Fredoka One',cursive;font-size:.82rem;padding:10px 22px;border-radius:10px;
+  cursor:pointer;border:none;transition:all .2s;font-weight:700;}
+.sync-btn:hover{transform:translateY(-2px);}
+.sync-push{background:linear-gradient(135deg,var(--a4),var(--a5));color:#fff;box-shadow:0 4px 14px rgba(168,85,247,.3);}
+.sync-pull{background:rgba(255,255,255,.07);border:1px solid var(--border);color:var(--text);}
+.sync-status{font-size:.74rem;font-weight:800;margin-top:10px;min-height:18px;}
+
+/* FREE TIER INFO */
+.free-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:16px;}
+.free-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.free-name{font-weight:900;font-size:.82rem;margin-bottom:3px;}
+.free-limit{font-size:.68rem;font-weight:800;color:var(--a3);margin-bottom:3px;}
+.free-note{font-size:.62rem;font-weight:700;color:var(--muted);line-height:1.5;}
+
+/* ALERT */
+.alert{border-radius:10px;padding:11px 14px;font-size:.78rem;font-weight:700;line-height:1.6;margin-bottom:14px;}
+.alert-info{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);color:#93c5fd;}
+.alert-warn{background:rgba(255,210,63,.07);border:1px solid rgba(255,210,63,.2);color:#fde68a;}
+.alert-ok{background:rgba(6,255,165,.07);border:1px solid rgba(6,255,165,.2);color:#6ee7b7;}
+
+.slabel{font-family:'Fredoka One',cursive;font-size:.6rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--a3);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.slabel::after{content:'';flex:1;height:1px;background:linear-gradient(to right,rgba(6,255,165,.25),transparent);}
+
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein .35s ease both;}
+
+/* ── GLOBAL POLISH ── */
+*{-webkit-tap-highlight-color:rgba(168,85,247,.2);}
+a{-webkit-tap-highlight-color:rgba(168,85,247,.15);}
+
+/* Bigger, more visible nav buttons */
+.nbtn,.hbtn,.tbtn{
+  font-family:'Fredoka One',cursive;font-size:.8rem;
+  padding:8px 16px;border-radius:9px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.09);
+  color:#eeeeff;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:all .18s ease;font-weight:700;
+  letter-spacing:.3px;white-space:nowrap;
+}
+.nbtn:hover,.hbtn:hover,.tbtn:hover{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.4);
+  color:#fff;transform:translateY(-1px);
+}
+
+/* Bigger action tabs */
+.dtab{
+  font-family:'Fredoka One',cursive;font-size:.82rem;
+  padding:9px 18px;border-radius:10px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);color:#aaaacc;
+  transition:all .18s ease;font-weight:700;
+}
+.dtab:hover{background:rgba(255,255,255,.15);color:#fff;transform:translateY(-1px);}
+.dtab.active{
+  background:rgba(255,210,63,.18);
+  border-color:rgba(255,210,63,.5);
+  color:#ffd23f;font-weight:900;
+  box-shadow:0 0 12px rgba(255,210,63,.15);
+}
+
+/* smBtn used in multiplayer/community/etc */
+.smBtn{
+  background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.22);
+  border-radius:8px;padding:8px 16px;font-size:.78rem;font-weight:800;
+  color:#aaaacc;cursor:pointer;transition:all .18s ease;
+  font-family:'Nunito',sans-serif;white-space:nowrap;
+}
+.smBtn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);color:#fff;transform:translateY(-1px);}
+.smBtn.active{background:rgba(6,255,165,.18);border-color:rgba(6,255,165,.45);color:#06ffa5;box-shadow:0 0 10px rgba(6,255,165,.15);}
+.smBtn.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+.smBtn.danger:hover{background:rgba(239,68,68,.2);}
+
+/* bigbtn polish */
+.bigbtn{transition:all .18s ease;}
+.bigbtn:hover{transform:translateY(-3px);filter:brightness(1.1);}
+.bigbtn:active{transform:scale(.97);}
+
+/* Card hover glow */
+.card{transition:border-color .2s ease;}
+.card:hover{border-color:rgba(255,255,255,.13);}
+
+/* Input polish */
+input,select,textarea{
+  color:#eeeeff!important;
+  border:1.5px solid rgba(255,255,255,.18)!important;
+  transition:all .18s ease!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#a855f7!important;
+  box-shadow:0 0 0 3px rgba(168,85,247,.15)!important;
+}
+input::placeholder,textarea::placeholder{color:#55558a!important;}
+
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070f">
+<script src="nom-net.js"></script>
+</head>
+<body data-online-only>
+
+<nav>
+  <div class="logo">NAME-O-MATIC 9000</div>
+  <div class="ml" style="display:flex;gap:8px;align-items:center">
+    <span id="navUser"></span>
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="app.html" class="nbtn">⚡ App</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="page-hero fadein">
+    <div class="page-title">🔗 CONNECT YOUR AI</div>
+    <div class="page-sub">Add your API keys once — they sync to your account automatically. No more copy-pasting every time.</div>
+  </div>
+
+  <!-- Auth status -->
+  <div class="status-bar fadein" id="authStatus">
+    <div class="status-icon">⏳</div>
+    <div class="status-text">
+      <div class="status-title">Checking your account...</div>
+      <div class="status-sub">Loading Firebase auth</div>
+    </div>
+  </div>
+
+  <!-- Why not OAuth explanation -->
+  <div class="alert alert-info fadein">
+    💡 <b>Why not just log in with Google/Anthropic?</b> — Those platforms don't offer a public "Sign in with Anthropic/OpenAI" button yet. The closest thing is Google (which gives you Gemini access). For everything else, a one-time key paste that syncs to your account is the best available option — and it's instant.
+  </div>
+
+  <!-- PROVIDERS -->
+  <div class="slabel fadein">🤖 AI Providers</div>
+  <div class="providers fadein">
+
+    <!-- GEMINI (Google — closest to real OAuth) -->
+    <div class="provider-card" id="card-gemini">
+      <div class="provider-header">
+        <div class="provider-icon">🔷</div>
+        <div>
+          <div class="provider-name">Google Gemini</div>
+          <div class="provider-model">gemini-1.5-flash · gemini-2.0-flash</div>
+        </div>
+        <span class="conn-badge cb-free">FREE 1500/day</span>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-text">Click <b>Create API Key</b> — it's instant, no credit card</div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-text">Copy the key and paste below</div></div>
+      </div>
+
+      <div class="key-wrap">
+        <input class="key-input" id="key-gemini" type="password" placeholder="AIza...">
+        <button class="eye-btn" onclick="toggleKey('key-gemini',this)">👁️</button>
+      </div>
+      <div class="key-status" id="ks-gemini"></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-save" onclick="saveKey('gemini')">💾 Save</button>
+        <button class="btn btn-test" onclick="testKey('gemini')">🧪 Test</button>
+        <button class="btn btn-clear" onclick="clearKey('gemini')">🗑️</button>
+      </div>
+    </div>
+
+    <!-- CLAUDE / ANTHROPIC -->
+    <div class="provider-card" id="card-claude">
+      <div class="provider-header">
+        <div class="provider-icon">🟠</div>
+        <div>
+          <div class="provider-name">Anthropic Claude</div>
+          <div class="provider-model">claude-sonnet-4-5 · claude-haiku-4-5</div>
+        </div>
+        <span class="conn-badge cb-paid">PAID</span>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-text">Click <b>Create Key</b>, give it any name</div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-text">Paste the key starting with <b>sk-ant-</b> below</div></div>
+      </div>
+
+      <div class="key-wrap">
+        <input class="key-input" id="key-claude" type="password" placeholder="sk-ant-api03-...">
+        <button class="eye-btn" onclick="toggleKey('key-claude',this)">👁️</button>
+      </div>
+      <div class="key-status" id="ks-claude"></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-save" onclick="saveKey('claude')">💾 Save</button>
+        <button class="btn btn-test" onclick="testKey('claude')">🧪 Test</button>
+        <button class="btn btn-clear" onclick="clearKey('claude')">🗑️</button>
+      </div>
+    </div>
+
+    <!-- GROQ -->
+    <div class="provider-card" id="card-groq">
+      <div class="provider-header">
+        <div class="provider-icon">⚡</div>
+        <div>
+          <div class="provider-name">Groq (Llama 3)</div>
+          <div class="provider-model">llama3-70b-8192 · mixtral-8x7b</div>
+        </div>
+        <span class="conn-badge cb-free">FREE</span>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-text">Sign up free, click <b>Create API Key</b></div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-text">Paste the key starting with <b>gsk_</b> below</div></div>
+      </div>
+
+      <div class="key-wrap">
+        <input class="key-input" id="key-groq" type="password" placeholder="gsk_...">
+        <button class="eye-btn" onclick="toggleKey('key-groq',this)">👁️</button>
+      </div>
+      <div class="key-status" id="ks-groq"></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-save" onclick="saveKey('groq')">💾 Save</button>
+        <button class="btn btn-test" onclick="testKey('groq')">🧪 Test</button>
+        <button class="btn btn-clear" onclick="clearKey('groq')">🗑️</button>
+      </div>
+    </div>
+
+    <!-- MISTRAL -->
+    <div class="provider-card" id="card-mistral">
+      <div class="provider-header">
+        <div class="provider-icon">🟣</div>
+        <div>
+          <div class="provider-name">Mistral AI</div>
+          <div class="provider-model">mistral-small · mistral-large</div>
+        </div>
+        <span class="conn-badge cb-free">FREE TIER</span>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <a href="https://console.mistral.ai/api-keys" target="_blank">console.mistral.ai/api-keys</a></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-text">Click <b>Create new key</b></div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-text">Paste your key below</div></div>
+      </div>
+
+      <div class="key-wrap">
+        <input class="key-input" id="key-mistral" type="password" placeholder="Paste Mistral key...">
+        <button class="eye-btn" onclick="toggleKey('key-mistral',this)">👁️</button>
+      </div>
+      <div class="key-status" id="ks-mistral"></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-save" onclick="saveKey('mistral')">💾 Save</button>
+        <button class="btn btn-test" onclick="testKey('mistral')">🧪 Test</button>
+        <button class="btn btn-clear" onclick="clearKey('mistral')">🗑️</button>
+      </div>
+    </div>
+
+    <!-- OPENAI -->
+    <div class="provider-card" id="card-openai">
+      <div class="provider-header">
+        <div class="provider-icon">🟢</div>
+        <div>
+          <div class="provider-name">OpenAI (ChatGPT)</div>
+          <div class="provider-model">gpt-4o-mini · gpt-4o</div>
+        </div>
+        <span class="conn-badge cb-paid">PAID</span>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-text">Click <b>Create new secret key</b></div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-text">Paste the key starting with <b>sk-</b> below</div></div>
+      </div>
+
+      <div class="key-wrap">
+        <input class="key-input" id="key-openai" type="password" placeholder="sk-...">
+        <button class="eye-btn" onclick="toggleKey('key-openai',this)">👁️</button>
+      </div>
+      <div class="key-status" id="ks-openai"></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-save" onclick="saveKey('openai')">💾 Save</button>
+        <button class="btn btn-test" onclick="testKey('openai')">🧪 Test</button>
+        <button class="btn btn-clear" onclick="clearKey('openai')">🗑️</button>
+      </div>
+    </div>
+
+    <!-- COHERE -->
+    <div class="provider-card" id="card-cohere">
+      <div class="provider-header">
+        <div class="provider-icon">🔵</div>
+        <div>
+          <div class="provider-name">Cohere</div>
+          <div class="provider-model">command-r · command-r-plus</div>
+        </div>
+        <span class="conn-badge cb-free">FREE TRIAL</span>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <a href="https://dashboard.cohere.com/api-keys" target="_blank">dashboard.cohere.com/api-keys</a></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-text">Sign up free, copy your trial key</div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-text">Paste below</div></div>
+      </div>
+
+      <div class="key-wrap">
+        <input class="key-input" id="key-cohere" type="password" placeholder="Paste Cohere key...">
+        <button class="eye-btn" onclick="toggleKey('key-cohere',this)">👁️</button>
+      </div>
+      <div class="key-status" id="ks-cohere"></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-save" onclick="saveKey('cohere')">💾 Save</button>
+        <button class="btn btn-test" onclick="testKey('cohere')">🧪 Test</button>
+        <button class="btn btn-clear" onclick="clearKey('cohere')">🗑️</button>
+      </div>
+    </div>
+
+  </div><!-- end providers -->
+
+  <!-- CLOUD SYNC -->
+  <div class="sync-card fadein">
+    <div class="sync-title">☁️ CLOUD SYNC</div>
+    <div class="sync-desc">Save your keys to your Firebase account — they'll automatically load on any device you sign into. Keys are stored securely in your private Firestore document, only accessible by you.</div>
+    <div class="sync-row">
+      <button class="sync-btn sync-push" onclick="pushToCloud()">☁️ Save All Keys to Cloud</button>
+      <button class="sync-btn sync-pull" onclick="pullFromCloud()">📥 Load Keys from Cloud</button>
+      <button class="sync-btn sync-pull" onclick="exportKeys()">📤 Export as JSON</button>
+    </div>
+    <div class="sync-status" id="syncStatus"></div>
+  </div>
+
+  <!-- FREE TIER COMPARISON -->
+  <div style="margin-top:28px">
+    <div class="slabel">💸 Free Tier Comparison</div>
+    <div class="free-grid fadein">
+      <div class="free-card">
+        <div class="free-name">🔷 Gemini Flash</div>
+        <div class="free-limit">1,500 requests/day</div>
+        <div class="free-note">Best free option. Fast. Works for all features.</div>
+      </div>
+      <div class="free-card">
+        <div class="free-name">⚡ Groq Llama 3</div>
+        <div class="free-limit">Very generous free tier</div>
+        <div class="free-note">Fastest responses. Great for chat features.</div>
+      </div>
+      <div class="free-card">
+        <div class="free-name">🟣 Mistral</div>
+        <div class="free-limit">Free tier available</div>
+        <div class="free-note">Good quality. Free tier for small apps.</div>
+      </div>
+      <div class="free-card">
+        <div class="free-name">🔵 Cohere</div>
+        <div class="free-limit">Free trial key</div>
+        <div class="free-note">Good fallback. Trial key works immediately.</div>
+      </div>
+      <div class="free-card">
+        <div class="free-name">🟠 Claude</div>
+        <div class="free-limit">Session (no key needed)</div>
+        <div class="free-note">Built-in via claude.ai session. Resets hourly.</div>
+      </div>
+      <div class="free-card">
+        <div class="free-name">🟢 OpenAI</div>
+        <div class="free-limit">Pay as you go</div>
+        <div class="free-note">~$0.002/req for GPT-4o mini. Not free.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GO TO APP -->
+  <div style="text-align:center;margin-top:32px">
+    <a href="app.html" style="font-family:'Bangers',cursive;font-size:1.5rem;letter-spacing:4px;
+      padding:14px 40px;border-radius:10px;background:linear-gradient(135deg,var(--a4),var(--a5));
+      color:#fff;text-decoration:none;display:inline-block;box-shadow:0 6px 20px rgba(168,85,247,.35);
+      transition:all .2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+      ⚡ GO TO APP ⚡
+    </a>
+  </div>
+
+</div><!-- end wrap -->
+
+<script>
+// ── KEY MAP ─────────────────────────────────
+var KEY_MAP = {
+  gemini:  'ai_key_gemini',
+  claude:  'ai_key_claude',
+  groq:    'groq_chat_key',
+  mistral: 'chat_key_mistral',
+  openai:  'ai_key_openai',
+  cohere:  'chat_key_cohere'
+};
+
+function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+function lsSet(k,v){ try{localStorage.setItem(k,v);}catch(e){} }
+function lsDel(k){ try{localStorage.removeItem(k);}catch(e){} }
+
+// ── LOAD SAVED KEYS ──────────────────────────
+function loadSavedKeys() {
+  Object.keys(KEY_MAP).forEach(function(p) {
+    var val = lsGet(KEY_MAP[p]) || '';
+    var inp = document.getElementById('key-'+p);
+    if (inp && val) {
+      inp.value = val;
+      setKeyStatus(p, '✅ Key saved locally', 'ok');
+      markConnected(p);
+    }
+  });
+}
+
+function markConnected(provider) {
+  var card = document.getElementById('card-'+provider);
+  if (card) card.classList.add('connected');
+}
+
+function setKeyStatus(provider, msg, type) {
+  var el = document.getElementById('ks-'+provider);
+  if (!el) return;
+  el.className = 'key-status ks-'+(type||'ok');
+  el.innerHTML = (type==='ok'?'✅ ':type==='err'?'❌ ':'⏳ ') + msg;
+}
+
+// ── SAVE ─────────────────────────────────────
+function saveKey(provider) {
+  var inp = document.getElementById('key-'+provider);
+  var val = (inp ? inp.value : '').trim();
+  if (!val) { setKeyStatus(provider,'Enter a key first','err'); return; }
+  lsSet(KEY_MAP[provider], val);
+  // Also save under alternate keys some parts of app check
+  if (provider==='groq')    lsSet('chat_key_groq', val);
+  if (provider==='claude')  lsSet('apm_claude_key', val);
+  lsSet('chat_key_'+provider, val);
+  setKeyStatus(provider, 'Saved locally! Test it or sync to cloud.', 'ok');
+  markConnected(provider);
+}
+
+// ── CLEAR ────────────────────────────────────
+function clearKey(provider) {
+  lsDel(KEY_MAP[provider]);
+  lsDel('chat_key_'+provider);
+  lsDel('apm_'+provider+'_key');
+  var inp = document.getElementById('key-'+provider);
+  if (inp) inp.value = '';
+  setKeyStatus(provider, 'Key cleared', 'checking');
+  var card = document.getElementById('card-'+provider);
+  if (card) card.classList.remove('connected');
+}
+
+// ── TOGGLE VISIBILITY ─────────────────────────
+function toggleKey(id, btn) {
+  var inp = document.getElementById(id);
+  if (!inp) return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  btn.textContent = inp.type==='password' ? '👁️' : '🙈';
+}
+
+// ── TEST KEYS ─────────────────────────────────
+function testKey(provider) {
+  var key = (document.getElementById('key-'+provider)||{}).value || lsGet(KEY_MAP[provider]) || '';
+  setKeyStatus(provider, 'Testing...', 'checking');
+
+  if (provider==='gemini') {
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+key,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:'Say OK'}]}],generationConfig:{maxOutputTokens:5}})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.candidates) setKeyStatus('gemini','✅ Working! Gemini 1.5 Flash is live','ok');
+      else setKeyStatus('gemini','❌ '+(d.error&&d.error.message||'Invalid key'),'err');
+    }).catch(function(e){setKeyStatus('gemini','❌ Network error: '+e.message,'err');});
+
+  } else if (provider==='claude') {
+    fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:5,messages:[{role:'user',content:'Hi'}]})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.content) setKeyStatus('claude','✅ Working! Claude Haiku responding','ok');
+      else setKeyStatus('claude','❌ '+(d.error&&d.error.message||'Invalid key'),'err');
+    }).catch(function(e){setKeyStatus('claude','❌ '+e.message,'err');});
+
+  } else if (provider==='groq') {
+    fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'user',content:'Hi'}],max_tokens:5})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.choices&&d.choices.length) setKeyStatus('groq','✅ Working! Llama 3 is responding','ok');
+      else setKeyStatus('groq','❌ '+(d.error&&d.error.message||'Invalid key'),'err');
+    }).catch(function(e){setKeyStatus('groq','❌ '+e.message,'err');});
+
+  } else if (provider==='mistral') {
+    fetch('https://api.mistral.ai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'mistral-small-latest',messages:[{role:'user',content:'Hi'}],max_tokens:5})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.choices&&d.choices.length) setKeyStatus('mistral','✅ Working! Mistral is responding','ok');
+      else setKeyStatus('mistral','❌ '+(d.error&&d.error.message||'Invalid key'),'err');
+    }).catch(function(e){setKeyStatus('mistral','❌ '+e.message,'err');});
+
+  } else if (provider==='openai') {
+    fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:'Hi'}],max_tokens:5})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.choices&&d.choices.length) setKeyStatus('openai','✅ Working! GPT-4o mini responding','ok');
+      else setKeyStatus('openai','❌ '+(d.error&&d.error.message||'Invalid key'),'err');
+    }).catch(function(e){setKeyStatus('openai','❌ '+e.message,'err');});
+
+  } else if (provider==='cohere') {
+    fetch('https://api.cohere.ai/v1/chat',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({message:'Hi',max_tokens:5})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.text||d.chatHistory) setKeyStatus('cohere','✅ Working! Cohere is responding','ok');
+      else setKeyStatus('cohere','❌ '+(d.message||'Invalid key'),'err');
+    }).catch(function(e){setKeyStatus('cohere','❌ '+e.message,'err');});
+  }
+}
+
+// ── CLOUD SYNC ────────────────────────────────
+var DB = null, CURRENT_UID = null;
+
+function setSyncStatus(msg, col) {
+  var el = document.getElementById('syncStatus');
+  if (el) { el.textContent = msg; el.style.color = col||'var(--a3)'; }
+}
+
+function pushToCloud() {
+  if (!DB || !CURRENT_UID) { setSyncStatus('⚠️ Sign in first to sync keys to cloud','var(--a2)'); return; }
+  var keys = {};
+  Object.keys(KEY_MAP).forEach(function(p) {
+    var v = lsGet(KEY_MAP[p]);
+    if (v) keys[p] = v;
+  });
+  if (!Object.keys(keys).length) { setSyncStatus('⚠️ No keys saved yet — save some keys first','var(--a2)'); return; }
+  setSyncStatus('⏳ Syncing...','var(--muted)');
+  DB.collection('users').doc(CURRENT_UID).set({ aiKeys: keys, keysSyncedAt: new Date().toISOString() }, { merge:true })
+    .then(function() { setSyncStatus('✅ '+Object.keys(keys).length+' keys saved to your cloud account! Load them on any device.','var(--a3)'); })
+    .catch(function(e) { setSyncStatus('❌ Sync failed: '+e.message,'#fca5a5'); });
+}
+
+function pullFromCloud() {
+  if (!DB || !CURRENT_UID) { setSyncStatus('⚠️ Sign in first','var(--a2)'); return; }
+  setSyncStatus('⏳ Loading from cloud...','var(--muted)');
+  DB.collection('users').doc(CURRENT_UID).get()
+    .then(function(doc) {
+      if (!doc.exists || !doc.data().aiKeys) { setSyncStatus('⚠️ No keys found in cloud — push keys first','var(--a2)'); return; }
+      var keys = doc.data().aiKeys;
+      var count = 0;
+      Object.keys(keys).forEach(function(p) {
+        if (KEY_MAP[p] && keys[p]) {
+          lsSet(KEY_MAP[p], keys[p]);
+          lsSet('chat_key_'+p, keys[p]);
+          var inp = document.getElementById('key-'+p);
+          if (inp) inp.value = keys[p];
+          setKeyStatus(p, 'Loaded from cloud ✅', 'ok');
+          markConnected(p);
+          count++;
+        }
+      });
+      setSyncStatus('✅ '+count+' keys loaded from cloud!','var(--a3)');
+    })
+    .catch(function(e) { setSyncStatus('❌ '+e.message,'#fca5a5'); });
+}
+
+function exportKeys() {
+  var data = {};
+  Object.keys(KEY_MAP).forEach(function(p) {
+    var v = lsGet(KEY_MAP[p]);
+    if (v) data[p] = v;
+  });
+  if (!Object.keys(data).length) { alert('No keys saved yet!'); return; }
+  var blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='nameomatic-keys.json'; a.click();
+}
+
+// ── FIREBASE ──────────────────────────────────
+function initPage(n) {
+  if (window.NOM_ONLINE === false) { updateAuthStatus(null, true); return; }
+  if (typeof firebase==='undefined'||typeof FIREBASE_CONFIG==='undefined') {
+    if (n>0) { setTimeout(function(){initPage(n-1);},200); } 
+    else { updateAuthStatus(null, true); }
+    return;
+  }
+  try { firebase.initializeApp(FIREBASE_CONFIG); } catch(e) {}
+  DB = firebase.firestore();
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+      CURRENT_UID = user.uid;
+      updateAuthStatus(user, false);
+      // Auto-pull keys from cloud
+      pullFromCloud();
+    } else {
+      updateAuthStatus(null, false);
+    }
+  });
+}
+
+function updateAuthStatus(user, error) {
+  var bar = document.getElementById('authStatus');
+  var navUser = document.getElementById('navUser');
+  if (error && window.NOM_ONLINE === false) {
+    bar.innerHTML = '<div class="status-icon">📴</div><div class="status-text"><div class="status-title">You are offline</div><div class="status-sub">Account sync needs internet. Your keys still save on this device.</div></div>';
+    return;
+  }
+  if (error) {
+    bar.innerHTML = '<div class="status-icon">⚠️</div><div class="status-text"><div class="status-title">Firebase not configured</div><div class="status-sub">Fill in firebase-config.js — cloud sync won\'t work until then</div></div><span class="status-badge sb-err">No Config</span>';
+    return;
+  }
+  if (user) {
+    bar.innerHTML = '<div class="status-icon">✅</div><div class="status-text"><div class="status-title">Signed in as '+escH(user.displayName||'User')+'</div><div class="status-sub">'+escH(user.email||'')+'&nbsp;·&nbsp;Keys will sync to your account automatically</div></div><span class="status-badge sb-ok">Connected</span>';
+    if (navUser) navUser.textContent = '👤 '+escH((user.displayName||'User').split(' ')[0]);
+  } else {
+    bar.innerHTML = '<div class="status-icon">⚠️</div><div class="status-text"><div class="status-title">Not signed in</div><div class="status-sub">Keys save locally only. <a href="login.html" style="color:var(--a3)">Sign in</a> to sync across devices.</div></div><span class="status-badge sb-warn">Guest</span>';
+  }
+}
+
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+window.addEventListener('load', function() {
+  loadSavedKeys();
+  initPage(25);
+});
+</script>
+</body>
+</html>
