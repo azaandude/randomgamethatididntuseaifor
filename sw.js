@@ -1,7 +1,7 @@
 /* NAME-O-MATIC service worker: makes the site run offline after the first visit.
  * Same-origin files only. Firebase and AI provider requests go straight to the network.
  */
-const CACHE = 'nom-v1';
+const CACHE = 'nom-v2';
 const CORE = [
  "app.html",
  "arcade.html",
@@ -34,6 +34,10 @@ const CORE = [
  "worldcup.html",
  "database.js",
  "nom-net.js",
+ "nom3d.js",
+ "lab.js",
+ "ref3d.js",
+ "ref3d_inc.js",
  "manifest.json",
  "firebase-config.js",
  "fonts/fonts.css",
@@ -66,8 +70,23 @@ self.addEventListener('fetch', function (event) {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // pages and scripts: network first (so a new version shows straight away), the cache when offline or slow
+  const fresh = req.mode === 'navigate' || /\.(html|js|json)$/.test(url.pathname) || url.pathname.slice(-1) === '/';
   event.respondWith((async function () {
     const cache = await caches.open(CACHE);
+    if (fresh) {
+      try {
+        const res = await Promise.race([fetch(req), new Promise(function (_, rej) { setTimeout(function () { rej(new Error('slow')); }, 4500); })]);
+        if (res && res.ok) { cache.put(req, res.clone()); return res; }
+      } catch (e) {}
+      const hit = await cache.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      if (req.mode === 'navigate') {
+        const fb = await cache.match('index.html');
+        if (fb) return fb;
+      }
+      return new Response('Offline', { status: 503, statusText: 'Offline' });
+    }
     const cached = await cache.match(req, { ignoreSearch: true });
     const network = fetch(req).then(function (res) {
       if (res && res.ok) cache.put(req, res.clone());
@@ -76,10 +95,6 @@ self.addEventListener('fetch', function (event) {
     if (cached) { event.waitUntil(network); return cached; }
     const res = await network;
     if (res) return res;
-    if (req.mode === 'navigate') {
-      const fallback = await cache.match('index.html');
-      if (fallback) return fallback;
-    }
     return new Response('Offline', { status: 503, statusText: 'Offline' });
   })());
 });
