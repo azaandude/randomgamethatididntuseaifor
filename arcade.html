@@ -235,6 +235,31 @@ body.has-touch .touch{display:block;}
 
 .ctlnote{font-size:.7rem;color:var(--muted);font-weight:700;text-align:center;margin-top:8px;}
 
+/* sliders, custom difficulty, key binding */
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;margin:0;}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--a3),var(--a2));}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--a3),var(--a2));}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:#fff;border:3px solid var(--a3);box-shadow:0 1px 6px rgba(0,0,0,.5);}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--a3);}
+input[type=range]:focus-visible{outline:2px solid var(--a2);outline-offset:2px;border-radius:6px;}
+.sl{display:grid;grid-template-columns:1fr auto;gap:0 8px;align-items:center;}
+.sl .lbl{margin:0;}
+.sl output{font-family:'Bangers',cursive;color:var(--a2);letter-spacing:1px;font-size:1.05rem;}
+.sl input{grid-column:1/3;}
+.sl small{grid-column:1/3;display:flex;justify-content:space-between;font-size:.6rem;font-weight:800;color:var(--muted);margin-top:-3px;}
+#segDiff button[data-v="5"]{grid-column:1/3;}
+#cdBox{margin-top:14px;border:1.5px dashed var(--border);border-radius:12px;padding:12px;background:rgba(255,255,255,.02);}
+#cdGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 18px;margin-top:10px;}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px 14px;margin:10px 0;}
+.brow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;background:rgba(255,255,255,.04);border-radius:9px;padding:5px 8px;font-size:.78rem;font-weight:800;color:var(--text);}
+.keycap{min-width:64px;font-family:'Nunito',sans-serif;font-weight:900;font-size:.74rem;padding:6px 8px;border-radius:7px;cursor:pointer;background:rgba(255,255,255,.1);border:1px solid var(--border);border-bottom-width:3px;color:var(--text);}
+.keycap:hover{background:rgba(255,255,255,.18);}
+.keycap.none{color:var(--muted);}
+.keycap.cap{border-color:var(--a2);color:var(--a2);background:rgba(255,210,63,.1);animation:pnpulse .9s ease-in-out infinite;}
+.unb{color:var(--bad);font-weight:900;font-size:.66rem;}
+.hbtn#btnSpd{width:auto;min-width:40px;padding:0 7px;font-size:.72rem;font-weight:900;font-family:'Fredoka One',cursive;}
+.hbtn#btnSpd.mod{border-color:var(--a2);color:var(--a2);}
+
 /* penalty shootout */
 .pensui{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:8px 8px 10px;z-index:4;}
 .pn-board{background:rgba(7,7,15,.88);border:1.5px solid var(--border);border-radius:12px;padding:6px 12px;display:grid;grid-template-columns:auto auto;gap:4px 12px;align-items:center;max-width:96%;}
@@ -353,7 +378,7 @@ body.has-touch .touch{display:block;}
         <div><div class="lbl" style="margin-bottom:6px">Players</div><div class="seg" id="segPlayers">
           <button data-v="1">1 Player</button><button data-v="2">2 Players</button><button data-v="0">Watch CPU</button></div></div>
         <div><div class="lbl" style="margin-bottom:6px">Difficulty</div><div class="seg" id="segDiff">
-          <button data-v="0">Rookie</button><button data-v="1">Pro</button><button data-v="2">World Class</button><button data-v="3">Legend</button></div></div>
+          <button data-v="0">Rookie</button><button data-v="1">Pro</button><button data-v="2">World Class</button><button data-v="3">Legend</button><button data-v="5">⚙ Custom (sliders)</button></div></div>
         <div><div class="lbl" style="margin-bottom:6px">Match length</div><div class="seg" id="segLen">
           <button data-v="120">2 min</button><button data-v="180">3 min</button><button data-v="300">5 min</button></div></div>
         <div><div class="lbl" style="margin-bottom:6px">Your formation</div><div class="seg" id="segStyle">
@@ -361,8 +386,16 @@ body.has-touch .touch{display:block;}
         <div><div class="lbl" style="margin-bottom:6px">Rules <span class="note" style="font-weight:700">same for both sides</span></div><div class="chips" id="ruleChips" style="margin:0">
           <span class="chip" data-r="fouls">Fouls &amp; cards</span><span class="chip" data-r="offside">Offside</span><span class="chip" data-r="vr">📺 VAR</span></div></div>
         <div><div class="lbl" style="margin-bottom:6px">Camera <span class="note" style="font-weight:700">replays, VAR, penalties, free kicks, goal kicks</span></div><div class="chips" id="viewChips" style="margin:0"><span class="chip" data-v3="fx3d">🎥 3D views</span></div></div>
+        <div><div class="sl"><span class="lbl">Game speed</span><output id="spdVal">1.00×</output><input type="range" id="spdSlider" min="0.4" max="1.6" step="0.05" value="1" aria-label="Game speed"><small><span>Slow-mo</span><span>Normal</span><span>Frantic</span></small></div><div class="chips" id="spdChips" style="margin:6px 0 0"><span class="chip" data-sp="0.6">🐢 Slow</span><span class="chip" data-sp="1">Normal</span><span class="chip" data-sp="1.3">🐇 Fast</span></div></div>
       </div>
-      <details style="margin-top:12px"><summary>Controls</summary><div class="keys" id="keysHelp"></div></details>
+      <div id="cdBox" class="hidden">
+        <div class="row" style="justify-content:space-between"><div class="lbl">Custom computer difficulty <span class="note" id="cdOverall" style="font-weight:800"></span></div>
+          <div class="row" style="gap:6px"><select id="cdPreset" aria-label="Start from a preset"><option value="">Start from…</option><option value="0">Rookie</option><option value="1">Pro</option><option value="2">World Class</option><option value="3">Legend</option><option value="4">Neutral (like you)</option></select>
+          <button class="btn alt" id="cdReset" style="padding:6px 10px;font-size:.72rem">Reset</button></div></div>
+        <div id="cdGrid"></div>
+        <div class="note" style="margin-top:10px">Move a slider right to make the computer harder. They only change the computer's players: reactions, decisions, shooting, passing, keeper, pressing, pace and tackling.</div>
+      </div>
+      <details style="margin-top:12px"><summary>Controls</summary><div class="keys" id="keysHelp"></div><div id="bindBox" style="margin-top:14px"></div></details>
     </div>
     <div class="center"><button class="btn big" id="startBtn">⚽ Kick off</button><div class="note" id="startMsg" style="margin-top:8px"></div></div>
   </div>
@@ -409,7 +442,7 @@ body.has-touch .touch{display:block;}
     <div class="vartag hidden" id="varTag"></div>
     <div class="varlbl hidden" id="varLbl"></div>
     <div class="rptag hidden" id="rpTag"><i></i>REPLAY</div>
-    <div class="hbtns"><button class="hbtn" id="btnMute" title="Sound (M)">🔊</button><button class="hbtn" id="btnPause" title="Pause (P)">⏸</button></div>
+    <div class="hbtns"><button class="hbtn" id="btnSpd" title="Game speed: click to cycle, or press [ and ]">1×</button><button class="hbtn" id="btnMute" title="Sound (M)">🔊</button><button class="hbtn" id="btnPause" title="Pause (P)">⏸</button></div>
     <button class="btn alt skip hidden" id="skipBtn">Skip ⏭</button>
     <div class="modal hidden" id="modal"></div>
   </div>
@@ -497,8 +530,10 @@ var DIFFS = [
   { name: 'Pro',         spd: 1, react: 0.38, tkl: 1, aim: 1.1,  gk: 0.95, pass: 1.1,  think: 0.16, press: 0.95 },
   { name: 'World Class', spd: 1, react: 0.22, tkl: 1, aim: 0.62, gk: 1.08, pass: 0.72, think: 0.09, press: 1.25 },
   { name: 'Legend',      spd: 1, react: 0.12, tkl: 1, aim: 0.38, gk: 1.2,  pass: 0.5,  think: 0.06, press: 1.5 },
-  { name: 'Even',        spd: 1, react: 0.38, tkl: 1, aim: 1,    gk: 1,    pass: 1,    think: 0.16, press: 0.95 }
+  { name: 'Even',        spd: 1, react: 0.38, tkl: 1, aim: 1,    gk: 1,    pass: 1,    think: 0.16, press: 0.95 },
+  { name: 'Custom',      spd: 1, react: 0.38, tkl: 1, aim: 1.1,  gk: 0.95, pass: 1.1,  think: 0.16, press: 0.95 }
 ];
+var CUSTOM_DIFF = 5;                            // the row the sliders write into
 var LVL_HUMAN = 4;                              // index of the neutral row above
 
 // ---- formations (5-a-side: keeper + four) -------------------------------
@@ -989,7 +1024,7 @@ function updatePlayer(G, p, dt) {
     if (p.exhausted && p.st > 0.28) p.exhausted = false;
   }
   p.sprinting = sprinting;
-  var maxV = p.spd * (sprinting ? 1.26 : 1);                 // the same pace for everybody, whoever controls the player
+  var maxV = p.spd * DIFFS[p.team.lvl].spd * (sprinting ? 1.26 : 1);   // the same pace for everybody (the Custom row can speed up or slow down the computer)
   if (has) maxV *= 0.93 + p.dri * 0.0006;
   if (p.diveT > 0) maxV = p.spd * 2.1;
   if (p.stunT > 0) maxV *= 0.2;
@@ -1291,7 +1326,7 @@ function tackleCheck(G, p) {
     var behind = Math.abs(angDiff(ax, o.face)) > 2.0;
     var pw = 0.44 + (p.tkl - o.dri) / 190 + (behind ? 0.18 : 0) - (o.sprinting ? 0.08 : 0);
     if (p.isGK) pw = 0.42 + (p.gkR - o.dri) / 220;
-    pw = clamp(pw, 0.1, 0.9);
+    pw = clamp(pw * DIFFS[p.team.lvl].tkl, 0.1, 0.9);
     var won = G.rng() < pw;
     var foul = G.rules.fouls ? foulRoll(G, p, o, won, behind) : null;
     if (won) {
@@ -3072,7 +3107,7 @@ function pad2(n) { return (n < 10 ? '0' : '') + n; }
 var KEY_STATS = 'nom_arcade', KEY_SET = 'nom_arcade_set', KEY_CUP = 'nom_arcade_cup';
 var UI = {
   teams: [], byId: {}, leagues: [], you: null, opp: null, focus: 'you', q: '', kind: 'all', league: '', shown: 60, tab: 'quick',
-  set: { players: 1, diff: 1, len: 180, style: 0, sound: true, you: 'c:Arsenal', opp: 'c:Man City', cupPool: 'all', fx3d: true, rules: { fouls: true, offside: true, vr: true } },
+  set: { players: 1, diff: 1, len: 180, style: 0, sound: true, you: 'c:Arsenal', opp: 'c:Man City', cupPool: 'all', fx3d: true, rules: { fouls: true, offside: true, vr: true }, speed: 1, cd: null, keys: null, lineups: {} },
   G: null, match: null, inGame: false, paused: false, touchMode: false, cup: null
 };
 
@@ -3227,34 +3262,258 @@ function renderSegs() {
     [].forEach.call(el.querySelectorAll('button'), function (b) { b.classList.toggle('on', String(UI.set[p[1]]) === b.getAttribute('data-v')); });
   });
   $('segDiff').style.opacity = UI.set.players === 2 ? 0.45 : 1;
+  renderCD();
   var rc = $('ruleChips');
   if (rc) [].forEach.call(rc.querySelectorAll('.chip'), function (c) { c.classList.toggle('on', !!(UI.set.rules && UI.set.rules[c.getAttribute('data-r')])); });
   var vc = $('viewChips');
   if (vc) [].forEach.call(vc.querySelectorAll('.chip'), function (c) { c.classList.toggle('on', UI.set.fx3d !== false); });
 }
 function kbd(s) { return '<span class="kbd">' + s + '</span>'; }
+/* ---- game speed, custom difficulty, rebindable controls ---------------------------------------------------- */
+var SPD_MIN = 0.4, SPD_MAX = 1.6, SPD_STEPS = [0.5, 0.75, 1, 1.25, 1.5];
+function spdClamp(v) { v = parseFloat(v); if (!(v > 0)) v = 1; return Math.round(clamp(v, SPD_MIN, SPD_MAX) * 20) / 20; }
+function spdText(v) { return (Math.round(v * 100) / 100).toFixed(2) + '×'; }
+function renderSpeed() {
+  var s = $('spdSlider');
+  if (!s) return;
+  var v = spdClamp(UI.set.speed);
+  s.value = v; $('spdVal').textContent = spdText(v);
+  [].forEach.call(document.querySelectorAll('#spdChips .chip'), function (c) { c.classList.toggle('on', Math.abs(parseFloat(c.getAttribute('data-sp')) - v) < 0.001); });
+}
+function setSpeed(v, quiet) {
+  v = spdClamp(v);
+  UI.set.speed = v; lsSet(KEY_SET, UI.set);
+  if (M) M.speed = v;
+  renderSpeed();
+  var po = $('pzSpd');
+  if (po) { po.value = v; var pv = $('pzSpdO'); if (pv) pv.textContent = spdText(v); }
+  var bs = $('btnSpd');
+  if (bs) { bs.textContent = (Math.round(v * 100) / 100) + '×'; bs.classList.toggle('mod', Math.abs(v - 1) > 0.001); }
+  if (M && !quiet) { try { toast('Game speed ' + spdText(v), 900); } catch (e) {} }
+}
+function cycleSpeed() {
+  var v = M ? M.speed : UI.set.speed, nx = SPD_STEPS[0];
+  for (var i = 0; i < SPD_STEPS.length; i++) if (SPD_STEPS[i] > v + 0.001) { nx = SPD_STEPS[i]; break; }
+  setSpeed(nx);
+}
+
+// custom difficulty: every slider runs 0 (easy for you) .. 100 (hard for you) and maps onto a DIFFS field
+var CD_DEF = [
+  { k: 'react', t: 'Reactions',         lo: 0.80, hi: 0.06, a: 'Sluggish',  b: 'Instant' },
+  { k: 'think', t: 'Decision speed',    lo: 0.30, hi: 0.04, a: 'Dithers',   b: 'Sharp' },
+  { k: 'aim',   t: 'Shooting accuracy', lo: 2.40, hi: 0.25, a: 'Wild',      b: 'Clinical' },
+  { k: 'pass',  t: 'Passing accuracy',  lo: 2.20, hi: 0.35, a: 'Sloppy',    b: 'Pinpoint' },
+  { k: 'gk',    t: 'Goalkeeper',        lo: 0.60, hi: 1.40, a: 'Shaky',     b: 'A wall' },
+  { k: 'press', t: 'Pressing',          lo: 0.30, hi: 1.80, a: 'Passive',   b: 'Relentless' },
+  { k: 'spd',   t: 'Pace',              lo: 0.80, hi: 1.20, a: 'Heavy legs', b: 'Rapid' },
+  { k: 'tkl',   t: 'Tackling',          lo: 0.70, hi: 1.30, a: 'Weak',      b: 'Strong' }
+];
+function cdFromRow(row) { var o = {}; CD_DEF.forEach(function (d) { o[d.k] = clamp(Math.round((row[d.k] - d.lo) / (d.hi - d.lo) * 100), 0, 100); }); return o; }
+function cdToRow(cd) { var r = { name: 'Custom' }; CD_DEF.forEach(function (d) { var s = clamp(+cd[d.k], 0, 100); r[d.k] = d.lo + (d.hi - d.lo) * s / 100; }); return r; }
+function cdClean(cd) {
+  var base = cdFromRow(DIFFS[1]), o = {};
+  CD_DEF.forEach(function (d) { var v = cd && typeof cd === 'object' ? parseFloat(cd[d.k]) : NaN; o[d.k] = isNaN(v) ? base[d.k] : clamp(Math.round(v), 0, 100); });
+  return o;
+}
+function applyCustomDiff() { DIFFS[CUSTOM_DIFF] = cdToRow(UI.set.cd || cdFromRow(DIFFS[1])); }
+function cdOverall(cd) { var s = 0; CD_DEF.forEach(function (d) { s += cd[d.k]; }); return Math.round(s / CD_DEF.length); }
+function cdLabel(p) { return p < 18 ? 'Walkover' : p < 36 ? 'Rookie-ish' : p < 55 ? 'Pro-ish' : p < 74 ? 'World Class-ish' : p < 90 ? 'Legend-ish' : 'Impossible'; }
+function cdSync() {
+  CD_DEF.forEach(function (d) { var o = $('cdo_' + d.k); if (o) o.textContent = UI.set.cd[d.k] + '%'; });
+  var p = cdOverall(UI.set.cd);
+  $('cdOverall').textContent = '· overall ' + p + '% (' + cdLabel(p) + ')';
+}
+function renderCD() {
+  var box = $('cdBox');
+  if (!box) return;
+  var on = UI.set.diff === CUSTOM_DIFF && UI.set.players !== 2;
+  box.classList.toggle('hidden', !on);
+  if (!on) return;
+  var g = $('cdGrid');
+  if (!g.firstChild) {
+    g.innerHTML = CD_DEF.map(function (d) {
+      return '<div class="sl"><span class="lbl">' + d.t + '</span><output id="cdo_' + d.k + '"></output><input type="range" min="0" max="100" step="1" id="cd_' + d.k +
+        '" data-k="' + d.k + '" aria-label="' + d.t + '"><small><span>' + d.a + '</span><span>' + d.b + '</span></small></div>';
+    }).join('');
+    g.addEventListener('input', function (e) {
+      var el = e.target, k = el && el.getAttribute ? el.getAttribute('data-k') : null;
+      if (!k) return;
+      UI.set.cd[k] = parseInt(el.value, 10) || 0; lsSet(KEY_SET, UI.set); cdSync();
+    });
+  }
+  CD_DEF.forEach(function (d) { $('cd_' + d.k).value = UI.set.cd[d.k]; });
+  cdSync();
+}
+
+// rebindable keyboard controls
+var ACTS = [['up', 'Up'], ['down', 'Down'], ['left', 'Left'], ['right', 'Right'], ['shoot', 'Shoot / tackle'], ['pass', 'Pass'], ['lob', 'Lob / cross'], ['sprint', 'Sprint'], ['sw', 'Switch player']];
+var BIND_DEFAULT = {
+  solo: { up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], shoot: ['Space', 'KeyJ'], pass: ['KeyK', ''], lob: ['KeyL', ''], sprint: ['ShiftLeft', 'ShiftRight'], sw: ['KeyQ', ''] },
+  p1:   { up: ['KeyW', ''], down: ['KeyS', ''], left: ['KeyA', ''], right: ['KeyD', ''], shoot: ['KeyF', ''], pass: ['KeyG', ''], lob: ['KeyH', ''], sprint: ['ShiftLeft', ''], sw: ['KeyQ', ''] },
+  p2:   { up: ['ArrowUp', ''], down: ['ArrowDown', ''], left: ['ArrowLeft', ''], right: ['ArrowRight', ''], shoot: ['Comma', ''], pass: ['Period', ''], lob: ['Slash', ''], sprint: ['ShiftRight', ''], sw: ['Quote', ''] }
+};
+var BIND_RESERVED = { Escape: 1, KeyP: 1, KeyM: 1, BracketLeft: 1, BracketRight: 1, Tab: 1, ControlLeft: 1, ControlRight: 1, AltLeft: 1, AltRight: 1, MetaLeft: 1, MetaRight: 1, ContextMenu: 1, OSLeft: 1, OSRight: 1 };
+for (var fk = 1; fk <= 12; fk++) BIND_RESERVED['F' + fk] = 1;
+var BIND = { profile: 'solo', cap: null, msg: '', mode: -1 };
+var KEY_NAMES = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Space', ShiftLeft: 'L-Shift', ShiftRight: 'R-Shift', Comma: ',', Period: '.', Slash: '/', Quote: '\'', Semicolon: ';',
+  Backquote: '`', Minus: '-', Equal: '=', Backslash: '\\', IntlBackslash: '\\', Enter: 'Enter', NumpadEnter: 'Num Enter', Backspace: 'Bksp', CapsLock: 'Caps', Home: 'Home', End: 'End', PageUp: 'PgUp', PageDown: 'PgDn',
+  Insert: 'Ins', Delete: 'Del', NumpadAdd: 'Num +', NumpadSubtract: 'Num -', NumpadMultiply: 'Num *', NumpadDivide: 'Num /', NumpadDecimal: 'Num .' };
+function keyLabel(c) {
+  if (!c) return '—';
+  if (KEY_NAMES[c]) return KEY_NAMES[c];
+  if (/^Key[A-Z]$/.test(c)) return c.slice(3);
+  if (/^Digit[0-9]$/.test(c)) return c.slice(5);
+  if (/^Numpad[0-9]$/.test(c)) return 'Num ' + c.slice(6);
+  return c;
+}
+function getBinds(prof) {
+  var d = BIND_DEFAULT[prof], u = UI.set.keys && UI.set.keys[prof], out = {};
+  ACTS.forEach(function (a) {
+    var src = (u && u[a[0]]) ? u[a[0]] : d[a[0]];
+    out[a[0]] = [String(src[0] || ''), String(src[1] || '')];
+  });
+  return out;
+}
+function keysClean(k) {
+  if (!k || typeof k !== 'object') return null;
+  var out = {}, any = false;
+  ['solo', 'p1', 'p2'].forEach(function (pf) {
+    var u = k[pf];
+    if (!u || typeof u !== 'object') return;
+    var o = {};
+    ACTS.forEach(function (a) {
+      var v = u[a[0]];
+      if (v && v.length === 2 && typeof v[0] === 'string' && typeof v[1] === 'string' && !BIND_RESERVED[v[0]] && !BIND_RESERVED[v[1]] && (v[0] || v[1])) o[a[0]] = [v[0], v[1]];
+    });
+    out[pf] = o; any = true;
+  });
+  return any ? out : null;
+}
+function bindEdit(pf) {
+  if (!UI.set.keys) UI.set.keys = {};
+  UI.set.keys[pf] = getBinds(pf);
+  return UI.set.keys[pf];
+}
+function bindProfiles(prof) { return prof === 'solo' ? ['solo'] : ['p1', 'p2']; }
+function bindSet(code) {
+  var cap = BIND.cap, prof = BIND.profile, act = cap.act, slot = cap.slot, msg = '', nm = '';
+  var mine = bindEdit(prof);
+  if (code === null) {
+    if (!mine[act][1 - slot]) { BIND.msg = 'Every action needs at least one key. Press another key to replace this one.'; renderBinds(); return; }
+    mine[act][slot] = '';
+  } else {
+    bindProfiles(prof).forEach(function (pf) {
+      var bb = pf === prof ? mine : bindEdit(pf);
+      ACTS.forEach(function (a) {
+        for (var s = 0; s < 2; s++) {
+          if (bb[a[0]][s] === code && !(pf === prof && a[0] === act && s === slot)) {
+            bb[a[0]][s] = '';
+            msg += keyLabel(code) + ' was taken from ' + (pf !== prof ? (pf === 'p1' ? 'Player 1 ' : 'Player 2 ') : '') + a[1] + '. ';
+            if (!bb[a[0]][0] && !bb[a[0]][1]) nm += (pf !== prof ? (pf === 'p1' ? 'Player 1 ' : 'Player 2 ') : '') + a[1] + ', ';
+          }
+        }
+      });
+    });
+    mine[act][slot] = code;
+  }
+  if (nm) msg += 'No key left for ' + nm.replace(/, $/, '') + '.';
+  BIND.cap = null; BIND.msg = msg || 'Saved.';
+  lsSet(KEY_SET, UI.set);
+  renderBinds(); renderKeys();
+}
+function bindKey(e) {
+  if (!BIND.cap) return;
+  e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+  var c = e.code;
+  if (c === 'Escape') { BIND.cap = null; BIND.msg = ''; renderBinds(); return; }
+  if (c === 'Backspace' || c === 'Delete') { bindSet(null); return; }
+  if (!c || BIND_RESERVED[c]) { BIND.msg = 'That key is reserved (pause, mute, game speed or a browser key). Try another.'; renderBinds(); return; }
+  bindSet(c);
+}
+function bindClick(e) {
+  var t = e.target.closest ? e.target.closest('button') : null;
+  if (!t) return;
+  var p = t.getAttribute('data-p'), a = t.getAttribute('data-a');
+  if (p) { BIND.profile = p; BIND.cap = null; BIND.msg = ''; renderBinds(); return; }
+  if (a) { BIND.cap = { act: a, slot: parseInt(t.getAttribute('data-s'), 10) }; BIND.msg = 'Press the new key. Esc cancels, Backspace clears this slot.'; renderBinds(); return; }
+  if (t.id === 'bindReset') { if (UI.set.keys) { delete UI.set.keys[BIND.profile]; } BIND.cap = null; BIND.msg = 'These keys are back to the defaults.'; lsSet(KEY_SET, UI.set); renderBinds(); renderKeys(); }
+  else if (t.id === 'bindResetAll') { UI.set.keys = null; BIND.cap = null; BIND.msg = 'All controls are back to the defaults.'; lsSet(KEY_SET, UI.set); renderBinds(); renderKeys(); }
+}
+function renderBinds() {
+  var box = $('bindBox');
+  if (!box) return;
+  if (BIND.mode !== UI.set.players) {                       // follow the player count unless the user is mid-edit
+    BIND.mode = UI.set.players; BIND.cap = null;
+    BIND.profile = UI.set.players === 2 ? (BIND.profile === 'p2' ? 'p2' : 'p1') : 'solo';
+  }
+  var prof = BIND.profile, b = getBinds(prof), h = '';
+  h += '<div class="lbl" style="margin-bottom:6px">Customise controls <span class="note" style="font-weight:700">click a key, then press the new one · two keys per action</span></div>';
+  h += '<div class="seg" id="bindTabs">' + [['solo', '1 Player'], ['p1', '2 Players · P1'], ['p2', '2 Players · P2']].map(function (t) {
+    return '<button data-p="' + t[0] + '"' + (t[0] === prof ? ' class="on"' : '') + '>' + t[1] + '</button>';
+  }).join('') + '</div><div class="bgrid">';
+  ACTS.forEach(function (a) {
+    var none = !b[a[0]][0] && !b[a[0]][1];
+    h += '<div class="brow"><span>' + a[1] + (none ? ' <span class="unb">unbound</span>' : '') + '</span>';
+    for (var s = 0; s < 2; s++) {
+      var on = BIND.cap && BIND.cap.act === a[0] && BIND.cap.slot === s;
+      h += '<button class="keycap' + (on ? ' cap' : '') + (!b[a[0]][s] && !on ? ' none' : '') + '" data-a="' + a[0] + '" data-s="' + s + '">' + (on ? 'press a key…' : esc(keyLabel(b[a[0]][s]))) + '</button>';
+    }
+    h += '</div>';
+  });
+  h += '</div><div class="row"><button class="btn alt" id="bindReset" style="padding:6px 12px;font-size:.74rem">Reset these keys</button><button class="btn alt" id="bindResetAll" style="padding:6px 12px;font-size:.74rem">Reset all controls</button>' +
+    '<span class="note" id="bindMsg">' + esc(BIND.msg || '') + '</span></div>' +
+    '<div class="note" style="margin-top:6px">Reserved: <b>P</b>/<b>Esc</b> pause, <b>M</b> mute, <b>[</b> and <b>]</b> game speed. Touch and gamepad layouts are fixed.</div>';
+  box.innerHTML = h;
+}
+function kbs(prof, act) {
+  var out = [];
+  getBinds(prof)[act].forEach(function (c) { if (c) out.push(kbd(esc(keyLabel(c)))); });
+  return out.length ? out.join(' / ') : '<span class="unb">unbound</span>';
+}
+function kl(prof, act) { var b = getBinds(prof)[act]; return esc(keyLabel(b[0] || b[1])); }
+function dirsText(prof) { return kl(prof, 'up') + kl(prof, 'left') + kl(prof, 'down') + kl(prof, 'right'); }
+
+function wireExtras() {
+  $('spdSlider').addEventListener('input', function () { setSpeed(this.value, true); });
+  $('spdChips').addEventListener('click', function (e) {
+    var c = e.target.closest ? e.target.closest('.chip') : null;
+    if (!c) return;
+    setSpeed(parseFloat(c.getAttribute('data-sp')), true); try { sfxClick(); } catch (er) {}
+  });
+  $('cdPreset').addEventListener('change', function () {
+    var i = parseInt(this.value, 10);
+    if (isNaN(i) || !DIFFS[i]) return;
+    UI.set.cd = cdFromRow(DIFFS[i]); lsSet(KEY_SET, UI.set); this.value = ''; renderCD();
+  });
+  $('cdReset').addEventListener('click', function () { UI.set.cd = cdFromRow(DIFFS[1]); lsSet(KEY_SET, UI.set); renderCD(); });
+  $('bindBox').addEventListener('click', bindClick);
+  document.addEventListener('keydown', bindKey, true);
+  $('btnSpd').onclick = function () { cycleSpeed(); this.blur(); };
+}
+
 function renderKeys() {
   var two = UI.set.players === 2;
-  var h = '';
+  var h = '', P = 'solo', S = 'sprint';
   if (!two) {
-    h += '<div><b>Move</b> ' + kbd('W') + kbd('A') + kbd('S') + kbd('D') + ' or arrow keys</div>';
-    h += '<div><b>Shoot</b> hold ' + kbd('Space') + ' (or ' + kbd('J') + '), release to strike. <b>Tackle</b> the same key without the ball</div>';
-    h += '<div><b>Pass</b> ' + kbd('K') + ' · <b>Lob / cross</b> ' + kbd('L') + ' · aim with the move keys</div>';
-    h += '<div><b>Sprint</b> hold ' + kbd('Shift') + ' · <b>Switch player</b> ' + kbd('Q') + '</div>';
-    h += '<div><b>Keeper</b>: you control him on goal kicks and after a catch. Hold ' + kbd('Space') + ' and let go for a long punt, ' + kbd('K') + ' to roll it out. Nobody can tackle a keeper who has the ball, and he has five seconds to let it go.</div>';
-    h += '<div><b>Free kicks</b>: aim and shoot, or ' + kbd('L') + ' to chip it over the wall. <b>Penalties</b>: pick a corner (' + (UI.set.fx3d !== false ? kbd('A') + ' left, ' + kbd('W') + ' centre, ' + kbd('D') + ' right, or the buttons' : kbd('W') + ' ' + kbd('A') + ' ' + kbd('S') + ' or the buttons') + '). <b>VAR</b>: ' + kbd('Space') + ' skips a review.</div>';
+    h += '<div><b>Move</b> up ' + kbs(P, 'up') + ' · left ' + kbs(P, 'left') + ' · down ' + kbs(P, 'down') + ' · right ' + kbs(P, 'right') + '</div>';
+    h += '<div><b>Shoot</b> hold ' + kbs(P, 'shoot') + ', release to strike. <b>Tackle</b> with the same key when you do not have the ball</div>';
+    h += '<div><b>Pass</b> ' + kbs(P, 'pass') + ' · <b>Lob / cross</b> ' + kbs(P, 'lob') + ' · aim with the move keys</div>';
+    h += '<div><b>Sprint</b> hold ' + kbs(P, S) + ' · <b>Switch player</b> ' + kbs(P, 'sw') + '</div>';
+    h += '<div><b>Keeper</b>: you control him on goal kicks and after a catch. Hold ' + kbs(P, 'shoot') + ' and let go for a long punt, ' + kbs(P, 'pass') + ' to roll it out. Nobody can tackle a keeper who has the ball, and he has five seconds to let it go.</div>';
+    h += '<div><b>Free kicks</b>: aim and shoot, or ' + kbs(P, 'lob') + ' to chip it over the wall. <b>Penalties</b>: pick a corner (' + (UI.set.fx3d !== false ? kbd('A') + ' left, ' + kbd('W') + ' centre, ' + kbd('D') + ' right, or the buttons' : kbd('W') + ' ' + kbd('A') + ' ' + kbd('S') + ' or the buttons') + '). <b>VAR</b>: ' + kbd('Space') + ' skips a review.</div>';
     if (UI.set.fx3d !== false) h += '<div><b>3D camera</b>: free kicks and goal kicks are shown from behind the ball. Your stick then works relative to the screen, so up is always away from the camera.</div>';
-    h += '<div><b>Pause</b> ' + kbd('P') + ' or ' + kbd('Esc') + ' · <b>Sound</b> ' + kbd('M') + '</div>';
+    h += '<div><b>Pause</b> ' + kbd('P') + ' or ' + kbd('Esc') + ' · <b>Sound</b> ' + kbd('M') + ' · <b>Game speed</b> ' + kbd('[') + ' slower ' + kbd(']') + ' faster</div>';
     h += '<div><b>Touch</b>: stick on the left, buttons on the right. <b>Gamepad</b>: stick, A pass, B shoot, X lob, Y switch, RB sprint</div>';
   } else {
-    h += '<div><b>Player 1</b> (left side, attacks right): move ' + kbd('W') + kbd('A') + kbd('S') + kbd('D') + ' · shoot ' + kbd('F') + ' · pass ' + kbd('G') + ' · lob ' + kbd('H') + ' · sprint ' + kbd('Left Shift') + ' · switch ' + kbd('Q') + '</div>';
-    h += '<div><b>Player 2</b> (right side, attacks left): move arrow keys · shoot ' + kbd(',') + ' · pass ' + kbd('.') + ' · lob ' + kbd('/') + ' · sprint ' + kbd('Right Shift') + ' · switch ' + kbd('\'') + '</div>';
-    h += '<div>Gamepads work too: the first pad drives Player 1, the second Player 2. <b>Pause</b> ' + kbd('P') + ' or ' + kbd('Esc') + '</div>';
+    h += '<div><b>Player 1</b> (left side, attacks right): move ' + kbs('p1', 'up') + kbs('p1', 'left') + kbs('p1', 'down') + kbs('p1', 'right') + ' · shoot ' + kbs('p1', 'shoot') + ' · pass ' + kbs('p1', 'pass') + ' · lob ' + kbs('p1', 'lob') + ' · sprint ' + kbs('p1', S) + ' · switch ' + kbs('p1', 'sw') + '</div>';
+    h += '<div><b>Player 2</b> (right side, attacks left): move ' + kbs('p2', 'up') + kbs('p2', 'left') + kbs('p2', 'down') + kbs('p2', 'right') + ' · shoot ' + kbs('p2', 'shoot') + ' · pass ' + kbs('p2', 'pass') + ' · lob ' + kbs('p2', 'lob') + ' · sprint ' + kbs('p2', S) + ' · switch ' + kbs('p2', 'sw') + '</div>';
+    h += '<div>Gamepads work too: the first pad drives Player 1, the second Player 2. <b>Pause</b> ' + kbd('P') + ' or ' + kbd('Esc') + ' · <b>Game speed</b> ' + kbd('[') + ' ' + kbd(']') + '</div>';
   }
   $('keysHelp').innerHTML = h;
+  renderBinds();
 }
 function renderMenu() {
-  renderVS(); renderPicker(); renderLineup(); renderSegs(); renderKeys();
+  renderVS(); renderPicker(); renderLineup(); renderSegs(); renderKeys(); renderSpeed();
   $('pQuick').classList.toggle('hidden', UI.tab !== 'quick');
   $('pCup').classList.toggle('hidden', UI.tab !== 'cup');
   $('pRec').classList.toggle('hidden', UI.tab !== 'rec');
@@ -3518,6 +3777,7 @@ function wireMenu() {
     armed3 = 0; this.textContent = 'Reset records';
     saveStats(defStats()); renderRecords();
   });
+  wireExtras();
 }
 
 function cupPlayNext() {
@@ -3546,12 +3806,13 @@ var KEYS_SOLO = {
 var KEYS_P1 = { KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', KeyF: 'shoot', KeyG: 'pass', KeyH: 'lob', ShiftLeft: 'sprint', KeyQ: 'sw' };
 var KEYS_P2 = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Comma: 'shoot', Period: 'pass', Slash: 'lob', ShiftRight: 'sprint', Quote: 'sw' };
 function buildKeymap(players) {
-  var km = {}, k;
-  if (players === 1) { for (k in KEYS_SOLO) km[k] = [0, KEYS_SOLO[k]]; }
-  else if (players === 2) {
-    for (k in KEYS_P1) km[k] = [0, KEYS_P1[k]];
-    for (k in KEYS_P2) km[k] = [1, KEYS_P2[k]];
+  var km = {};
+  function add(prof, ti) {
+    var b = getBinds(prof);
+    ACTS.forEach(function (a) { b[a[0]].forEach(function (code) { if (code) km[code] = [ti, a[0]]; }); });
   }
+  if (players === 1) add('solo', 0);
+  else if (players === 2) { add('p1', 0); add('p2', 1); }
   return km;
 }
 function newSrc() {
@@ -3578,6 +3839,7 @@ function onKeyDown(e) {
   var c = e.code, st = M.state;
   if (c === 'Escape' || c === 'KeyP') { if (!e.repeat) togglePause(); e.preventDefault(); return; }
   if (c === 'KeyM') { if (!e.repeat) toggleMute(); return; }
+  if (c === 'BracketLeft' || c === 'BracketRight') { setSpeed((M.speed || 1) + (c === 'BracketRight' ? 0.05 : -0.05)); e.preventDefault(); return; }
   if ((c === 'Space' || c === 'Enter') && !e.repeat) {
     if (st === 'intro' || st === 'count') { skipIntro(); e.preventDefault(); return; }
     if (st === 'replay') { endReplay(); e.preventDefault(); return; }
@@ -3741,6 +4003,7 @@ function toggleMute() {
 function launchMatch(o) {
   try { audInit(); } catch (e) {}
   if (M) stopMatch();
+  applyCustomDiff();
   var players = o.players, ins = [null, null];
   if (players >= 1) ins[0] = newInput();
   if (players === 2) ins[1] = newInput();
@@ -3756,7 +4019,7 @@ function launchMatch(o) {
   LAST_OPTS = o;
   M = {
     G: G, o: o, mode: o.mode, players: players, ins: ins, src: [newSrc(), newSrc()], prev: [newPrev(), newPrev()], pad: [null, null], padStart: false,
-    keymap: buildKeymap(players), state: 'intro', prevState: '', stT: 0, t: 0, acc: 0, simN: 0, last: 0, raf: 0, camSnap: true, goalReal: 0,
+    keymap: buildKeymap(players), speed: spdClamp(UI.set.speed), state: 'intro', prevState: '', stT: 0, t: 0, acc: 0, simN: 0, last: 0, raf: 0, camSnap: true, goalReal: 0,
     rp: null, rpNext: null, maxDef: [0, 0], hud: {}, bannerUntil: 0, sayT: -9, sayPrio: 0, auto: players === 0, cd: 4, crowdT: 0, possT: 0,
     touchOn: players === 1 && document.body.classList.contains('has-touch'), roundName: o.roundName || '', halfFormDone: false, pens: null, vr: null, defSnap: null, sp: null, goalDir: 1
   };
@@ -3774,6 +4037,7 @@ function launchMatch(o) {
   updateActive(G);
   setupHUD();
   updateMuteBtns();
+  setSpeed(M.speed, true);
   showIntro();
   M.last = 0;
   M.raf = requestAnimationFrame(frame);
@@ -3816,14 +4080,14 @@ function setupHUD() {
 
 function controlsHint() {
   if (M.players === 0) return 'Watching the CPU play itself. Press <b>P</b> or <b>Esc</b> to pause and leave.';
-  if (M.players === 2) return '<b>P1</b> WASD · F shoot · G pass · H lob &nbsp;|&nbsp; <b>P2</b> arrows · , shoot · . pass · / lob';
+  if (M.players === 2) return '<b>P1</b> ' + dirsText('p1') + ' · ' + kl('p1', 'shoot') + ' shoot · ' + kl('p1', 'pass') + ' pass · ' + kl('p1', 'lob') + ' lob &nbsp;|&nbsp; <b>P2</b> ' + dirsText('p2') + ' · ' + kl('p2', 'shoot') + ' shoot · ' + kl('p2', 'pass') + ' pass · ' + kl('p2', 'lob') + ' lob';
   if (M.touchOn) return 'Stick to move · hold <b>SHOOT</b> then let go · tap <b>PASS</b> · <b>SWAP</b> changes player';
-  return 'WASD / arrows move · hold <b>Space</b> to shoot · <b>K</b> pass · <b>L</b> lob · <b>Shift</b> sprint · <b>Q</b> switch';
+  return dirsText('solo') + ' move · hold <b>' + kl('solo', 'shoot') + '</b> to shoot · <b>' + kl('solo', 'pass') + '</b> pass · <b>' + kl('solo', 'lob') + '</b> lob · <b>' + kl('solo', 'sprint') + '</b> sprint · <b>' + kl('solo', 'sw') + '</b> switch';
 }
 function keyFor(team, act) {                                    // the name of the button for an action, for the hints
   if (M.touchOn && team === 0) return act.toUpperCase();
-  if (M.players === 2) return { shoot: ['F', ','], pass: ['G', '.'], lob: ['H', '/'] }[act][team];
-  return { shoot: 'Space', pass: 'K', lob: 'L' }[act];
+  var prof = M.players === 2 ? (team === 0 ? 'p1' : 'p2') : 'solo', b = getBinds(prof)[act];
+  return esc(keyLabel(b[0] || b[1]));
 }
 
 function showIntro() {
@@ -3855,7 +4119,7 @@ function frame(ts) {
   var st = M.state;
   try {
     pollPads();
-    if (st === 'play') { assembleInput(); stepSim(dt); }
+    if (st === 'play') { assembleInput(); stepSim(dt * (M.speed || 1)); }
     else {
       clearEdges();
       if (st === 'intro') { if (M.stT > 2.1) { M.state = 'count'; M.stT = 0; M.cd = 4; } }
@@ -3889,7 +4153,8 @@ function stepSim(dt) {
     if (G.events.length) drainEvents();
     if (!M || M.state !== 'play') { if (M) M.acc = 0; break; }
   }
-  if (M && M.acc > DT * 4) M.acc = DT * 4;
+  var accCap = DT * 4 * Math.max(1, M.speed || 1);
+  if (M && M.acc > accCap) M.acc = accCap;
 }
 function drainEvents() {
   var G = M.G, evs = G.events;
@@ -4228,17 +4493,24 @@ function onFullTime(e) {
 }
 
 // ---- pause ------------------------------------------------------------------------------------------------------------------------------------------
+function showPause() {
+  var sp = spdClamp(M.speed || 1);
+  showModal('<div class="mbox"><div class="h2">⏸ PAUSED</div><div class="note" style="margin:4px 0 10px">' + controlsHint() + '</div>' +
+    '<div class="sl" style="text-align:left;margin:6px 0 14px"><span class="lbl">Game speed</span><output id="pzSpdO">' + spdText(sp) + '</output><input type="range" id="pzSpd" min="' + SPD_MIN + '" max="' + SPD_MAX + '" step="0.05" value="' + sp +
+    '" aria-label="Game speed"><small><span>Slow-mo</span><span>Normal</span><span>Frantic</span></small></div>' +
+    '<div class="row" style="justify-content:center"><button class="btn" id="pzGo">▶ Resume</button><button class="btn alt" id="pzRe">↻ Restart</button><button class="btn alt" id="pzQuit">☰ Quit</button></div></div>');
+  $('pzGo').onclick = resumeFromPause;
+  $('pzRe').onclick = function () { var o = M.o; stopMatch(); launchMatch(o); };
+  $('pzQuit').onclick = function () { var cup = M.mode === 'cup'; showMenu(cup ? 'cup' : 'quick'); };
+  $('pzSpd').oninput = function () { setSpeed(this.value, true); };
+}
 function togglePause() {
   if (!M) return;
   if (M.state === 'paused') { resumeFromPause(); return; }
   if (M.state === 'half' || M.state === 'ft') return;
   M.prevState = M.state; M.state = 'paused';
   audCrowdOff(); clearSrc(); clearTouch();
-  showModal('<div class="mbox"><div class="h2">⏸ PAUSED</div><div class="note" style="margin:4px 0 12px">' + controlsHint() + '</div><div class="row" style="justify-content:center">' +
-    '<button class="btn" id="pzGo">▶ Resume</button><button class="btn alt" id="pzRe">↻ Restart</button><button class="btn alt" id="pzQuit">☰ Quit</button></div></div>');
-  $('pzGo').onclick = resumeFromPause;
-  $('pzRe').onclick = function () { var o = M.o; stopMatch(); launchMatch(o); };
-  $('pzQuit').onclick = function () { var cup = M.mode === 'cup'; showMenu(cup ? 'cup' : 'quick'); };
+  showPause();
 }
 function resumeFromPause() {
   if (!M || M.state !== 'paused') return;
@@ -5380,7 +5652,13 @@ function boot() {
   var s = lsGet(KEY_SET, null);
   if (s && typeof s === 'object') { for (var k in UI.set) if (s[k] !== undefined) UI.set[k] = s[k]; }
   UI.set.players = bootNum(UI.set.players, 1, 0, 2);
-  UI.set.diff = bootNum(UI.set.diff, 1, 0, 3);
+  var dv0 = parseInt(UI.set.diff, 10);
+  UI.set.diff = (dv0 >= 0 && dv0 <= 3) || dv0 === CUSTOM_DIFF ? dv0 : 1;
+  UI.set.speed = spdClamp(UI.set.speed);
+  UI.set.cd = cdClean(UI.set.cd);
+  UI.set.keys = keysClean(UI.set.keys);
+  UI.set.lineups = (UI.set.lineups && typeof UI.set.lineups === 'object' && !(UI.set.lineups instanceof Array)) ? UI.set.lineups : {};
+  applyCustomDiff();
   UI.set.style = bootNum(UI.set.style, 0, 0, 2);
   UI.set.len = [120, 180, 300].indexOf(parseInt(UI.set.len, 10)) >= 0 ? parseInt(UI.set.len, 10) : 180;
   UI.set.sound = UI.set.sound !== false;
